@@ -131,6 +131,7 @@
   /* Animaciones reutilizables */
   --animate-aurora: aurora 18s ease-in-out infinite;
   --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-border-spin: border-spin 6s linear infinite;
 }
 
 /* ============================================================
@@ -222,6 +223,12 @@ body {
   }
   100% {
     background-position: 200% 0;
+  }
+}
+
+@keyframes border-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider, themeInitScript } from "@/components/theme/theme-provider";
+import { SettingsProvider } from "@/components/settings/settings-provider";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 
 const geistSans = Geist({
@@ -56,8 +57,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} min-h-full antialiased`}
       >
         <ThemeProvider>
-          {children}
-          <ServiceWorkerRegister />
+          <SettingsProvider>
+            {children}
+            <ServiceWorkerRegister />
+          </SettingsProvider>
         </ThemeProvider>
       </body>
     </html>

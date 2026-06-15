@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
-import { PageTransition } from "@/components/animations/motion";
+import { SpringTransition } from "@/components/animations/spring-transition";
 
 export function AppShell({
   email,
@@ -54,9 +54,9 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar email={email} onMenuClick={() => setMobileOpen(true)} />
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <PageTransition key={pathname} className="mx-auto w-full max-w-7xl">
+          <SpringTransition key={pathname} className="mx-auto w-full max-w-7xl">
             {children}
-          </PageTransition>
+          </SpringTransition>
         </main>
       </div>
     </div>

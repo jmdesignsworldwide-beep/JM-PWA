@@ -1,11 +1,22 @@
+"use client";
+
+import { useReducedMotion } from "framer-motion";
+import { useSettings } from "@/components/settings/settings-provider";
 import { cn } from "@/lib/utils";
 
 /**
  * Fondo premium: mesh/aurora gradient en movimiento lento + grid sutil.
- * Pensado para login y zonas destacadas. Decorativo (aria-hidden).
- * El movimiento se desactiva con `prefers-reduced-motion` (ver globals.css).
+ * Para login y zonas destacadas. Decorativo (aria-hidden).
+ *
+ * - Respeta `prefers-reduced-motion` (sin movimiento, gradiente estático).
+ * - Se puede apagar en Configuración (`animatedBackgrounds`): muestra un
+ *   gradiente estático muy tenue en vez del fondo animado.
  */
 export function AuroraBackground({ className }: { className?: string }) {
+  const reduce = useReducedMotion();
+  const { animatedBackgrounds } = useSettings();
+  const animate = animatedBackgrounds && !reduce;
+
   return (
     <div
       aria-hidden="true"
@@ -14,7 +25,12 @@ export function AuroraBackground({ className }: { className?: string }) {
         className,
       )}
     >
-      <div className="aurora-bg opacity-70" />
+      <div
+        className={cn(
+          "aurora-bg",
+          animate ? "opacity-70" : "opacity-40 [animation:none]",
+        )}
+      />
       {/* Grid sutil */}
       <div
         className="absolute inset-0 opacity-[0.12]"
