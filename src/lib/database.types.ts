@@ -336,8 +336,19 @@ export interface Tables {
     color: string | null;
     brand_id: string | null;
     auto_generado: boolean;
+    completado: boolean;
+    monto: number | null;
+    moneda: Moneda | null;
     created_by: string | null;
   } & Timestamps;
+
+  app_settings: {
+    id: string;
+    resumen_hora: string;
+    dias_aviso_entrega: number;
+    dias_aviso_cobro: number;
+    updated_at: string;
+  };
 
   message_templates: {
     id: string;

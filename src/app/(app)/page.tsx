@@ -13,6 +13,8 @@ import { MagneticCard } from "@/components/animations/magnetic-card";
 import { BlurInText } from "@/components/animations/blur-in-text";
 import { Spotlight } from "@/components/animations/spotlight";
 import { CountUp } from "@/components/animations/count-up";
+import { HoyPanel } from "@/components/cobros/hoy-panel";
+import { getHoy } from "@/lib/data/agenda";
 
 const KPIS = [
   { label: "Leads activos", value: 0, icon: TrendingUp, hint: "Pipeline de ventas" },
@@ -27,7 +29,8 @@ const KPIS = [
   },
 ];
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const hoy = await getHoy();
   return (
     <>
       {/* Hero del dashboard (momento "wow") */}
@@ -90,25 +93,7 @@ export default function DashboardPage() {
         </StaggerItem>
 
         <StaggerItem>
-          <div className="h-full rounded-xl border border-border bg-card p-6">
-            <h2 className="font-semibold">Próximo</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              El flujo central (Lead → Pedido → Contrato → Factura) llega en las
-              próximas fases.
-            </p>
-            <ul className="mt-5 space-y-2.5 text-sm">
-              {[
-                "Fase 2 · Base de datos",
-                "Fase 3 · Leads y Clientes",
-                "Fase 4 · Pedidos → Facturas",
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-2.5">
-                  <span className="size-1.5 rounded-full bg-electric" />
-                  <span className="text-muted-foreground">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <HoyPanel data={hoy} compact />
         </StaggerItem>
       </StaggerContainer>
     </>
