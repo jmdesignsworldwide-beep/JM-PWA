@@ -1,45 +1,28 @@
-# Base de datos — JM Control Center (Fase 2)
+# Base de datos — JM Control Center
 
-Capa de datos completa: tablas, RLS, auditoría inmutable y disparo automático.
+Capa de datos: tablas, RLS, auditoría inmutable y disparo automático.
 
-## Flujo recomendado: CLI (push local) ⭐
+## Método de migraciones: PAT temporal (asistido) ⭐
 
-A partir de ahora, cuando se agregue una migración nueva en `supabase/migrations/`,
-Marien la aplica con **un solo comando** desde su computadora. Las llaves nunca
-salen de tu máquina.
+Cuando una fase necesite cambios de base de datos:
 
-**Configuración inicial (una sola vez):**
+1. Marien genera un **Access Token temporal** en
+   **Supabase → Account → Access Tokens**.
+2. Se lo pasa al asistente, que aplica el SQL vía la **API de Management de
+   Supabase** (HTTPS) — sin terminal ni CLI.
+3. El asistente verifica que la migración corrió bien y avisa.
+4. **Marien revoca el token** de inmediato.
 
-```bash
-# 1) Inicia sesión (abre el navegador y guarda el token en tu máquina)
-npx supabase login
-
-# 2) Enlaza este repo con tu proyecto (te pedirá la CONTRASEÑA de la base de
-#    datos: Supabase -> Project Settings -> Database -> Database password)
-npx supabase link --project-ref ljhvpsyqdobcbcrhbwdd
-
-# 3) Como las migraciones de la Fase 2 ya se aplicaron a mano (SQL Editor),
-#    marca su historial como "ya aplicado" para que el CLI no las repita:
-npx supabase migration repair --status applied 20260615120001 20260615120002
-```
-
-**Cada vez que haya una migración nueva (lo de siempre a futuro):**
-
-```bash
-git pull                 # trae las migraciones nuevas que dejé en el repo
-npx supabase db push     # las aplica a tu base de datos
-```
-
-> ¿Por qué no las aplico yo desde la nube? Mi entorno de ejecución es un
-> contenedor efímero con el puerto de Postgres (5432/6543) bloqueado, así que
-> `db push` no puede conectarse a tu BD desde ahí. Por eso el push lo corres tú
-> (1 comando) y tus credenciales nunca se exponen.
+El token se usa solo en memoria durante la sesión; **nunca** se guarda en el
+repo ni en commits. Las migraciones quedan versionadas en
+`supabase/migrations/` para tener historial.
 
 ---
 
 ## Alternativa: SQL Editor (pegar → Run)
 
-Si prefieres no usar el CLI, también puedes pegar los archivos a mano.
+Si prefieres aplicarlo a mano, abre los archivos de `supabase/migrations/` y
+`supabase/seed.sql` y pégalos en el SQL Editor en orden.
 
 ### Orden para correr en Supabase (SQL Editor → pegar → Run)
 
