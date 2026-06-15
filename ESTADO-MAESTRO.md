@@ -1,6 +1,6 @@
 # 🧬 ESTADO MAESTRO — JM CONTROL CENTER
 ### Documento vivo · la VERDAD del proyecto · se actualiza siempre
-**Última actualización:** Fase 4 completada (el corazón: Pedidos→Contratos→Facturas conectado + 5 mejoras premium). Método migración: PAT.
+**Última actualización:** Fase 6 (Cotizador 2 ramas + AI Quote Assistant). Fases 1-5 mergeadas a main; Fase 6 en PR. Método migración: PAT. PRs: uno por fase.
 **Para retomar en un chat nuevo:** pega este documento y di "este es el estado maestro de mi proyecto, sigamos desde aquí".
 
 ---
@@ -40,9 +40,9 @@
 2. **Base de datos** — tablas, RLS, auditoría inmutable, disparo automático. ✅ HECHA Y APLICADA EN SUPABASE (26 tablas, money NUMERIC(14,2), audit_log inmutable probado, disparo automático probado)
 3. **Leads/Ventas + ficha de Cliente + barra de ciclo de vida.** ✅ HECHA (Kanban drag&drop, ficha con ciclo de vida desde datos reales, búsqueda global, valor_estimado opcional añadido vía PAT)
 4. **Pedidos→Contratos→Facturas** (el corazón, sin re-teclear). ✅ HECHA (2 ramas, hilo de conversación, split de pagos auto-agendado, antigüedad de contrato, duplicar pedido, snapshot de precios, PDFs con pdf-lib, disparo automático funcionando)
-5. **Cobros/Calendario/Notificaciones** (app/correo/push VAPID). ⬅️ SIGUIENTE
-6. **Cotizador (2 ramas) + AI Quote Assistant.**
-7. **Portal de Cliente** (entra, ve su proyecto, firma → dispara todo). ⭐
+5. **Cobros/Calendario/Notificaciones** (app/correo/push VAPID). ✅ HECHA Y MERGEADA (centro HOY, flujo de caja, calendarios, campana, WhatsApp redactado, cron+push deploy-ready)
+6. **Cotizador (2 ramas) + AI Quote Assistant.** ✅ HECHA (en PR) — software con módulos por industria + imprenta; IA server-side (key solo en servidor); guardar/PDF/WhatsApp; convertir a pedido
+7. **Portal de Cliente** (entra, ve su proyecto, firma → dispara todo). ⭐ ⬅️ SIGUIENTE
 8. **Finanzas + Influencers CRM.**
 9. **Inteligencia** (Smart Insights + Auto-Follow-Up Engine).
 10. **Pulido + Deploy.**
