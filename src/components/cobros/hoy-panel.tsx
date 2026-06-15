@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarCheck, Sun, Truck } from "lucide-react";
+import { AlertTriangle, CalendarCheck, Sun, Truck, BellRing } from "lucide-react";
 import type { AgendaEvent } from "@/lib/data/agenda";
 import { EventItem } from "./event-item";
 
@@ -8,12 +8,14 @@ type Hoy = {
   entregasHoy: AgendaEvent[];
   entregasManana: AgendaEvent[];
   iniciosHoy: AgendaEvent[];
+  avisosHoy?: AgendaEvent[];
 };
 
 export function HoyPanel({ data, compact = false }: { data: Hoy; compact?: boolean }) {
+  const avisos = data.avisosHoy ?? [];
   const totalHoy =
     data.cobrosHoy.length + data.entregasHoy.length + data.iniciosHoy.length + data.entregasManana.length;
-  const nada = totalHoy === 0 && data.vencidos.length === 0;
+  const nada = totalHoy === 0 && data.vencidos.length === 0 && avisos.length === 0;
 
   return (
     <div className="rounded-xl border border-border bg-card">
@@ -27,6 +29,12 @@ export function HoyPanel({ data, compact = false }: { data: Hoy; compact?: boole
           <p className="py-6 text-center text-sm text-muted-foreground">
             Todo al día ☕ No hay cobros, entregas ni atrasos para hoy.
           </p>
+        )}
+
+        {avisos.length > 0 && (
+          <Group icon={<BellRing className="size-4 text-success" />} title="Avisos">
+            {avisos.map((e) => <EventItem key={e.id} e={e} showDate={false} />)}
+          </Group>
         )}
 
         {data.vencidos.length > 0 && (
