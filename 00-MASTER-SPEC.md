@@ -39,6 +39,18 @@ Tres ideas rectoras:
 
 **Librerías:** Framer Motion para animaciones; CSS animado para fondos; Tailwind para todo lo demás.
 
+**ESTÁNDAR DE ANIMACIONES ESTILO 21st.dev (híbrido — aplica a TODAS las fases):**
+- **Pantallas de uso diario** (tablas, formularios, fichas, dashboards internos): efectos hechos a mano con Framer Motion + Tailwind. Limpios, rápidos, sutiles. Sin dependencias extra.
+- **Momentos "wow"** (login, hero del dashboard, landing del portal de cliente): se permiten componentes estilo 21st.dev / Aceternity / Motion Primitives para máximo impacto.
+- **Regla de compatibilidad:** antes de instalar CUALQUIER librería de animación, verificar compatibilidad 100% con React 19 + Tailwind v4. Si no es compatible, replicar el efecto a mano con Framer Motion. **Nunca romper el build por un efecto visual.**
+- **Componentes de efecto reutilizables** (crear una vez, usar en todas las fases): `<AuroraBackground>` (gradiente/mesh animado), `<MagneticCard>` (hover magnético + glow), `<BlurInText>` (texto blur-in/reveal), `<Spotlight>` (seguir-cursor), `<ShimmerBorder>` (bordes brillantes animados), `<SpringTransition>` (transiciones de página con spring).
+- Todos respetan `prefers-reduced-motion`. Fondos animados desactivables en Configuración.
+
+> Estado (Fase 1): los seis componentes ya existen en `src/components/animations/`
+> (hechos a mano con Framer Motion, sin dependencias extra) y el interruptor de
+> fondos animados vive en Configuración (`SettingsProvider`). Aplicados en login
+> y dashboard.
+
 ---
 
 ## ARQUITECTURA GLOBAL
