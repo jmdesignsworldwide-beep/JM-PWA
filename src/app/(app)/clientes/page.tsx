@@ -1,13 +1,19 @@
-import { ModulePlaceholder } from "@/components/layout/module-placeholder";
+import { PageHeader } from "@/components/layout/page-header";
+import { ClientsTable } from "@/components/clientes/clients-table";
+import { getClients, getBrands } from "@/lib/data/clients";
 
 export const metadata = { title: "Clientes y Proyectos" };
 
-export default function ClientesPage() {
+export default async function ClientesPage() {
+  const [clients, brands] = await Promise.all([getClients(), getBrands()]);
+
   return (
-    <ModulePlaceholder
-      title="Clientes y Proyectos"
-      subtitle="Fichas de cliente, proyectos, abonos/saldo, hitos y barra de ciclo de vida."
-      phase="Fase 3"
-    />
+    <>
+      <PageHeader
+        title="Clientes y Proyectos"
+        subtitle="Leads y clientes activos. Todo fluye desde aquí."
+      />
+      <ClientsTable clients={clients} brands={brands} />
+    </>
   );
 }

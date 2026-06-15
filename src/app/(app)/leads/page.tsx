@@ -1,13 +1,19 @@
-import { ModulePlaceholder } from "@/components/layout/module-placeholder";
+import { PageHeader } from "@/components/layout/page-header";
+import { LeadsView } from "@/components/leads/leads-view";
+import { getLeads, getBrands } from "@/lib/data/clients";
 
 export const metadata = { title: "Leads / Ventas" };
 
-export default function LeadsPage() {
+export default async function LeadsPage() {
+  const [leads, brands] = await Promise.all([getLeads(), getBrands()]);
+
   return (
-    <ModulePlaceholder
-      title="Leads / Ventas"
-      subtitle="Pipeline de ventas inbound (Kanban) y conversión a cliente."
-      phase="Fase 3"
-    />
+    <>
+      <PageHeader
+        title="Leads / Ventas"
+        subtitle="Pipeline inbound. Arrastra las tarjetas para mover de etapa."
+      />
+      <LeadsView leads={leads} brands={brands} />
+    </>
   );
 }
