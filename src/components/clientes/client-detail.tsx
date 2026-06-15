@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { History } from "lucide-react";
+import { History, Plus, FileText } from "lucide-react";
 import type { Client } from "@/lib/data/clients";
+import { Button } from "@/components/ui/button";
 import { ClientEditForm } from "./client-edit-form";
 import { Badge } from "@/components/ui/badge";
 import { money, fechaCorta, fechaHora } from "@/lib/format";
@@ -87,16 +89,36 @@ export function ClientDetail({
         {tab === "Resumen" && <ClientEditForm client={client} brands={brands} />}
 
         {tab === "Pedidos" && (
-          <Section
-            empty={stats.orders.length === 0}
-            phase="Fase 4"
-            rows={stats.orders.map((o) => ({
-              id: o.id,
-              left: `Pedido · ${o.estado}`,
-              right: money(o.total, o.moneda),
-              sub: fechaCorta(o.fecha),
-            }))}
-          />
+          <div className="space-y-3">
+            <div className="flex justify-end">
+              <Link href={`/pedidos/nuevo?cliente=${client.id}`}>
+                <Button variant="gradient" size="sm"><Plus className="size-4" /> Nuevo pedido</Button>
+              </Link>
+            </div>
+            {stats.orders.length === 0 ? (
+              <EmptyPhase phase="" text="Aún no hay pedidos. Crea el primero — el contrato y la factura saldrán de él." />
+            ) : (
+              <ul className="space-y-2">
+                {stats.orders.map((o) => (
+                  <li key={o.id}>
+                    <Link
+                      href={`/pedidos/${o.id}`}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5 text-sm transition-colors hover:bg-accent/40"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileText className="size-4 text-electric" />
+                        <div>
+                          <p className="font-medium capitalize">Pedido · {o.estado}</p>
+                          <p className="text-xs text-muted-foreground">{fechaCorta(o.fecha)}</p>
+                        </div>
+                      </div>
+                      <Badge>{money(o.total, o.moneda)}</Badge>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
 
         {tab === "Contratos" && (

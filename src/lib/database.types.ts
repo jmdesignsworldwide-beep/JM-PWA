@@ -79,7 +79,22 @@ export interface Tables {
       | "completado"
       | "cancelado";
     fecha: string;
+    subtotal: number;
+    descuento: number;
+    itbis: number;
+    aplica_itbis: boolean;
+    industria: string | null;
+    tipo_solucion: string | null;
+    plan_pago: Json;
+    fecha_entrega: string | null;
     brand_id: string | null;
+    created_by: string | null;
+  } & Timestamps;
+
+  order_notes: {
+    id: string;
+    order_id: string;
+    texto: string;
     created_by: string | null;
   } & Timestamps;
 
@@ -108,6 +123,8 @@ export interface Tables {
     pdf_url: string | null;
     fecha_aprobacion: string | null;
     firma_cliente: string | null;
+    fecha_envio: string | null;
+    snapshot_json: Json | null;
     brand_id: string | null;
     created_by: string | null;
   } & Timestamps;
