@@ -6,20 +6,20 @@ import { MODULOS, INDUSTRIAS_COT, TIPOS_SOLUCION_COT } from "@/lib/cotizador";
 export const runtime = "nodejs";
 
 /**
- * AI Quote Assistant. La key de Anthropic SOLO vive aquí (servidor).
- * Recibe texto natural y devuelve una cotización pre-armada para que el owner
- * la revise y apruebe. Si la IA falla, el front cae a cotización manual.
+ * AI Quote Assistant con Google Gemini. La GEMINI_API_KEY SOLO vive aquí
+ * (servidor), nunca en el navegador. Recibe texto natural y devuelve una
+ * cotización pre-armada para que el owner la revise y apruebe. Si la IA falla,
+ * el front cae a cotización manual.
  */
 export async function POST(req: Request) {
-  // Requiere sesión (no exponer la IA a anónimos).
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false, reason: "No autenticado" }, { status: 401 });
 
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = process.env.GEMINI_API_KEY;
   if (!key || key.startsWith("tu-")) {
     return NextResponse.json(
-      { ok: false, reason: "Falta ANTHROPIC_API_KEY. Configúrala para usar la IA; mientras, cotiza manual." },
+      { ok: false, reason: "Falta GEMINI_API_KEY. Configúrala para usar la IA; mientras, cotiza manual." },
       { status: 200 },
     );
   }
@@ -28,9 +28,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     prompt = (body?.prompt ?? "").toString().trim();
-  } catch {
-    /* ignore */
-  }
+  } catch { /* ignore */ }
   if (!prompt) return NextResponse.json({ ok: false, reason: "Escribe qué necesita el cliente." }, { status: 200 });
 
   const contexto = await getQuotesContext();
@@ -38,7 +36,7 @@ export async function POST(req: Request) {
 
   const system = `Eres el asistente de cotización de JM Designs Worldwide (Rep. Dominicana).
 Ayudas a Marien (dueña) a armar cotizaciones de software/sistemas.
-Responde SIEMPRE en español y SOLO con un objeto JSON válido, sin texto extra.
+Responde SIEMPRE en español y SOLO con un objeto JSON válido (sin texto extra).
 
 Esquema JSON requerido:
 {
@@ -57,23 +55,22 @@ ${contexto}
 - Si no hay datos previos suficientes, estima un rango razonable para RD y dilo en notas.`;
 
   try {
-    const Anthropic = (await import("@anthropic-ai/sdk")).default;
-    const client = new Anthropic({ apiKey: key });
-    const msg = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1024,
-      system,
-      messages: [{ role: "user", content: prompt }],
+    const { GoogleGenAI } = await import("@google/genai");
+    const ai = new GoogleGenAI({ apiKey: key });
+    const resp = await ai.models.generateContent({
+      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: system,
+        responseMimeType: "application/json",
+        temperature: 0.4,
+      },
     });
 
-    const text = msg.content
-      .map((b) => (b.type === "text" ? b.text : ""))
-      .join("");
-
+    const text = resp.text ?? "";
     const jsonStr = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
     const parsed = JSON.parse(jsonStr);
 
-    // Filtra a ids de módulo válidos.
     const validIds = new Set(MODULOS.map((m) => m.id));
     const modulos = Array.isArray(parsed.modulos)
       ? parsed.modulos.filter((id: string) => validIds.has(id))

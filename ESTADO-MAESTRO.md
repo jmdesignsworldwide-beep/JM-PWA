@@ -16,7 +16,7 @@
 - **Next.js 16 + React 19 + Tailwind v4** (Claude Code actualizó de Next 14; aceptado). App Router.
 - **Supabase** (Postgres, Auth, Storage, RLS) — base de datos y autenticación.
 - **shadcn/ui** + **Framer Motion** (animaciones) + **lucide-react** (íconos).
-- **Resend** (correos) · **Anthropic API** (funciones de IA) · **Vercel** (deploy + cron).
+- **Resend** (correos) · **Google Gemini** (funciones de IA, free tier) · **Vercel** (deploy + cron).
 - **PWA** instalable + **Web Push (VAPID)** para notificaciones al celular.
 - Idioma UI: Español (RD). Moneda: DOP + USD. Zona horaria: America/Santo_Domingo.
 - **Repo GitHub:** github.com/jmdesignsworldwide-beep/JM-PWA
@@ -41,7 +41,7 @@
 3. **Leads/Ventas + ficha de Cliente + barra de ciclo de vida.** ✅ HECHA (Kanban drag&drop, ficha con ciclo de vida desde datos reales, búsqueda global, valor_estimado opcional añadido vía PAT)
 4. **Pedidos→Contratos→Facturas** (el corazón, sin re-teclear). ✅ HECHA (2 ramas, hilo de conversación, split de pagos auto-agendado, antigüedad de contrato, duplicar pedido, snapshot de precios, PDFs con pdf-lib, disparo automático funcionando)
 5. **Cobros/Calendario/Notificaciones** (app/correo/push VAPID). ✅ HECHA Y MERGEADA (centro HOY, flujo de caja, calendarios, campana, WhatsApp redactado, cron+push deploy-ready)
-6. **Cotizador (2 ramas) + AI Quote Assistant.** ✅ HECHA (en PR) — software con módulos por industria + imprenta; IA server-side (key solo en servidor); guardar/PDF/WhatsApp; convertir a pedido
+6. **Cotizador (2 ramas) + AI Quote Assistant.** ✅ HECHA (en PR) — software con módulos por industria + imprenta; IA **Google Gemini** server-side (key solo en servidor); guardar/PDF/WhatsApp; convertir a pedido
 7. **Portal de Cliente** (entra, ve su proyecto, firma → dispara todo). ⭐ ⬅️ SIGUIENTE
 8. **Finanzas + Influencers CRM.**
 9. **Inteligencia** (Smart Insights + Auto-Follow-Up Engine).
@@ -58,7 +58,7 @@ Cuando una fase necesita cambiar la base de datos: (1) Claude Code pide un PAT t
 - **Fase 2:** dinero como entero (centavos) o decimal, NUNCA float. (Se usó NUMERIC(14,2).)
 - **Fase 2:** auditoría `audit_log` IMPOSIBLE de borrar/editar (probado → falla).
 - **Fase 2/4:** disparo automático con PRUEBA: 1 sola vez, solo al firmar, sin duplicar. (Probado end-to-end en base real.)
-- **Fase 6 y 9:** la `ANTHROPIC_API_KEY` SOLO en el servidor (API route), nunca en el cliente.
+- **Fase 6 y 9:** IA = **Google Gemini** (SDK `@google/genai`, modelo `gemini-2.5-flash` del free tier). La `GEMINI_API_KEY` SOLO en el servidor (API route), nunca en el cliente.
 - **Fase 7:** verificar que cliente A jamás vea datos de cliente B (riesgo de privacidad #1).
 - **Animaciones:** verificar compatibilidad con React 19/Tailwind v4 antes de instalar; si no, hacerlo a mano. No romper el build por un efecto.
 - **Rendimiento:** efectos pesados (spotlight, fondos animados) solo en momentos wow (login/dashboard/portal), NO en tablas grandes.
@@ -87,6 +87,7 @@ En `invoices` quedó `ncf = NULL`. El ITBIS sí se calcula (18% opcional si fisc
 - Animaciones híbridas 21st.dev (a mano para uso diario, librerías/efectos para momentos wow).
 - Marcas: JM Designs, KitJoy Studio, JM Distribution.
 - Migraciones: método PAT temporal (sin CLI).
+- IA: **Google Gemini** (free tier) en vez de Anthropic, para no pagar saldo (Fases 6 y 9). SDK `@google/genai`, modelo `gemini-2.5-flash`.
 
 ---
 
