@@ -28,6 +28,11 @@ export function NewLeadDialog({ brands }: { brands: Brand[] }) {
       const v = (fd.get(k) as string)?.trim();
       return v ? v : null;
     };
+    const num = (k: string) => {
+      const v = (fd.get(k) as string)?.trim();
+      const n = v ? Number(v) : NaN;
+      return Number.isFinite(n) ? n : null;
+    };
     const input: NewLeadInput = {
       nombre: (fd.get("nombre") as string).trim(),
       apellido: get("apellido"),
@@ -41,6 +46,8 @@ export function NewLeadDialog({ brands }: { brands: Brand[] }) {
       industria: get("industria"),
       lo_que_quiere: get("lo_que_quiere"),
       fuente: get("fuente"),
+      valor_estimado: num("valor_estimado"),
+      valor_estimado_moneda: (get("valor_estimado_moneda") as "DOP" | "USD") ?? "DOP",
       brand_id: get("brand_id"),
     };
 
@@ -112,6 +119,22 @@ export function NewLeadDialog({ brands }: { brands: Brand[] }) {
                   <option key={f} value={f}>{f}</option>
                 ))}
               </Select>
+            </Field>
+            <Field label="Valor estimado (opcional)">
+              <div className="flex gap-2">
+                <Input
+                  name="valor_estimado"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                />
+                <Select name="valor_estimado_moneda" defaultValue="DOP" className="w-24">
+                  <option value="DOP">DOP</option>
+                  <option value="USD">USD</option>
+                </Select>
+              </div>
             </Field>
             <Field label="Marca">
               <Select name="brand_id" defaultValue="">

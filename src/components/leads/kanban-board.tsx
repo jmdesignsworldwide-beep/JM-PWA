@@ -8,6 +8,7 @@ import { ETAPAS, type EtapaVenta } from "@/lib/ventas";
 import type { Client } from "@/lib/data/clients";
 import { updateLeadStage } from "@/app/(app)/leads/actions";
 import { Badge } from "@/components/ui/badge";
+import { money } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type Props = { leads: Client[]; brandMap: Record<string, string> };
@@ -109,6 +110,11 @@ export function KanbanBoard({ leads, brandMap }: Props) {
                     )}
 
                     <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                      {lead.valor_estimado != null && (
+                        <Badge className="border-electric/40 text-electric">
+                          {money(lead.valor_estimado, lead.valor_estimado_moneda)}
+                        </Badge>
+                      )}
                       {lead.brand_id && brandMap[lead.brand_id] && (
                         <Badge dot={etapa.color}>{brandMap[lead.brand_id]}</Badge>
                       )}

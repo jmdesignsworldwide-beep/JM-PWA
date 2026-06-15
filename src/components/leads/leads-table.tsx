@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ETAPA_LABEL } from "@/lib/ventas";
 import type { Client } from "@/lib/data/clients";
 import { Badge } from "@/components/ui/badge";
+import { money } from "@/lib/format";
 import { containerVariants, itemVariants } from "@/components/animations/motion";
 
 export function LeadsTable({
@@ -29,6 +30,7 @@ export function LeadsTable({
           <tr>
             <th className="px-4 py-3 font-medium">Nombre</th>
             <th className="px-4 py-3 font-medium">Etapa</th>
+            <th className="px-4 py-3 font-medium">Valor est.</th>
             <th className="px-4 py-3 font-medium">Industria</th>
             <th className="px-4 py-3 font-medium">Fuente</th>
             <th className="px-4 py-3 font-medium">Marca</th>
@@ -51,6 +53,9 @@ export function LeadsTable({
               </td>
               <td className="px-4 py-3">
                 <Badge>{ETAPA_LABEL[l.etapa_venta]}</Badge>
+              </td>
+              <td className="px-4 py-3 text-muted-foreground">
+                {l.valor_estimado != null ? money(l.valor_estimado, l.valor_estimado_moneda) : "—"}
               </td>
               <td className="px-4 py-3 text-muted-foreground">{l.industria ?? "—"}</td>
               <td className="px-4 py-3 text-muted-foreground">{l.fuente ?? "—"}</td>

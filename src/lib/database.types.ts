@@ -51,6 +51,8 @@ export interface Tables {
       | "perdido";
     lo_que_quiere: string | null;
     fuente: string | null;
+    valor_estimado: number | null;
+    valor_estimado_moneda: Moneda;
     brand_id: string | null;
     created_by: string | null;
   } & Timestamps;

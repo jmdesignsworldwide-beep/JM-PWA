@@ -18,6 +18,8 @@ export type ClientUpdate = {
   industria?: string | null;
   lo_que_quiere?: string | null;
   fuente?: string | null;
+  valor_estimado?: number | null;
+  valor_estimado_moneda?: "DOP" | "USD";
   brand_id?: string | null;
 };
 
