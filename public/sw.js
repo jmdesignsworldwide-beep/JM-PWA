@@ -1,7 +1,37 @@
-/* JM Control Center — Service Worker (shell PWA, Fase 1)
- * Cache básico del app shell. La parte de Web Push (VAPID) se añade en la Fase 5.
- */
-const CACHE = "jm-control-shell-v1";
+/* JM Control Center — Service Worker (shell PWA + Web Push, Fase 5) */
+const CACHE = "jm-control-shell-v2";
+
+// --- Web Push (VAPID) ---
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "JM Control Center", body: event.data ? event.data.text() : "" };
+  }
+  const title = data.title || "JM Control Center";
+  const options = {
+    body: data.body || "",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    data: { url: data.url || "/cobros" },
+    tag: data.tag,
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if ("focus" in c) return c.focus();
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
+});
 const APP_SHELL = ["/", "/login", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {

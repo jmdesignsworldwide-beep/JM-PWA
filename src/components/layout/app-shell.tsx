@@ -7,11 +7,15 @@ import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { SpringTransition } from "@/components/animations/spring-transition";
 
+import type { AgendaEvent } from "@/lib/data/agenda";
+
 export function AppShell({
   email,
+  alerts,
   children,
 }: {
   email: string;
+  alerts: { count: number; items: AgendaEvent[] };
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -52,7 +56,7 @@ export function AppShell({
 
       {/* Contenido */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar email={email} onMenuClick={() => setMobileOpen(true)} />
+        <Topbar email={email} alerts={alerts} onMenuClick={() => setMobileOpen(true)} />
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
           <SpringTransition key={pathname} className="mx-auto w-full max-w-7xl">
             {children}
