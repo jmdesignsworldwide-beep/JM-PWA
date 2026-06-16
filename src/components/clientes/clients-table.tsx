@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import type { Client } from "@/lib/data/clients";
-import { ETAPA_LABEL } from "@/lib/ventas";
+import { ETAPA_LABEL, INDUSTRIAS } from "@/lib/ventas";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { NewLeadDialog } from "@/components/leads/new-lead-dialog";
@@ -30,10 +30,14 @@ export function ClientsTable({
     () => Object.fromEntries(brands.map((b) => [b.id, b.nombre])),
     [brands],
   );
-  const industrias = useMemo(
-    () => [...new Set(clients.map((c) => c.industria).filter(Boolean))] as string[],
-    [clients],
-  );
+  // Lista completa de industrias (siempre disponible para filtrar) + cualquier
+  // valor heredado en datos viejos que no esté en la lista canónica.
+  const industrias = useMemo(() => {
+    const extra = clients
+      .map((c) => c.industria)
+      .filter((i): i is string => !!i && !INDUSTRIAS.includes(i));
+    return [...INDUSTRIAS, ...new Set(extra)];
+  }, [clients]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();

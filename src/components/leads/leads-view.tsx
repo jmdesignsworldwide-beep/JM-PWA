@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { LayoutGrid, Table2 } from "lucide-react";
 import type { Client } from "@/lib/data/clients";
-import { ETAPAS } from "@/lib/ventas";
+import { ETAPAS, INDUSTRIAS } from "@/lib/ventas";
 import { KanbanBoard } from "./kanban-board";
 import { LeadsTable } from "./leads-table";
 import { NewLeadDialog } from "./new-lead-dialog";
@@ -24,10 +24,13 @@ export function LeadsView({ leads, brands }: { leads: Client[]; brands: Brand[] 
     [brands],
   );
 
-  const industrias = useMemo(
-    () => [...new Set(leads.map((l) => l.industria).filter(Boolean))] as string[],
-    [leads],
-  );
+  // Lista completa de industrias (siempre filtrable) + valores heredados.
+  const industrias = useMemo(() => {
+    const extra = leads
+      .map((l) => l.industria)
+      .filter((i): i is string => !!i && !INDUSTRIAS.includes(i));
+    return [...INDUSTRIAS, ...new Set(extra)];
+  }, [leads]);
   const fuentes = useMemo(
     () => [...new Set(leads.map((l) => l.fuente).filter(Boolean))] as string[],
     [leads],
