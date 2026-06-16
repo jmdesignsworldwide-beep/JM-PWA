@@ -5,6 +5,35 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
+ * Login del portal por USERNAME o CORREO. Resuelve el correo de auth con la
+ * service_role (sin exponerlo al navegador) y firma la sesión en el servidor.
+ * Devuelve un error genérico para no filtrar qué cuentas existen.
+ */
+export async function portalLogin(identifier: string, password: string) {
+  const id = identifier.trim().toLowerCase();
+  if (!id || !password) return { error: "Escribe tu usuario/correo y tu clave." };
+
+  const admin = createAdminClient();
+  // Por correo si trae "@", si no por username. .eq() va parametrizado (sin inyección).
+  const col = id.includes("@") ? "correo" : "username";
+  const { data: prof } = await admin
+    .from("users_profiles")
+    .select("correo")
+    .eq("rol", "cliente")
+    .eq(col, id)
+    .limit(1)
+    .maybeSingle();
+
+  const email = prof?.correo;
+  if (!email) return { error: "Usuario o clave incorrectos." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return { error: "Usuario o clave incorrectos." };
+  return { ok: true };
+}
+
+/**
  * Firma del contrato DESDE el portal del cliente. La RLS (client_sign_contract)
  * solo permite actualizar el contrato propio; el trigger dispara la
  * automatización (factura + calendario + conversión). Avisa al owner.

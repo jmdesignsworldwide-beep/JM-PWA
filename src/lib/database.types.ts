@@ -70,6 +70,7 @@ export interface Tables {
     rol: "owner" | "colaborador" | "cliente" | "equipo";
     nombre: string | null;
     correo: string | null;
+    username: string | null;
     client_id: string | null;
     team_member_id: string | null;
   } & Timestamps;

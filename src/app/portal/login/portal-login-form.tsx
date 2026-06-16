@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Lock, Mail } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { Loader2, Lock, User } from "lucide-react";
+import { portalLogin } from "@/app/portal/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ export function PortalLoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const redirectTo = params.get("redirectTo") || "/portal";
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,10 +21,9 @@ export function PortalLoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setError(error.message === "Invalid login credentials" ? "Correo o contraseña incorrectos." : error.message);
+    const res = await portalLogin(identifier, password);
+    if (res?.error) {
+      setError(res.error);
       setLoading(false);
       return;
     }
@@ -35,14 +34,25 @@ export function PortalLoginForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="email">Correo</Label>
+        <Label htmlFor="identifier">Usuario o correo</Label>
         <div className="relative">
-          <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" placeholder="tu@correo.com" />
+          <User className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="identifier"
+            required
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            className="pl-10"
+            placeholder="maria.perez o tu@correo.com"
+          />
         </div>
+        <p className="text-xs text-muted-foreground">Usa el usuario que te enviamos (ej. maria.perez) o tu correo.</p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Contraseña</Label>
+        <Label htmlFor="password">Clave</Label>
         <div className="relative">
           <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10" placeholder="••••••••" />
