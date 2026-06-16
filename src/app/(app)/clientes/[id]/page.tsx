@@ -64,7 +64,7 @@ export default async function ClientePage({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <WhatsappButton phone={client.whatsapp ?? client.telefono} text={`Hola ${client.nombre}!`} />
-          <PortalAccessButton clientId={client.id} whatsapp={client.whatsapp ?? client.telefono} />
+          <PortalAccessButton clientId={client.id} clientName={client.nombre} whatsapp={client.whatsapp ?? client.telefono} />
           {client.es_lead && <ConvertButton clientId={client.id} />}
         </div>
       </div>
