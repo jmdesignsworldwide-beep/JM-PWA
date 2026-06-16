@@ -51,7 +51,7 @@ export function KanbanBoard({ leads, brandMap }: Props) {
   }
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4">
+    <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 [-webkit-overflow-scrolling:touch]">
       {ETAPAS.map((etapa) => {
         const list = grouped[etapa.id] ?? [];
         return (
@@ -64,7 +64,7 @@ export function KanbanBoard({ leads, brandMap }: Props) {
             onDragLeave={() => setOverEtapa((cur) => (cur === etapa.id ? null : cur))}
             onDrop={() => onDrop(etapa.id)}
             className={cn(
-              "flex w-72 shrink-0 flex-col rounded-xl border border-border bg-card/40 transition-colors",
+              "flex w-[82vw] shrink-0 snap-center flex-col rounded-xl border border-border bg-card/40 transition-colors sm:w-72 sm:snap-start",
               overEtapa === etapa.id && "border-electric/60 bg-accent/40",
             )}
           >

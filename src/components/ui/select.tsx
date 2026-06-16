@@ -12,7 +12,7 @@ const Select = React.forwardRef<
       <select
         ref={ref}
         className={cn(
-          "h-11 w-full appearance-none rounded-lg border border-input bg-background/60 px-3.5 pr-9 text-sm shadow-sm transition-colors",
+          "h-11 w-full appearance-none rounded-lg border border-input bg-background/60 px-3.5 pr-9 text-base shadow-sm transition-colors sm:text-sm",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring",
           "disabled:cursor-not-allowed disabled:opacity-50",
           className,
