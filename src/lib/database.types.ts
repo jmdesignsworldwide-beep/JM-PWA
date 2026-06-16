@@ -381,6 +381,45 @@ export interface Tables {
     created_by: string | null;
   } & Timestamps;
 
+  team_members: {
+    id: string;
+    nombre: string;
+    telefono: string | null;
+    whatsapp: string | null;
+    rol_especialidad: string | null;
+    notas: string | null;
+    activo: boolean;
+    brand_id: string | null;
+    created_by: string | null;
+  } & Timestamps;
+
+  tasks: {
+    id: string;
+    descripcion: string;
+    team_member_id: string | null;
+    project_id: string | null;
+    order_id: string | null;
+    monto: number;
+    moneda: Moneda;
+    fecha_limite: string | null;
+    estado: "pendiente" | "en_progreso" | "hecha";
+    brand_id: string | null;
+    created_by: string | null;
+  } & Timestamps;
+
+  team_payments: {
+    id: string;
+    team_member_id: string;
+    task_id: string | null;
+    monto: number;
+    moneda: Moneda;
+    fecha: string;
+    metodo: string | null;
+    nota: string | null;
+    brand_id: string | null;
+    created_by: string | null;
+  } & Timestamps;
+
   audit_log: {
     id: string;
     accion: string;

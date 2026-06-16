@@ -10,6 +10,7 @@ import {
   Calendar,
   ShieldCheck,
   Settings,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,6 +30,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Finanzas", href: "/finanzas", icon: Wallet },
   { label: "Cotizador", href: "/cotizador", icon: Calculator },
   { label: "Influencers", href: "/influencers", icon: Megaphone },
+  { label: "Equipo / Tareas", href: "/equipo", icon: UsersRound },
   { label: "Calendario", href: "/calendario", icon: Calendar },
   { label: "Historial / Auditoría", href: "/historial", icon: ShieldCheck },
   { label: "Configuración", href: "/configuracion", icon: Settings },
