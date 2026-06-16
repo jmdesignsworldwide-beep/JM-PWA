@@ -25,7 +25,15 @@ export type Moneda = "DOP" | "USD";
 type Timestamps = { created_at: string; updated_at: string };
 
 export interface Tables {
-  brands: { id: string; nombre: string; activo: boolean } & Timestamps;
+  brands: {
+    id: string;
+    nombre: string;
+    activo: boolean;
+    rnc: string | null;
+    telefono: string | null;
+    direccion: string | null;
+    logo_url: string | null;
+  } & Timestamps;
 
   clients: {
     id: string;
@@ -39,7 +47,7 @@ export interface Tables {
     correo: string | null;
     direccion: string | null;
     info_nota: string | null;
-    categoria_servicio: "web" | "software" | "ambos" | null;
+    categoria_servicio: "web" | "software" | "app" | "distribution" | null;
     industria: string | null;
     es_lead: boolean;
     etapa_venta:

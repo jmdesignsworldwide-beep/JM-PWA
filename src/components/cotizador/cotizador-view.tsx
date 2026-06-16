@@ -19,6 +19,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Combobox } from "@/components/ui/combobox";
 import { cn } from "@/lib/utils";
 
 type Client = {
@@ -174,10 +175,12 @@ export function CotizadorView({ clients, printProducts }: { clients: Client[]; p
               </div>
               <div className="space-y-1.5">
                 <Label>Industria</Label>
-                <Select value={industria} onChange={(e) => setIndustria(e.target.value)}>
-                  <option value="">— Seleccionar —</option>
-                  {INDUSTRIAS_COT.map((i) => <option key={i} value={i}>{i}</option>)}
-                </Select>
+                <Combobox
+                  options={INDUSTRIAS_COT.map((i) => ({ value: i, label: i }))}
+                  value={industria}
+                  onChange={setIndustria}
+                  placeholder="Buscar industria…"
+                />
               </div>
             </div>
 

@@ -7,6 +7,7 @@ import type { Task, TeamPayment, TeamMember } from "@/lib/data/equipo";
 import { updateTaskStage } from "@/app/(app)/equipo/actions";
 import { NewTaskDialog } from "./new-task-dialog";
 import { PaymentDialog } from "./payment-dialog";
+import { GrantAccessButton } from "./grant-access-button";
 import { money, fechaCorta } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
@@ -26,6 +27,17 @@ export function MemberDetail({ member, tasks, payments, totals, projects }: {
 
   return (
     <div className="space-y-5">
+      {/* Acceso del colaborador (login propio → /trabajo) */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-semibold">Acceso al sistema</h2>
+            <p className="text-xs text-muted-foreground">Crea el login del colaborador para que vea sus tareas en /trabajo.</p>
+          </div>
+          <GrantAccessButton memberId={member.id} nombre={member.nombre} correo={member.correo} whatsapp={member.whatsapp ?? member.telefono} />
+        </div>
+      </div>
+
       {/* Saldo (Marien le debe) */}
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">

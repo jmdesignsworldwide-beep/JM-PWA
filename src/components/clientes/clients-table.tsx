@@ -8,6 +8,7 @@ import type { Client } from "@/lib/data/clients";
 import { ETAPA_LABEL } from "@/lib/ventas";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
+import { NewLeadDialog } from "@/components/leads/new-lead-dialog";
 import { containerVariants, itemVariants } from "@/components/animations/motion";
 
 type Brand = { id: string; nombre: string };
@@ -71,7 +72,8 @@ export function ClientsTable({
           <option value="">Toda categoría</option>
           <option value="web">Web</option>
           <option value="software">Software</option>
-          <option value="ambos">Ambos</option>
+          <option value="app">App</option>
+          <option value="distribution">JM Distribution</option>
         </Select>
         <Select value={fIndustria} onChange={(e) => setFIndustria(e.target.value)} className="h-9 w-auto">
           <option value="">Toda industria</option>
@@ -85,6 +87,7 @@ export function ClientsTable({
             <option key={b.id} value={b.id}>{b.nombre}</option>
           ))}
         </Select>
+        <div className="ml-auto"><NewLeadDialog brands={brands} label="Nuevo cliente" /></div>
       </div>
 
       {filtered.length === 0 ? (

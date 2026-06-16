@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, Loader2, Package, Code2 } from "lucide-react";
 import { createOrder, type NewOrderInput, type OrderItemInput } from "@/app/(app)/pedidos/actions";
 import { PRINT_CATEGORIAS, TIPOS_SOLUCION, ITBIS_RATE, planPresets, diasHasta } from "@/lib/pedidos";
-import { INDUSTRIAS } from "@/lib/ventas";
+import { INDUSTRIA_OPTIONS } from "@/lib/ventas";
+import { Combobox } from "@/components/ui/combobox";
 import { money } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,10 +147,7 @@ export function NewOrderForm({ client }: { client: Client }) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Industria</Label>
-            <Select value={industria} onChange={(e) => setIndustria(e.target.value)}>
-              <option value="">— Seleccionar —</option>
-              {INDUSTRIAS.map((i) => (<option key={i} value={i}>{i}</option>))}
-            </Select>
+            <Combobox options={INDUSTRIA_OPTIONS} defaultValue={industria} onChange={setIndustria} placeholder="Buscar industria…" />
           </div>
           <div className="space-y-1.5">
             <Label>Tipo de solución</Label>

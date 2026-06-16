@@ -11,12 +11,11 @@ export const dynamic = "force-dynamic";
  * (Web Push/VAPID). Lee Supabase con la service_role. Protegido con CRON_SECRET.
  */
 export async function GET(req: Request) {
+  // Fail-closed: si no hay CRON_SECRET configurado, o no coincide, se rechaza.
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
-      return new NextResponse("No autorizado", { status: 401 });
-    }
+  const auth = req.headers.get("authorization");
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return new NextResponse("No autorizado", { status: 401 });
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

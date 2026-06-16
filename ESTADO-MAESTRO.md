@@ -1,6 +1,6 @@
 # 🧬 ESTADO MAESTRO — JM CONTROL CENTER
 ### Documento vivo · la VERDAD del proyecto · se actualiza siempre
-**Última actualización:** Fase 9 (Inteligencia: Smart Insights + Auto-Follow-Up). Fases 1-8 mergeadas a `main`; Fase 9 en PR. Método migración: PAT. PRs: uno por fase. Falta solo la Fase 10 (Pulido + Deploy).
+**Última actualización:** Fase 10 (Pulido + Deploy) en PR. Fases 1–9.5 en `main`. Seguridad endurecida (headers/CSP, cron fail-closed, source maps off, zod, rate-limit), Historial/Auditoría UI, Bóveda de documentos y Configuración. Guía de deploy + QA en `DEPLOY.md`. Método migración: PAT.
 **Para retomar en un chat nuevo:** pega este documento y di "este es el estado maestro de mi proyecto, sigamos desde aquí".
 
 ---
@@ -45,7 +45,7 @@
 7. **Portal de Cliente** (entra, ve su proyecto, firma → dispara todo). ✅ HECHA Y MERGEADA — aislamiento A≠B probado con 2 clientes reales; firma dispara automatización.
 8. **Finanzas + Influencers CRM.** ✅ HECHA Y MERGEADA — margen real, recurrentes/MRR, "¿qué gastaste hoy?", CRM con Kanban/export/campañas/tasa de respuesta.
 9. **Inteligencia** (Smart Insights + Auto-Follow-Up Engine). ✅ HECHA (en PR) — KPIs reales, insights respaldados por datos, resumen IA (Gemini), panel "Acciones sugeridas hoy" con WhatsApp redactado, cron llena `followups`.
-10. **Pulido + Deploy.** ⬅️ SIGUIENTE (último)
+10. **Pulido + Deploy.** ✅ HECHA (en PR) — auditoría de seguridad + headers/CSP, cron fail-closed, source maps off, zod, rate-limit; Historial/Auditoría UI; Bóveda de documentos; índice /pedidos; guía de deploy + checklist QA (`DEPLOY.md`).
 
 ---
 
