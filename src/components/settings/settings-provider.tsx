@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { applyThemeTokens, loadThemeTokens } from "@/lib/theme-tokens";
 
 /**
  * Preferencias de la app que el usuario puede cambiar en Configuración.
@@ -35,6 +36,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       return DEFAULTS;
     }
   });
+
+  // Aplica los tokens de tema guardados (acentos re-temables) al cargar.
+  React.useEffect(() => {
+    applyThemeTokens(loadThemeTokens());
+  }, []);
 
   const setSetting = React.useCallback(
     <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {

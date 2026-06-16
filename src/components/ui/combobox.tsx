@@ -14,17 +14,29 @@ export function Combobox({
   name,
   options,
   defaultValue = "",
+  value: controlledValue,
   placeholder = "Seleccionar…",
+  onChange,
 }: {
-  name: string;
+  name?: string;
   options: ComboOption[];
   defaultValue?: string;
+  value?: string;
   placeholder?: string;
+  onChange?: (value: string) => void;
 }) {
-  const [value, setValue] = useState(defaultValue);
+  const [internal, setInternal] = useState(defaultValue);
+  const value = controlledValue !== undefined ? controlledValue : internal;
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const boxRef = useRef<HTMLDivElement>(null);
+
+  function choose(v: string) {
+    setInternal(v);
+    setOpen(false);
+    setQ("");
+    onChange?.(v);
+  }
 
   const selected = options.find((o) => o.value === value) ?? null;
   const filtered = useMemo(() => {
@@ -61,7 +73,7 @@ export function Combobox({
           </div>
           <div className="max-h-56 overflow-y-auto p-1">
             {selected && (
-              <button type="button" onMouseDown={() => { setValue(""); setOpen(false); setQ(""); }}
+              <button type="button" onMouseDown={() => choose("")}
                 className="w-full rounded-md px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent">
                 — Limpiar selección —
               </button>
@@ -71,7 +83,7 @@ export function Combobox({
               <button
                 key={o.value}
                 type="button"
-                onMouseDown={() => { setValue(o.value); setOpen(false); setQ(""); }}
+                onMouseDown={() => choose(o.value)}
                 className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
               >
                 {o.label}

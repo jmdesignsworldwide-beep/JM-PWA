@@ -38,3 +38,60 @@ export async function createOwner(input: { email: string; password?: string; nom
   revalidatePath("/configuracion");
   return { ok: true, email, password };
 }
+
+// ---------- Marcas ----------
+export async function createBrand(nombre: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("brands").insert({ nombre: nombre.trim() });
+  if (error) return { error: error.message };
+  revalidatePath("/configuracion");
+  return { ok: true };
+}
+export async function updateBrand(id: string, input: {
+  nombre?: string; rnc?: string | null; telefono?: string | null; direccion?: string | null; logo_url?: string | null; activo?: boolean;
+}) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("brands").update(input).eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/configuracion");
+  return { ok: true };
+}
+
+// ---------- Categorías ----------
+export async function createCategory(nombre: string, tipo: "ingreso" | "gasto") {
+  const supabase = await createClient();
+  const { error } = await supabase.from("categories").insert({ nombre: nombre.trim(), tipo });
+  if (error) return { error: error.message };
+  revalidatePath("/configuracion");
+  return { ok: true };
+}
+export async function deleteCategory(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("categories").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/configuracion");
+  return { ok: true };
+}
+
+// ---------- Plantillas ----------
+export async function createTemplate(input: { tipo: "contrato" | "dm" | "whatsapp"; nombre: string; contenido: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("message_templates").insert({ tipo: input.tipo, nombre: input.nombre.trim(), contenido: input.contenido });
+  if (error) return { error: error.message };
+  revalidatePath("/configuracion");
+  return { ok: true };
+}
+export async function updateTemplate(id: string, input: { nombre?: string; contenido?: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("message_templates").update(input).eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/configuracion");
+  return { ok: true };
+}
+export async function deleteTemplate(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("message_templates").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/configuracion");
+  return { ok: true };
+}
