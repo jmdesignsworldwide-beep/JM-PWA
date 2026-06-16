@@ -61,3 +61,22 @@ export async function getOrdersByClient(clientId: string): Promise<Order[]> {
     .order("created_at", { ascending: false });
   return (data ?? []) as Order[];
 }
+
+/** Pedidos recientes (todos los clientes) con nombre de cliente, para el índice. */
+export async function getRecentOrders(limit = 100) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("orders")
+    .select("id, client_id, rama, estado, total, moneda, fecha, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  const orders = (data ?? []) as Pick<Order, "id" | "client_id" | "rama" | "estado" | "total" | "moneda" | "fecha">[];
+
+  const ids = [...new Set(orders.map((o) => o.client_id))];
+  let nameMap = new Map<string, string>();
+  if (ids.length) {
+    const { data: cls } = await supabase.from("clients").select("id, nombre, apellido").in("id", ids);
+    nameMap = new Map((cls ?? []).map((c) => [c.id, `${c.nombre} ${c.apellido ?? ""}`.trim()]));
+  }
+  return orders.map((o) => ({ ...o, clienteNombre: nameMap.get(o.client_id) ?? "Cliente" }));
+}
