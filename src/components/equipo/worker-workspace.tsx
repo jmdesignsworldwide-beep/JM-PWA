@@ -44,11 +44,11 @@ export function WorkerWorkspace({ nombre, tasks, payments, totals }: {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 pb-bottomnav sm:px-6 sm:pb-8">
         <h1 className="text-2xl font-semibold tracking-tight">Hola, {nombre} 👋</h1>
 
         {/* Mis pagos (solo lo mío) */}
-        <section className="rounded-xl border border-border bg-card p-5">
+        <section id="pagos" className="scroll-mt-20 rounded-xl border border-border bg-card p-5">
           <h2 className="mb-3 flex items-center gap-2 font-semibold"><HandCoins className="size-4 text-success" /> Mis pagos</h2>
           <div className="grid grid-cols-3 gap-3 text-center">
             <Stat label="Ganado (hecho)" value={money(totals.acordado, "DOP")} />
@@ -68,7 +68,7 @@ export function WorkerWorkspace({ nombre, tasks, payments, totals }: {
         </section>
 
         {/* Mis tareas */}
-        <section className="rounded-xl border border-border bg-card p-5">
+        <section id="tareas" className="scroll-mt-20 rounded-xl border border-border bg-card p-5">
           <h2 className="mb-3 flex items-center gap-2 font-semibold"><ListTodo className="size-4 text-electric" /> Mis tareas</h2>
           {tasks.length === 0 ? <p className="py-4 text-center text-sm text-muted-foreground">No tienes tareas asignadas.</p> : (
             <ul className="space-y-2">
@@ -79,7 +79,7 @@ export function WorkerWorkspace({ nombre, tasks, payments, totals }: {
                     <p className="text-xs text-muted-foreground">{t.fecha_limite ? `Límite ${fechaCorta(t.fecha_limite)}` : "Sin fecha"}</p>
                   </div>
                   <Badge>{money(t.monto, t.moneda)}</Badge>
-                  <Select defaultValue={t.estado} className="h-8 w-32"
+                  <Select defaultValue={t.estado} className="h-10 w-36"
                     onChange={(e) => start(async () => { await workerUpdateTaskEstado(t.id, e.target.value as "pendiente" | "en_progreso" | "hecha"); router.refresh(); })}>
                     {ESTADOS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                   </Select>
@@ -89,6 +89,21 @@ export function WorkerWorkspace({ nombre, tasks, payments, totals }: {
           )}
         </section>
       </main>
+
+      {/* Navegación inferior (móvil) */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/85 pb-safe backdrop-blur-xl sm:hidden">
+        <div className="mx-auto grid max-w-md grid-cols-3">
+          <a href="#tareas" className="flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground active:text-electric">
+            <ListTodo className="size-[22px]" /> <span>Tareas</span>
+          </a>
+          <a href="#pagos" className="flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground active:text-success">
+            <HandCoins className="size-[22px]" /> <span>Pagos</span>
+          </a>
+          <button onClick={signOut} className="flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground active:text-destructive">
+            <LogOut className="size-[22px]" /> <span>Salir</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }

@@ -42,7 +42,7 @@ export function Dialog({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-4 sm:items-center">
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -53,19 +53,23 @@ export function Dialog({
           <motion.div
             role="dialog"
             aria-modal="true"
-            initial={{ opacity: 0, scale: 0.96, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 12 }}
-            transition={{ type: "spring", stiffness: 280, damping: 26 }}
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className={cn(
-              "relative z-10 my-8 w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl",
+              // Móvil: hoja inferior a todo el ancho; sm+: tarjeta centrada.
+              "relative z-10 max-h-[92dvh] w-full overflow-y-auto rounded-t-2xl border border-border bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-2xl",
+              "sm:my-8 sm:max-w-lg sm:rounded-2xl sm:p-6 sm:pb-6",
               className,
             )}
           >
+            {/* Agarradera (solo móvil) */}
+            <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-border sm:hidden" />
             <button
               onClick={onClose}
               aria-label="Cerrar"
-              className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="absolute right-3 top-3 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:right-4 sm:top-4 sm:p-1"
             >
               <X className="size-4" />
             </button>

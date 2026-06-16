@@ -201,6 +201,21 @@ body {
   animation: var(--animate-aurora);
 }
 
+/* Safe-area (notch / barra inferior iOS) para layout móvil */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+@utility mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+/* Espacio para que el contenido no quede tapado por la barra inferior móvil */
+@utility pb-bottomnav {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+}
+
 /* ============================================================
    KEYFRAMES
    ============================================================ */

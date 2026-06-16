@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
+import { BottomNav } from "./bottom-nav";
 import { SpringTransition } from "@/components/animations/spring-transition";
 
 import type { AgendaEvent } from "@/lib/data/agenda";
@@ -57,12 +58,15 @@ export function AppShell({
       {/* Contenido */}
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar email={email} alerts={alerts} onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main className="flex-1 px-4 py-6 pb-bottomnav sm:px-6 lg:px-8 lg:pb-8">
           <SpringTransition key={pathname} className="mx-auto w-full max-w-7xl">
             {children}
           </SpringTransition>
         </main>
       </div>
+
+      {/* Navegación inferior (móvil) — "Más" abre el menú completo */}
+      <BottomNav onMore={() => setMobileOpen(true)} />
     </div>
   );
 }

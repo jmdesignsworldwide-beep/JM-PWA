@@ -89,10 +89,10 @@ export function NewLeadDialog({ brands, label = "Nuevo lead" }: { brands: Brand[
               <Input name="cedula" placeholder="000-0000000-0" />
             </Field>
             <Field label="Teléfono">
-              <Input name="telefono" placeholder="809-000-0000" />
+              <Input name="telefono" type="tel" placeholder="809-000-0000" />
             </Field>
             <Field label="WhatsApp">
-              <Input name="whatsapp" placeholder="1 809 000 0000" />
+              <Input name="whatsapp" type="tel" placeholder="1 809 000 0000" />
             </Field>
             <Field label="Correo">
               <Input name="correo" type="email" placeholder="correo@ejemplo.com" />

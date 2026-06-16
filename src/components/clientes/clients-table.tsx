@@ -95,7 +95,31 @@ export function ClientsTable({
           No hay registros con estos filtros.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border">
+        <>
+        {/* Móvil: tarjetas apiladas (sin scroll horizontal) */}
+        <motion.ul variants={containerVariants} initial="hidden" animate="show" className="space-y-2 sm:hidden">
+          {filtered.map((c) => (
+            <motion.li key={c.id} variants={itemVariants}>
+              <Link href={`/clientes/${c.id}`} className="block rounded-xl border border-border bg-card p-4 active:bg-accent/40">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium">{c.nombre} {c.apellido ?? ""}</span>
+                  {c.es_lead ? (
+                    <Badge dot="var(--warning)">Lead</Badge>
+                  ) : (
+                    <Badge dot="var(--success)">Activo</Badge>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {[c.categoria_servicio, c.industria, c.brand_id ? brandMap[c.brand_id] : null].filter(Boolean).join(" · ") || "Sin datos"}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">{c.whatsapp ?? c.telefono ?? c.correo ?? "Sin contacto"}</p>
+              </Link>
+            </motion.li>
+          ))}
+        </motion.ul>
+
+        {/* Escritorio: tabla */}
+        <div className="hidden overflow-x-auto rounded-xl border border-border sm:block">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
@@ -135,6 +159,7 @@ export function ClientsTable({
             </motion.tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

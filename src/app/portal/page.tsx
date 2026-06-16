@@ -9,6 +9,7 @@ import { ContractSignCard } from "@/components/portal/contract-sign-card";
 import { ProjectJourney } from "@/components/portal/project-journey";
 import { UpdateFeed } from "@/components/portal/update-feed";
 import { PortalPush } from "@/components/portal/portal-push";
+import { PortalBottomNav } from "@/components/portal/portal-bottom-nav";
 import { AuroraBackground } from "@/components/animations/aurora-background";
 import { BlurInText } from "@/components/animations/blur-in-text";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +41,7 @@ export default async function PortalPage() {
       <AuroraBackground className="opacity-60" />
       <PortalHeader brandName={d.brandName} />
 
-      <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 pb-bottomnav sm:px-6 sm:pb-8">
         {/* Bienvenida personal */}
         <div>
           <BlurInText as="h1" text={`Bienvenido, ${d.client?.nombre ?? ""} 👋`} className="block text-2xl font-semibold tracking-tight sm:text-3xl" />
@@ -50,7 +51,9 @@ export default async function PortalPage() {
         </div>
 
         {/* Journey visual — el corazón del portal */}
-        <ProjectJourney milestones={d.milestones} progreso={d.progreso} step={d.step} celebrateId={d.celebrateId} />
+        <div id="journey" className="scroll-mt-20">
+          <ProjectJourney milestones={d.milestones} progreso={d.progreso} step={d.step} celebrateId={d.celebrateId} />
+        </div>
 
         {/* Aprobaciones (un toque) */}
         {porFirmar.map((c) => (
@@ -83,7 +86,7 @@ export default async function PortalPage() {
           </Card>
 
           {/* Facturas y saldo */}
-          <Card icon={<CircleDollarSign className="size-4 text-success" />} title="Tus facturas y saldo">
+          <Card id="facturas" icon={<CircleDollarSign className="size-4 text-success" />} title="Tus facturas y saldo">
             <div className="mb-3 grid grid-cols-3 gap-2 text-center">
               <Stat label="Facturado" value={money(d.totals.facturado, "DOP")} />
               <Stat label="Pagado" value={money(d.totals.pagado, "DOP")} />
@@ -103,7 +106,7 @@ export default async function PortalPage() {
           </Card>
 
           {/* Documentos / entregables */}
-          <Card icon={<FolderDown className="size-4 text-electric" />} title="Tus documentos">
+          <Card id="documentos" icon={<FolderDown className="size-4 text-electric" />} title="Tus documentos">
             {d.files.length === 0 ? <Empty text="Aún no hay documentos compartidos." /> : (
               <ul className="space-y-2">
                 {d.files.map((f) => (
@@ -124,13 +127,15 @@ export default async function PortalPage() {
         {/* Activar notificaciones */}
         <PortalPush />
       </main>
+
+      <PortalBottomNav />
     </div>
   );
 }
 
-function Card({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function Card({ id, icon, title, children }: { id?: string; icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-border bg-card">
+    <section id={id} className="scroll-mt-20 rounded-xl border border-border bg-card">
       <div className="flex items-center gap-2 border-b border-border px-5 py-3">
         {icon}<h2 className="font-semibold">{title}</h2>
       </div>

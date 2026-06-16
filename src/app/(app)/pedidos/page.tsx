@@ -27,7 +27,27 @@ export default async function PedidosPage() {
           Aún no hay pedidos. Entra a la ficha de un cliente → pestaña <strong>Pedidos</strong> → <strong>Nuevo pedido</strong>.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border">
+        <>
+        {/* Móvil: tarjetas */}
+        <ul className="space-y-2 sm:hidden">
+          {orders.map((o) => (
+            <li key={o.id}>
+              <Link href={`/pedidos/${o.id}`} className="block rounded-xl border border-border bg-card p-4 active:bg-accent/40">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 font-medium"><FileText className="size-4 text-electric" /> {o.clienteNombre}</span>
+                  <span className="font-medium">{money(o.total, o.moneda)}</span>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+                  <Badge>{o.estado}</Badge>
+                  <span>{o.rama === "designs" ? "JM Designs" : "JM Distribution"} · {fechaCorta(o.fecha)}</span>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        {/* Escritorio: tabla */}
+        <div className="hidden overflow-x-auto rounded-xl border border-border sm:block">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
@@ -55,6 +75,7 @@ export default async function PedidosPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </>
   );
