@@ -85,6 +85,53 @@ export async function grantPortalAccess(clientId: string) {
   return { ok: true, email: client.correo, password: temp };
 }
 
+/** Bóveda de documentos: registra un archivo subido al Storage. */
+export async function addClientDocument(input: {
+  client_id: string; file_url: string; tipo: string | null; visible_cliente: boolean;
+}) {
+  const supabase = await createClient();
+  // Versionado simple: cuenta archivos previos del mismo tipo para este cliente.
+  const { count } = await supabase
+    .from("project_files").select("id", { count: "exact", head: true })
+    .eq("client_id", input.client_id).eq("tipo", input.tipo ?? "Documento");
+  const { error } = await supabase.from("project_files").insert({
+    client_id: input.client_id, file_url: input.file_url,
+    tipo: input.tipo ?? "Documento", visible_cliente: input.visible_cliente,
+    version: (count ?? 0) + 1,
+  });
+  if (error) return { error: error.message };
+  revalidatePath(`/clientes/${input.client_id}`);
+  return { ok: true };
+}
+
+export async function toggleDocumentVisible(id: string, visible: boolean, clientId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("project_files").update({ visible_cliente: visible }).eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath(`/clientes/${clientId}`);
+  return { ok: true };
+}
+
+export async function deleteDocument(id: string, clientId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("project_files").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath(`/clientes/${clientId}`);
+  return { ok: true };
+}
+
+/** URL firmada temporal para descargar un documento privado. */
+export async function getSignedDocUrl(fileUrl: string) {
+  const supabase = await createClient();
+  const slash = fileUrl.indexOf("/");
+  if (slash < 0) return { error: "Ruta inválida" };
+  const bucket = fileUrl.slice(0, slash);
+  const path = fileUrl.slice(slash + 1);
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+  if (error) return { error: error.message };
+  return { url: data.signedUrl };
+}
+
 /** Conversión manual Lead -> Cliente activo. */
 export async function convertToActive(id: string) {
   const supabase = await createClient();

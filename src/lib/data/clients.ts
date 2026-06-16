@@ -68,6 +68,17 @@ export async function getClientStats(clientId: string) {
   };
 }
 
+/** Documentos (bóveda) de un cliente. */
+export async function getClientFiles(clientId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("project_files")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false });
+  return data ?? [];
+}
+
 /** Actividad (auditoría) de un cliente. */
 export async function getClientActivity(clientId: string) {
   const supabase = await createClient();

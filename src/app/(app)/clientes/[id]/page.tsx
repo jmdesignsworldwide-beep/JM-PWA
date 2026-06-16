@@ -6,6 +6,7 @@ import {
   getBrands,
   getClientStats,
   getClientActivity,
+  getClientFiles,
 } from "@/lib/data/clients";
 import { currentLifecycleStep } from "@/lib/data/lifecycle";
 import { LifecycleBar } from "@/components/clientes/lifecycle-bar";
@@ -24,10 +25,11 @@ export default async function ClientePage({
   const client = await getClientById(id);
   if (!client) notFound();
 
-  const [brands, stats, activity] = await Promise.all([
+  const [brands, stats, activity, files] = await Promise.all([
     getBrands(),
     getClientStats(id),
     getClientActivity(id),
+    getClientFiles(id),
   ]);
 
   const step = currentLifecycleStep(client, stats);
@@ -70,7 +72,7 @@ export default async function ClientePage({
         <LifecycleBar current={step} />
       </div>
 
-      <ClientDetail client={client} brands={brands} stats={stats} activity={activity} />
+      <ClientDetail client={client} brands={brands} stats={stats} activity={activity} files={files} />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { History, Plus, FileText } from "lucide-react";
 import type { Client } from "@/lib/data/clients";
 import { Button } from "@/components/ui/button";
 import { ClientEditForm } from "./client-edit-form";
+import { DocumentosManager } from "./documentos-manager";
 import { Badge } from "@/components/ui/badge";
 import { money, fechaCorta, fechaHora } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -35,16 +36,20 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number];
 
+type Doc = { id: string; file_url: string | null; tipo: string | null; version: number; visible_cliente: boolean; created_at: string };
+
 export function ClientDetail({
   client,
   brands,
   stats,
   activity,
+  files,
 }: {
   client: Client;
   brands: Brand[];
   stats: Stats;
   activity: Activity;
+  files: Doc[];
 }) {
   const [tab, setTab] = useState<Tab>("Resumen");
 
@@ -54,6 +59,7 @@ export function ClientDetail({
     Facturas: stats.invoices.length,
     Proyectos: stats.projects.length,
     Pagos: stats.payments.length,
+    Documentos: files.length,
   };
 
   return (
@@ -174,7 +180,7 @@ export function ClientDetail({
         )}
 
         {tab === "Documentos" && (
-          <EmptyPhase phase="Fase 7" text="La bóveda de documentos del cliente se construye más adelante." />
+          <DocumentosManager clientId={client.id} docs={files} />
         )}
 
         {tab === "Actividad" && (

@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getQuotesContext } from "@/lib/data/quotes";
 import { MODULOS, INDUSTRIAS_COT, TIPOS_SOLUCION_COT } from "@/lib/cotizador";
+import { rateLimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
+
+const bodySchema = z.object({ prompt: z.string().min(1).max(2000) });
 
 /**
  * AI Quote Assistant con Google Gemini. La GEMINI_API_KEY SOLO vive aquí
@@ -16,6 +20,10 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false, reason: "No autenticado" }, { status: 401 });
 
+  if (!rateLimit(`ai-quote:${user.id}`, 20, 60_000)) {
+    return NextResponse.json({ ok: false, reason: "Demasiadas solicitudes. Espera un momento." }, { status: 429 });
+  }
+
   const key = process.env.GEMINI_API_KEY;
   if (!key || key.startsWith("tu-")) {
     return NextResponse.json(
@@ -26,8 +34,8 @@ export async function POST(req: Request) {
 
   let prompt = "";
   try {
-    const body = await req.json();
-    prompt = (body?.prompt ?? "").toString().trim();
+    const parsed = bodySchema.safeParse(await req.json());
+    if (parsed.success) prompt = parsed.data.prompt.trim();
   } catch { /* ignore */ }
   if (!prompt) return NextResponse.json({ ok: false, reason: "Escribe qué necesita el cliente." }, { status: 200 });
 
