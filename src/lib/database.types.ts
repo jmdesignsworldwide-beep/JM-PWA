@@ -197,6 +197,21 @@ export interface Tables {
     fecha: string | null;
     porcentaje: number | null;
     visible_cliente: boolean;
+    completado: boolean;
+    completado_en: string | null;
+    orden: number;
+    descripcion: string | null;
+    icono: string | null;
+    created_by: string | null;
+  } & Timestamps;
+
+  project_updates: {
+    id: string;
+    project_id: string | null;
+    client_id: string;
+    titulo: string;
+    contenido: string | null;
+    visible_cliente: boolean;
     created_by: string | null;
   } & Timestamps;
 

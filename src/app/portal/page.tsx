@@ -1,12 +1,15 @@
 import { redirect } from "next/navigation";
 import {
-  CircleDollarSign, FileText, Flag, ListChecks, FolderDown, AlertCircle,
+  CircleDollarSign, FileText, FolderDown, AlertCircle, ListChecks, CheckCircle2,
 } from "lucide-react";
 import { getMyProfile } from "@/lib/data/profile";
 import { getPortalData } from "@/lib/data/portal";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { ContractSignCard } from "@/components/portal/contract-sign-card";
-import { LifecycleBar } from "@/components/clientes/lifecycle-bar";
+import { ProjectJourney } from "@/components/portal/project-journey";
+import { UpdateFeed } from "@/components/portal/update-feed";
+import { PortalPush } from "@/components/portal/portal-push";
+import { AuroraBackground } from "@/components/animations/aurora-background";
 import { BlurInText } from "@/components/animations/blur-in-text";
 import { Badge } from "@/components/ui/badge";
 import { money, fechaCorta } from "@/lib/format";
@@ -33,29 +36,41 @@ export default async function PortalPage() {
   if (d.totals.saldo > 0) pendientes.push(`Pago pendiente de ${money(d.totals.saldo, d.invoices[0]?.moneda ?? "DOP")}`);
 
   return (
-    <div className="min-h-dvh">
+    <div className="relative min-h-dvh">
+      <AuroraBackground className="opacity-60" />
       <PortalHeader brandName={d.brandName} />
 
       <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 sm:px-6">
+        {/* Bienvenida personal */}
         <div>
-          <BlurInText as="h1" text={`Hola, ${d.client?.nombre ?? ""} 👋`} className="block text-2xl font-semibold tracking-tight sm:text-3xl" />
-          <p className="mt-1 text-sm text-muted-foreground">Este es el estado de tu proyecto con nosotros.</p>
+          <BlurInText as="h1" text={`Bienvenido, ${d.client?.nombre ?? ""} 👋`} className="block text-2xl font-semibold tracking-tight sm:text-3xl" />
+          <p className="mt-1 text-sm text-muted-foreground">
+            Así va tu proyecto con <span className="text-gradient font-medium">{d.brandName ?? "JM Designs"}</span>. Bienvenido a tu espacio.
+          </p>
         </div>
 
-        {/* Progreso */}
-        <section className="rounded-xl border border-border bg-card p-5">
-          <h2 className="mb-3 text-sm font-medium text-muted-foreground">Progreso de tu proyecto</h2>
-          <LifecycleBar current={d.step} />
-        </section>
+        {/* Journey visual — el corazón del portal */}
+        <ProjectJourney milestones={d.milestones} progreso={d.progreso} step={d.step} celebrateId={d.celebrateId} />
 
-        {/* Contrato por firmar */}
-        {porFirmar.map((c) => <ContractSignCard key={c.id} contract={{ id: c.id, contenido: c.contenido }} />)}
+        {/* Aprobaciones (un toque) */}
+        {porFirmar.map((c) => (
+          <ContractSignCard
+            key={c.id}
+            contract={{ id: c.id, contenido: c.contenido }}
+            clientName={`${d.client?.nombre ?? ""} ${d.client?.apellido ?? ""}`.trim()}
+          />
+        ))}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Pendientes */}
+          {/* Feed de avances */}
+          <UpdateFeed updates={d.updates} />
+
+          {/* Pendiente de tu parte */}
           <Card icon={<ListChecks className="size-4 text-electric" />} title="Pendiente de tu parte">
             {pendientes.length === 0 ? (
-              <Empty text="Nada pendiente de tu parte ahora. 🎉" />
+              <div className="flex items-center gap-2 py-4 text-sm text-success">
+                <CheckCircle2 className="size-5" /> Nada pendiente de tu parte. 🎉
+              </div>
             ) : (
               <ul className="space-y-2">
                 {pendientes.map((p, i) => (
@@ -87,24 +102,7 @@ export default async function PortalPage() {
             )}
           </Card>
 
-          {/* Hitos */}
-          <Card icon={<Flag className="size-4 text-brand-purple" />} title="Hitos del proyecto">
-            {d.milestones.length === 0 ? <Empty text="Aún no hay hitos publicados." /> : (
-              <ul className="space-y-2">
-                {d.milestones.map((m) => (
-                  <li key={m.id} className="rounded-lg border border-border px-3 py-2.5 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{m.nombre}</span>
-                      {m.porcentaje != null && <Badge>{m.porcentaje}%</Badge>}
-                    </div>
-                    <p className="text-xs text-muted-foreground">{fechaCorta(m.fecha)}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-
-          {/* Documentos */}
+          {/* Documentos / entregables */}
           <Card icon={<FolderDown className="size-4 text-electric" />} title="Tus documentos">
             {d.files.length === 0 ? <Empty text="Aún no hay documentos compartidos." /> : (
               <ul className="space-y-2">
@@ -122,6 +120,9 @@ export default async function PortalPage() {
             )}
           </Card>
         </div>
+
+        {/* Activar notificaciones */}
+        <PortalPush />
       </main>
     </div>
   );

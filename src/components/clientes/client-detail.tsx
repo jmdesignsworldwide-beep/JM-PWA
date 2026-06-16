@@ -8,6 +8,8 @@ import type { Client } from "@/lib/data/clients";
 import { Button } from "@/components/ui/button";
 import { ClientEditForm } from "./client-edit-form";
 import { DocumentosManager } from "./documentos-manager";
+import { ProjectManager } from "./project-manager";
+import type { Row } from "@/lib/database.types";
 import { Badge } from "@/components/ui/badge";
 import { money, fechaCorta, fechaHora } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -38,18 +40,26 @@ type Tab = (typeof TABS)[number];
 
 type Doc = { id: string; file_url: string | null; tipo: string | null; version: number; visible_cliente: boolean; created_at: string };
 
+type ProjectsFull = {
+  projects: { id: string; nombre: string | null; estado: string; fecha_inicio: string | null; fecha_entrega: string | null; precio_total: number; moneda: string }[];
+  milestones: Row<"project_milestones">[];
+  updates: Row<"project_updates">[];
+};
+
 export function ClientDetail({
   client,
   brands,
   stats,
   activity,
   files,
+  projectsFull,
 }: {
   client: Client;
   brands: Brand[];
   stats: Stats;
   activity: Activity;
   files: Doc[];
+  projectsFull: ProjectsFull;
 }) {
   const [tab, setTab] = useState<Tab>("Resumen");
 
@@ -154,15 +164,11 @@ export function ClientDetail({
         )}
 
         {tab === "Proyectos" && (
-          <Section
-            empty={stats.projects.length === 0}
-            phase="Fase 4"
-            rows={stats.projects.map((p) => ({
-              id: p.id,
-              left: p.nombre ?? "Proyecto",
-              right: p.estado,
-              sub: `Entrega: ${fechaCorta(p.fecha_entrega)}`,
-            }))}
+          <ProjectManager
+            clientId={client.id}
+            projects={projectsFull.projects}
+            milestones={projectsFull.milestones}
+            updates={projectsFull.updates}
           />
         )}
 
