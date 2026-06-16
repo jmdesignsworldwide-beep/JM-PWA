@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /** Rutas públicas que NO requieren sesión. */
-const PUBLIC_ROUTES = ["/login", "/auth", "/reset-password"];
+const PUBLIC_ROUTES = ["/login", "/auth", "/reset-password", "/portal/login"];
 
 /**
  * Refresca la sesión de Supabase en cada request y protege las rutas.
@@ -42,16 +42,18 @@ export async function updateSession(request: NextRequest) {
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
 
-  // Sin sesión y ruta protegida -> a login.
+  const esPortal = pathname === "/portal" || pathname.startsWith("/portal/");
+
+  // Sin sesión y ruta protegida -> al login correcto (portal vs back-office).
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = esPortal ? "/portal/login" : "/login";
     url.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(url);
   }
 
-  // Con sesión intentando ver /login -> al dashboard.
-  if (user && pathname === "/login") {
+  // Con sesión intentando ver una pantalla de login -> a su área.
+  if (user && (pathname === "/login" || pathname === "/portal/login")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";

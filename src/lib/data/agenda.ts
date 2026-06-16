@@ -72,6 +72,8 @@ export async function getHoy() {
     entregasHoy: ev.filter((e) => e.fecha === hoy && e.tipo === "entrega"),
     entregasManana: ev.filter((e) => e.fecha === manana && e.tipo === "entrega"),
     iniciosHoy: ev.filter((e) => e.fecha === hoy && e.tipo === "inicio"),
+    // Avisos (ej. firmas de contrato desde el portal)
+    avisosHoy: ev.filter((e) => e.fecha === hoy && e.tipo === "acuerdo"),
   };
 }
 
@@ -125,7 +127,7 @@ export async function getPendientes(): Promise<AgendaEvent[]> {
 
 /** Resumen para la campana. */
 export async function getAlerts() {
-  const { vencidos, cobrosHoy, entregasHoy, entregasManana } = await getHoy();
-  const items = [...vencidos, ...cobrosHoy, ...entregasHoy, ...entregasManana];
+  const { vencidos, cobrosHoy, entregasHoy, entregasManana, avisosHoy } = await getHoy();
+  const items = [...avisosHoy, ...vencidos, ...cobrosHoy, ...entregasHoy, ...entregasManana];
   return { count: items.length, items: items.slice(0, 8) };
 }

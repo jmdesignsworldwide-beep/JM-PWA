@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/layout/app-shell";
 import { getAlerts } from "@/lib/data/agenda";
+import { getMyProfile } from "@/lib/data/profile";
 
 export default async function AppLayout({
   children,
@@ -15,6 +16,10 @@ export default async function AppLayout({
 
   // Defensa en profundidad (además del middleware).
   if (!user) redirect("/login");
+
+  // Los clientes NO entran al back-office: van a su portal.
+  const profile = await getMyProfile();
+  if (profile?.rol === "cliente") redirect("/portal");
 
   const alerts = await getAlerts();
 
