@@ -137,3 +137,43 @@ export async function buildInvoicePdf(data: {
   }
   return ctx.doc.save();
 }
+
+export async function buildQuotePdf(data: {
+  brand: string;
+  cliente: string;
+  rama: string;
+  tipo: string | null;
+  industria: string | null;
+  lineas: string[];
+  notas: string | null;
+  precio: number | null;
+  moneda: string;
+  fecha: string | null;
+}): Promise<Uint8Array> {
+  const ctx = await newCtx();
+  header(ctx, data.brand, "Cotización");
+  text(ctx, `Cliente: ${data.cliente}`, 10, { bold: true });
+  const meta = [data.industria, data.tipo, data.rama === "designs" ? "Software" : "Imprenta"].filter(Boolean).join(" · ");
+  if (meta) text(ctx, meta, 9, { color: MUTED });
+  text(ctx, `Fecha: ${fechaCorta(data.fecha)}`, 9, { color: MUTED });
+  ctx.y -= 8;
+
+  text(ctx, "Incluye:", 11, { bold: true });
+  for (const l of data.lineas) text(ctx, `- ${l}`, 10, { indent: 8 });
+
+  if (data.notas) {
+    ctx.y -= 6;
+    text(ctx, "Notas:", 11, { bold: true });
+    text(ctx, data.notas, 10);
+  }
+
+  if (data.precio != null) {
+    ctx.y -= 10;
+    ctx.page.drawLine({ start: { x: MARGIN, y: ctx.y }, end: { x: A4[0] - MARGIN, y: ctx.y }, thickness: 1, color: rgb(0.85, 0.85, 0.88) });
+    ctx.y -= 18;
+    const val = money(data.precio, data.moneda);
+    ctx.page.drawText("Inversión estimada", { x: A4[0] - MARGIN - 240, y: ctx.y, size: 13, font: ctx.bold, color: INK });
+    ctx.page.drawText(val, { x: A4[0] - MARGIN - ctx.bold.widthOfTextAtSize(val, 13), y: ctx.y, size: 13, font: ctx.bold, color: INK });
+  }
+  return ctx.doc.save();
+}
