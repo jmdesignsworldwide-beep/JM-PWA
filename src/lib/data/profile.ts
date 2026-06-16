@@ -2,12 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 
 export type Profile = {
   id: string;
-  rol: "owner" | "colaborador" | "cliente";
+  rol: "owner" | "colaborador" | "cliente" | "equipo";
   client_id: string | null;
+  team_member_id: string | null;
   nombre: string | null;
 };
 
-/** Perfil del usuario autenticado (rol + client_id si es cliente). */
+/** Perfil del usuario autenticado (rol + client_id/team_member_id según rol). */
 export async function getMyProfile(): Promise<Profile | null> {
   const supabase = await createClient();
   const {
@@ -17,7 +18,7 @@ export async function getMyProfile(): Promise<Profile | null> {
 
   const { data } = await supabase
     .from("users_profiles")
-    .select("id, rol, client_id, nombre")
+    .select("id, rol, client_id, team_member_id, nombre")
     .eq("id", user.id)
     .maybeSingle();
 

@@ -17,9 +17,10 @@ export default async function AppLayout({
   // Defensa en profundidad (además del middleware).
   if (!user) redirect("/login");
 
-  // Los clientes NO entran al back-office: van a su portal.
+  // Los clientes y colaboradores NO entran al back-office.
   const profile = await getMyProfile();
   if (profile?.rol === "cliente") redirect("/portal");
+  if (profile?.rol === "equipo") redirect("/trabajo");
 
   const alerts = await getAlerts();
 

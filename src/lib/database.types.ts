@@ -59,10 +59,11 @@ export interface Tables {
 
   users_profiles: {
     id: string;
-    rol: "owner" | "colaborador" | "cliente";
+    rol: "owner" | "colaborador" | "cliente" | "equipo";
     nombre: string | null;
     correo: string | null;
     client_id: string | null;
+    team_member_id: string | null;
   } & Timestamps;
 
   orders: {
@@ -381,6 +382,46 @@ export interface Tables {
     created_by: string | null;
   } & Timestamps;
 
+  team_members: {
+    id: string;
+    nombre: string;
+    telefono: string | null;
+    whatsapp: string | null;
+    correo: string | null;
+    rol_especialidad: string | null;
+    notas: string | null;
+    activo: boolean;
+    brand_id: string | null;
+    created_by: string | null;
+  } & Timestamps;
+
+  tasks: {
+    id: string;
+    descripcion: string;
+    team_member_id: string | null;
+    project_id: string | null;
+    order_id: string | null;
+    monto: number;
+    moneda: Moneda;
+    fecha_limite: string | null;
+    estado: "pendiente" | "en_progreso" | "hecha";
+    brand_id: string | null;
+    created_by: string | null;
+  } & Timestamps;
+
+  team_payments: {
+    id: string;
+    team_member_id: string;
+    task_id: string | null;
+    monto: number;
+    moneda: Moneda;
+    fecha: string;
+    metodo: string | null;
+    nota: string | null;
+    brand_id: string | null;
+    created_by: string | null;
+  } & Timestamps;
+
   audit_log: {
     id: string;
     accion: string;
@@ -405,7 +446,12 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      worker_update_task_estado: {
+        Args: { p_task: string; p_estado: string };
+        Returns: undefined;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
