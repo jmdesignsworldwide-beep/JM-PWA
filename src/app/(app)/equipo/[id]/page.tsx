@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, MessageCircle } from "lucide-react";
 import { getMemberFull } from "@/lib/data/equipo";
 import { MemberDetail } from "@/components/equipo/member-detail";
+import { TeamAccessButton } from "@/components/equipo/team-access-button";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,7 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
             <Button variant="outline" className="gap-2 text-success"><MessageCircle className="size-4" /> WhatsApp</Button>
           </a>
         )}
+        <TeamAccessButton memberId={member.id} whatsapp={member.whatsapp ?? member.telefono} />
         {!member.activo && <Badge>Inactivo</Badge>}
       </PageHeader>
       <MemberDetail member={member} tasks={tasks} payments={payments} totals={totals} projects={projects} />

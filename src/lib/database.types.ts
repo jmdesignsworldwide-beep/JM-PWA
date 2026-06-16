@@ -59,10 +59,11 @@ export interface Tables {
 
   users_profiles: {
     id: string;
-    rol: "owner" | "colaborador" | "cliente";
+    rol: "owner" | "colaborador" | "cliente" | "equipo";
     nombre: string | null;
     correo: string | null;
     client_id: string | null;
+    team_member_id: string | null;
   } & Timestamps;
 
   orders: {
@@ -386,6 +387,7 @@ export interface Tables {
     nombre: string;
     telefono: string | null;
     whatsapp: string | null;
+    correo: string | null;
     rol_especialidad: string | null;
     notas: string | null;
     activo: boolean;
@@ -444,7 +446,12 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      worker_update_task_estado: {
+        Args: { p_task: string; p_estado: string };
+        Returns: undefined;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

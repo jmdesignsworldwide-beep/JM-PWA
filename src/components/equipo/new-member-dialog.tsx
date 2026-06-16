@@ -27,6 +27,7 @@ export function NewMemberDialog({ brands }: { brands: Brand[] }) {
       const res = await createMember({
         nombre: (fd.get("nombre") as string).trim(),
         telefono: get("telefono"), whatsapp: get("whatsapp"),
+        correo: get("correo"),
         rol_especialidad: get("rol_especialidad"), notas: get("notas"),
         brand_id: get("brand_id"),
       });
@@ -45,6 +46,7 @@ export function NewMemberDialog({ brands }: { brands: Brand[] }) {
             <div className="space-y-1.5"><Label>Rol / especialidad</Label><Input name="rol_especialidad" placeholder="Ej. Diseñador, Bordador" /></div>
             <div className="space-y-1.5"><Label>Teléfono</Label><Input name="telefono" /></div>
             <div className="space-y-1.5"><Label>WhatsApp</Label><Input name="whatsapp" placeholder="1 809 000 0000" /></div>
+            <div className="space-y-1.5 sm:col-span-2"><Label>Correo (para su acceso)</Label><Input name="correo" type="email" placeholder="correo@ejemplo.com" /></div>
             <div className="space-y-1.5 sm:col-span-2"><Label>Marca</Label>
               <Select name="brand_id" defaultValue=""><option value="">— Ninguna —</option>{brands.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}</Select>
             </div>
