@@ -14,7 +14,11 @@ import { BlurInText } from "@/components/animations/blur-in-text";
 import { Spotlight } from "@/components/animations/spotlight";
 import { CountUp } from "@/components/animations/count-up";
 import { HoyPanel } from "@/components/cobros/hoy-panel";
+import { DailyExpensePrompt } from "@/components/finanzas/daily-expense-prompt";
 import { getHoy } from "@/lib/data/agenda";
+import { getBrands } from "@/lib/data/clients";
+import { createClient } from "@/lib/supabase/server";
+import { rdToday } from "@/lib/fecha";
 
 const KPIS = [
   { label: "Leads activos", value: 0, icon: TrendingUp, hint: "Pipeline de ventas" },
@@ -30,7 +34,17 @@ const KPIS = [
 ];
 
 export default async function DashboardPage() {
-  const hoy = await getHoy();
+  const supabase = await createClient();
+  const [hoy, brands, cats, projs, dailyLog] = await Promise.all([
+    getHoy(),
+    getBrands(),
+    supabase.from("categories").select("nombre, tipo").eq("tipo", "gasto"),
+    supabase.from("projects").select("id, nombre").order("created_at", { ascending: false }).limit(100),
+    supabase.from("daily_expense_log").select("fecha").eq("fecha", rdToday()).maybeSingle(),
+  ]);
+  const categoriasGasto = ((cats.data ?? []) as { nombre: string }[]).map((c) => c.nombre);
+  const projects = ((projs.data ?? []) as { id: string; nombre: string | null }[]).map((p) => ({ id: p.id, nombre: p.nombre ?? "Proyecto" }));
+
   return (
     <>
       {/* Hero del dashboard (momento "wow") */}
@@ -43,6 +57,15 @@ export default async function DashboardPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Tu centro de mando. Aquí verás todo lo que mueve el negocio.
         </p>
+      </div>
+
+      <div className="mb-6">
+        <DailyExpensePrompt
+          registradoHoy={!!dailyLog.data}
+          categorias={categoriasGasto}
+          projects={projects}
+          brands={brands}
+        />
       </div>
 
       <StaggerContainer className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -116,5 +116,34 @@ export async function GET(req: Request) {
     }
   }
 
+  // --- Ingresos recurrentes: generar facturas vencidas ---
+  try {
+    const { data: due } = await admin
+      .from("recurring_plans").select("*").eq("activo", true).lte("proxima_factura", hoy);
+    let generadas = 0;
+    for (const p of (due ?? []) as { id: string; client_id: string; tipo: string; monto: number; moneda: string; frecuencia: string; proxima_factura: string; brand_id: string | null }[]) {
+      const { error } = await admin.from("invoices").insert({
+        client_id: p.client_id, es_fiscal: false,
+        items_json: [{ producto: `Plan ${p.tipo} (${p.frecuencia})`, cantidad: 1, subtotal: p.monto }],
+        subtotal: p.monto, itbis: 0, total: p.monto, moneda: p.moneda,
+        estado_pago: "pendiente", fecha: hoy, brand_id: p.brand_id,
+      });
+      if (error) continue;
+      await admin.from("calendar_events").insert({
+        titulo: `Cobro recurrente (${p.tipo})`, tipo: "cobro", fecha: p.proxima_factura,
+        client_id: p.client_id, brand_id: p.brand_id, auto_generado: true, monto: p.monto, moneda: p.moneda,
+      });
+      const d = new Date(`${p.proxima_factura}T12:00:00Z`);
+      if (p.frecuencia === "anual") d.setUTCFullYear(d.getUTCFullYear() + 1);
+      else if (p.frecuencia === "trimestral") d.setUTCMonth(d.getUTCMonth() + 3);
+      else d.setUTCMonth(d.getUTCMonth() + 1);
+      await admin.from("recurring_plans").update({ proxima_factura: d.toISOString().slice(0, 10) }).eq("id", p.id);
+      generadas++;
+    }
+    result.recurrentes = generadas;
+  } catch (e) {
+    result.recurrentes = `error: ${e instanceof Error ? e.message : "?"}`;
+  }
+
   return NextResponse.json(result);
 }
