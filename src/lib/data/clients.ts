@@ -68,6 +68,28 @@ export async function getClientStats(clientId: string) {
   };
 }
 
+/** Proyectos del cliente con su línea de tiempo (hitos) y feed de actualizaciones. */
+export async function getClientProjectsFull(clientId: string) {
+  const supabase = await createClient();
+  const { data: projects } = await supabase
+    .from("projects")
+    .select("id, nombre, estado, fecha_inicio, fecha_entrega, precio_total, moneda")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: true });
+  const ids = (projects ?? []).map((p) => p.id);
+  const [ms, ups] = await Promise.all([
+    ids.length
+      ? supabase.from("project_milestones").select("*").in("project_id", ids).order("orden", { ascending: true })
+      : Promise.resolve({ data: [] as Row<"project_milestones">[] }),
+    supabase.from("project_updates").select("*").eq("client_id", clientId).order("created_at", { ascending: false }),
+  ]);
+  return {
+    projects: projects ?? [],
+    milestones: (ms.data ?? []) as Row<"project_milestones">[],
+    updates: (ups.data ?? []) as Row<"project_updates">[],
+  };
+}
+
 /** Documentos (bóveda) de un cliente. */
 export async function getClientFiles(clientId: string) {
   const supabase = await createClient();

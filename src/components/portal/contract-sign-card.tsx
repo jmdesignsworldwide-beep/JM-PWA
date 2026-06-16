@@ -10,9 +10,9 @@ import { Label } from "@/components/ui/label";
 
 type Contract = { id: string; contenido: string | null };
 
-export function ContractSignCard({ contract }: { contract: Contract }) {
+export function ContractSignCard({ contract, clientName = "" }: { contract: Contract; clientName?: string }) {
   const router = useRouter();
-  const [firma, setFirma] = useState("");
+  const [firma, setFirma] = useState(clientName);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
