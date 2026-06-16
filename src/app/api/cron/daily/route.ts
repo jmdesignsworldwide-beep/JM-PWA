@@ -145,5 +145,32 @@ export async function GET(req: Request) {
     result.recurrentes = `error: ${e instanceof Error ? e.message : "?"}`;
   }
 
+  // --- Auto-Follow-Up Engine: refresca la tabla followups (snapshot del día) ---
+  try {
+    // Limpia los followups automáticos no atendidos para regenerarlos.
+    await admin.from("followups").delete().eq("atendido", false);
+    const rows: { entidad: string; entidad_id: string; motivo: string; fecha_sugerida: string }[] = [];
+
+    const { data: cobrosV } = await admin.from("calendar_events")
+      .select("id, fecha, client_id").eq("tipo", "cobro").eq("completado", false).lt("fecha", hoy);
+    for (const c of (cobrosV ?? []) as { id: string; fecha: string; client_id: string | null }[])
+      rows.push({ entidad: "cobro", entidad_id: c.id, motivo: "Cobro vencido", fecha_sugerida: hoy });
+
+    const { data: ctr } = await admin.from("contracts")
+      .select("id, fecha_envio").eq("estado", "enviado").lt("fecha_envio", `${addDays(hoy, -3)}T23:59:59`);
+    for (const c of (ctr ?? []) as { id: string }[])
+      rows.push({ entidad: "lead", entidad_id: c.id, motivo: "Contrato sin firmar", fecha_sugerida: hoy });
+
+    const { data: lead } = await admin.from("clients")
+      .select("id").eq("es_lead", true).lt("updated_at", `${addDays(hoy, -5)}T23:59:59`);
+    for (const l of (lead ?? []) as { id: string }[])
+      rows.push({ entidad: "lead", entidad_id: l.id, motivo: "Lead estancado", fecha_sugerida: hoy });
+
+    if (rows.length) await admin.from("followups").insert(rows);
+    result.followups = rows.length;
+  } catch (e) {
+    result.followups = `error: ${e instanceof Error ? e.message : "?"}`;
+  }
+
   return NextResponse.json(result);
 }

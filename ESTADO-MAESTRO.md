@@ -1,6 +1,6 @@
 # 🧬 ESTADO MAESTRO — JM CONTROL CENTER
 ### Documento vivo · la VERDAD del proyecto · se actualiza siempre
-**Última actualización:** Fase 6 (Cotizador 2 ramas + AI Quote Assistant). Fases 1-5 mergeadas a main; Fase 6 en PR. Método migración: PAT. PRs: uno por fase.
+**Última actualización:** Fase 9 (Inteligencia: Smart Insights + Auto-Follow-Up). Fases 1-8 mergeadas a `main`; Fase 9 en PR. Método migración: PAT. PRs: uno por fase. Falta solo la Fase 10 (Pulido + Deploy).
 **Para retomar en un chat nuevo:** pega este documento y di "este es el estado maestro de mi proyecto, sigamos desde aquí".
 
 ---
@@ -41,11 +41,11 @@
 3. **Leads/Ventas + ficha de Cliente + barra de ciclo de vida.** ✅ HECHA (Kanban drag&drop, ficha con ciclo de vida desde datos reales, búsqueda global, valor_estimado opcional añadido vía PAT)
 4. **Pedidos→Contratos→Facturas** (el corazón, sin re-teclear). ✅ HECHA (2 ramas, hilo de conversación, split de pagos auto-agendado, antigüedad de contrato, duplicar pedido, snapshot de precios, PDFs con pdf-lib, disparo automático funcionando)
 5. **Cobros/Calendario/Notificaciones** (app/correo/push VAPID). ✅ HECHA Y MERGEADA (centro HOY, flujo de caja, calendarios, campana, WhatsApp redactado, cron+push deploy-ready)
-6. **Cotizador (2 ramas) + AI Quote Assistant.** ✅ HECHA (en PR) — software con módulos por industria + imprenta; IA **Google Gemini** server-side (key solo en servidor); guardar/PDF/WhatsApp; convertir a pedido
-7. **Portal de Cliente** (entra, ve su proyecto, firma → dispara todo). ⭐ ⬅️ SIGUIENTE
-8. **Finanzas + Influencers CRM.**
-9. **Inteligencia** (Smart Insights + Auto-Follow-Up Engine).
-10. **Pulido + Deploy.**
+6. **Cotizador (2 ramas) + AI Quote Assistant.** ✅ HECHA Y MERGEADA — IA **Google Gemini** server-side; guardar/PDF/WhatsApp; convertir a pedido.
+7. **Portal de Cliente** (entra, ve su proyecto, firma → dispara todo). ✅ HECHA Y MERGEADA — aislamiento A≠B probado con 2 clientes reales; firma dispara automatización.
+8. **Finanzas + Influencers CRM.** ✅ HECHA Y MERGEADA — margen real, recurrentes/MRR, "¿qué gastaste hoy?", CRM con Kanban/export/campañas/tasa de respuesta.
+9. **Inteligencia** (Smart Insights + Auto-Follow-Up Engine). ✅ HECHA (en PR) — KPIs reales, insights respaldados por datos, resumen IA (Gemini), panel "Acciones sugeridas hoy" con WhatsApp redactado, cron llena `followups`.
+10. **Pulido + Deploy.** ⬅️ SIGUIENTE (último)
 
 ---
 
@@ -96,8 +96,7 @@ Asignación de tareas a colaboradores, time tracking, sistema de referidos, port
 
 ---
 
-## 📌 NOTA DE PROCESO (a reconciliar)
-Hasta ahora **todas las fases (1–4) viven en un solo PR (#1)** sobre la rama
-`claude/affectionate-goldberg-alci04`, no en un PR por fase. La regla #2 pide un
-PR por fase; el entorno de Claude Code on the web fija una sola rama por sesión.
-Decisión de Marien pendiente: seguir en un solo PR o separar por fase.
+## 📌 NOTA DE PROCESO
+- Fases 1–4 se mergearon juntas en el PR #1; de la Fase 5 en adelante: **un PR por fase** (decisión de Marien). Fases 1–8 ya en `main`. Fase 9 en PR.
+- **Pendiente de deploy (Fase 10):** poner en Vercel `GEMINI_API_KEY`, `RESEND_API_KEY`/`RESEND_FROM`/`OWNER_EMAIL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT`, `CRON_SECRET`. Push y correo solo cobran vida en producción (HTTPS).
+- Supabase aplicado hasta la migración `005`. Fases 6–9 no requirieron cambios de BD.
