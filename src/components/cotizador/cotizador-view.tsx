@@ -137,7 +137,9 @@ export function CotizadorView({ clients, printProducts }: { clients: Client[]; p
     });
   }
 
-  const waText = `Hola ${client?.nombre ?? ""} 👋, te comparto la cotización de tu proyecto.`;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const pdfUrl = savedId ? `${origin}/api/pdf/quote/${savedId}` : "";
+  const waText = `¡Hola ${client?.nombre ?? ""}! 🎉 Gracias por considerar a JM Designs Worldwide. Preparamos tu cotización hecha a la medida de tu proyecto.\n\n📄 Tu cotización: ${pdfUrl}\n\nCuando quieras avanzamos — será un gusto construir esto contigo. 💜`;
   const waNum = (client?.whatsapp ?? client?.telefono ?? "").replace(/\D/g, "");
 
   return (
