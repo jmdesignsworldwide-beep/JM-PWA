@@ -20,12 +20,15 @@ export const ETAPA_LABEL: Record<EtapaVenta, string> = Object.fromEntries(
   ETAPAS.map((e) => [e.id, e.label]),
 ) as Record<EtapaVenta, string>;
 
-/** Categoría de servicio. */
+/** Categoría de servicio (4 opciones). */
 export const CATEGORIAS_SERVICIO = [
   { id: "web", label: "Web" },
   { id: "software", label: "Software" },
-  { id: "ambos", label: "Ambos" },
+  { id: "app", label: "App" },
+  { id: "distribution", label: "JM Distribution" },
 ] as const;
+
+export type CategoriaServicio = (typeof CATEGORIAS_SERVICIO)[number]["id"];
 
 /** Listado de industrias (RD). Editable. */
 export const INDUSTRIAS = [
@@ -62,6 +65,11 @@ export const FUENTES = [
   "Evento",
   "Otro",
 ];
+
+/** Opciones para el Combobox con búsqueda (value/label). */
+export const CATEGORIA_OPTIONS = CATEGORIAS_SERVICIO.map((c) => ({ value: c.id, label: c.label }));
+export const INDUSTRIA_OPTIONS = INDUSTRIAS.map((i) => ({ value: i, label: i }));
+export const FUENTE_OPTIONS = FUENTES.map((f) => ({ value: f, label: f }));
 
 /** Pasos del ciclo de vida del cliente (barra visual). */
 export const CICLO_VIDA = [

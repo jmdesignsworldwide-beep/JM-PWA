@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Loader2, Check } from "lucide-react";
 import type { Client } from "@/lib/data/clients";
 import { updateClient, type ClientUpdate } from "@/app/(app)/clientes/actions";
-import { CATEGORIAS_SERVICIO, INDUSTRIAS, FUENTES } from "@/lib/ventas";
+import { CATEGORIA_OPTIONS, INDUSTRIA_OPTIONS, FUENTE_OPTIONS } from "@/lib/ventas";
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -84,22 +85,13 @@ export function ClientEditForm({
         <Field label="WhatsApp"><Input name="whatsapp" defaultValue={client.whatsapp ?? ""} /></Field>
         <Field label="Correo"><Input name="correo" type="email" defaultValue={client.correo ?? ""} /></Field>
         <Field label="Categoría de servicio">
-          <Select name="categoria_servicio" defaultValue={client.categoria_servicio ?? ""}>
-            <option value="">— Seleccionar —</option>
-            {CATEGORIAS_SERVICIO.map((c) => (<option key={c.id} value={c.id}>{c.label}</option>))}
-          </Select>
+          <Combobox name="categoria_servicio" options={CATEGORIA_OPTIONS} defaultValue={client.categoria_servicio ?? ""} placeholder="Elegir categoría" />
         </Field>
         <Field label="Industria">
-          <Select name="industria" defaultValue={client.industria ?? ""}>
-            <option value="">— Seleccionar —</option>
-            {INDUSTRIAS.map((i) => (<option key={i} value={i}>{i}</option>))}
-          </Select>
+          <Combobox name="industria" options={INDUSTRIA_OPTIONS} defaultValue={client.industria ?? ""} placeholder="Buscar industria…" />
         </Field>
         <Field label="Fuente">
-          <Select name="fuente" defaultValue={client.fuente ?? ""}>
-            <option value="">— Seleccionar —</option>
-            {FUENTES.map((f) => (<option key={f} value={f}>{f}</option>))}
-          </Select>
+          <Combobox name="fuente" options={FUENTE_OPTIONS} defaultValue={client.fuente ?? ""} placeholder="Elegir fuente" />
         </Field>
         <Field label="Valor estimado (opcional)">
           <div className="flex gap-2">

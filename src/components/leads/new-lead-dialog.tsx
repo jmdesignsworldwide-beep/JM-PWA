@@ -10,11 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createLead, type NewLeadInput } from "@/app/(app)/leads/actions";
-import { CATEGORIAS_SERVICIO, INDUSTRIAS, FUENTES } from "@/lib/ventas";
+import { CATEGORIA_OPTIONS, INDUSTRIA_OPTIONS, FUENTE_OPTIONS } from "@/lib/ventas";
+import { Combobox } from "@/components/ui/combobox";
 
 type Brand = { id: string; nombre: string };
 
-export function NewLeadDialog({ brands }: { brands: Brand[] }) {
+export function NewLeadDialog({ brands, label = "Nuevo lead" }: { brands: Brand[]; label?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,13 +67,13 @@ export function NewLeadDialog({ brands }: { brands: Brand[] }) {
     <>
       <Button variant="gradient" onClick={() => setOpen(true)}>
         <Plus className="size-4" />
-        Nuevo lead
+        {label}
       </Button>
 
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
-        title="Nuevo lead"
+        title={label}
         description="Estos datos son la fuente única; las próximas fases los reutilizan."
         className="max-w-2xl"
       >
@@ -97,28 +98,13 @@ export function NewLeadDialog({ brands }: { brands: Brand[] }) {
               <Input name="correo" type="email" placeholder="correo@ejemplo.com" />
             </Field>
             <Field label="Categoría de servicio">
-              <Select name="categoria_servicio" defaultValue="">
-                <option value="">— Seleccionar —</option>
-                {CATEGORIAS_SERVICIO.map((c) => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
-                ))}
-              </Select>
+              <Combobox name="categoria_servicio" options={CATEGORIA_OPTIONS} placeholder="Elegir categoría" />
             </Field>
             <Field label="Industria">
-              <Select name="industria" defaultValue="">
-                <option value="">— Seleccionar —</option>
-                {INDUSTRIAS.map((i) => (
-                  <option key={i} value={i}>{i}</option>
-                ))}
-              </Select>
+              <Combobox name="industria" options={INDUSTRIA_OPTIONS} placeholder="Buscar industria…" />
             </Field>
             <Field label="Fuente (de dónde vino)">
-              <Select name="fuente" defaultValue="">
-                <option value="">— Seleccionar —</option>
-                {FUENTES.map((f) => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-              </Select>
+              <Combobox name="fuente" options={FUENTE_OPTIONS} placeholder="Elegir fuente" />
             </Field>
             <Field label="Valor estimado (opcional)">
               <div className="flex gap-2">

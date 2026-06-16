@@ -15,7 +15,7 @@ export type ClientUpdate = {
   correo?: string | null;
   direccion?: string | null;
   info_nota?: string | null;
-  categoria_servicio?: "web" | "software" | "ambos" | null;
+  categoria_servicio?: "web" | "software" | "app" | "distribution" | null;
   industria?: string | null;
   lo_que_quiere?: string | null;
   fuente?: string | null;
