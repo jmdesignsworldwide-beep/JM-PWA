@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Combobox } from "@/components/ui/combobox";
+import { StaggerContainer, StaggerItem } from "@/components/animations/motion";
 import { cn } from "@/lib/utils";
 
 type Client = {
@@ -143,8 +144,8 @@ export function CotizadorView({ clients, printProducts }: { clients: Client[]; p
   const waNum = (client?.whatsapp ?? client?.telefono ?? "").replace(/\D/g, "");
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-      <div className="space-y-5 lg:col-span-2">
+    <StaggerContainer className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <StaggerItem className="space-y-5 lg:col-span-2">
         {/* Cliente + rama */}
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -279,32 +280,40 @@ export function CotizadorView({ clients, printProducts }: { clients: Client[]; p
 
         {error && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
-        {/* Acciones */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="gradient" onClick={doSave} disabled={pending}>
+        {/* Acción principal */}
+        {!savedId && (
+          <Button variant="gradient" size="lg" onClick={doSave} disabled={pending}>
             {pending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} Guardar cotización
           </Button>
-          {savedId && (
-            <>
-              <a href={`/api/pdf/quote/${savedId}`} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline"><Download className="size-4" /> PDF</Button>
-              </a>
+        )}
+
+        {/* Panel premium tras guardar: compartir o convertir sin re-teclear */}
+        {savedId && (
+          <div className="space-y-3 rounded-xl border border-success/30 bg-[color-mix(in_srgb,var(--success)_7%,transparent)] p-4">
+            <p className="flex items-center gap-2 font-medium text-success"><Check className="size-5" /> Cotización guardada</p>
+            <p className="text-sm text-muted-foreground">Compártela con tu cliente o conviértela en pedido — sin volver a teclear nada.</p>
+            <div className="flex flex-wrap gap-2">
               {waNum && (
                 <a target="_blank" rel="noopener noreferrer" href={`https://wa.me/${waNum}?text=${encodeURIComponent(waText)}`}>
-                  <Button variant="outline" className="text-success"><MessageCircle className="size-4" /> WhatsApp</Button>
+                  <Button variant="gradient"><MessageCircle className="size-4" /> Enviar por WhatsApp</Button>
                 </a>
               )}
+              <a href={`/api/pdf/quote/${savedId}`} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline"><Download className="size-4" /> Ver PDF</Button>
+              </a>
               <Button variant="outline" onClick={doConvert} disabled={pending}>
-                <ArrowRightCircle className="size-4" /> Convertir en pedido
+                {pending ? <Loader2 className="size-4 animate-spin" /> : <ArrowRightCircle className="size-4" />} Convertir en pedido
               </Button>
-              <span className="flex items-center gap-1.5 text-sm text-success"><Check className="size-4" /> Guardada</span>
-            </>
-          )}
-        </div>
-      </div>
+            </div>
+            <button onClick={doSave} className="text-xs text-muted-foreground underline-offset-2 hover:underline" disabled={pending}>
+              Guardar cambios de nuevo
+            </button>
+          </div>
+        )}
+      </StaggerItem>
 
       {/* AI Assistant */}
-      <div className="lg:col-span-1">
+      <StaggerItem className="lg:col-span-1">
         <div className="sticky top-20 rounded-xl border border-border bg-card">
           <div className="flex items-center gap-2 border-b border-border px-4 py-3">
             <Wand2 className="size-4 text-electric" />
@@ -325,8 +334,8 @@ export function CotizadorView({ clients, printProducts }: { clients: Client[]; p
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </StaggerItem>
+    </StaggerContainer>
   );
 }
 
