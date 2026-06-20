@@ -27,7 +27,9 @@
   --secondary-foreground: #1c1c26;
 
   --muted: #eeeef4;
-  --muted-foreground: #6b6b7b;
+  /* Texto secundario más oscuro para buen contraste (WCAG AA) en tema claro,
+     sobre todo en texto pequeño como el menú inferior en móvil. */
+  --muted-foreground: #50505e;
 
   --accent: #ece9ff;
   --accent-foreground: #2a2150;

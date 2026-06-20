@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import {
-  CircleDollarSign, FileText, FolderDown, AlertCircle, ListChecks, CheckCircle2,
+  CircleDollarSign, FileText, FolderDown, AlertCircle, ListChecks, CheckCircle2, Sparkles,
 } from "lucide-react";
 import { getMyProfile } from "@/lib/data/profile";
 import { getPortalData } from "@/lib/data/portal";
@@ -12,6 +12,8 @@ import { PortalPush } from "@/components/portal/portal-push";
 import { PortalBottomNav } from "@/components/portal/portal-bottom-nav";
 import { AuroraBackground } from "@/components/animations/aurora-background";
 import { BlurInText } from "@/components/animations/blur-in-text";
+import { StaggerContainer, StaggerItem, AnimatedCard } from "@/components/animations/motion";
+import { CountUp } from "@/components/animations/count-up";
 import { Badge } from "@/components/ui/badge";
 import { money, fechaCorta } from "@/lib/format";
 
@@ -44,7 +46,10 @@ export default async function PortalPage() {
       <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 pb-bottomnav sm:px-6 sm:pb-8">
         {/* Bienvenida personal */}
         <div>
-          <BlurInText as="h1" text={`Bienvenido, ${d.client?.nombre ?? ""} 👋`} className="block text-2xl font-semibold tracking-tight sm:text-3xl" />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground backdrop-blur">
+            <Sparkles className="size-3 text-electric" /> Tu espacio privado
+          </span>
+          <BlurInText as="h1" text={`Bienvenido, ${d.client?.nombre ?? ""} 👋`} className="mt-2 block text-2xl font-semibold tracking-tight sm:text-3xl" />
           <p className="mt-1 text-sm text-muted-foreground">
             Así va tu proyecto con <span className="text-gradient font-medium">{d.brandName ?? "JM Designs"}</span>. Bienvenido a tu espacio.
           </p>
@@ -64,9 +69,9 @@ export default async function PortalPage() {
           />
         ))}
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <StaggerContainer className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Feed de avances */}
-          <UpdateFeed updates={d.updates} />
+          <StaggerItem><UpdateFeed updates={d.updates} /></StaggerItem>
 
           {/* Pendiente de tu parte */}
           <Card icon={<ListChecks className="size-4 text-electric" />} title="Pendiente de tu parte">
@@ -88,9 +93,9 @@ export default async function PortalPage() {
           {/* Facturas y saldo */}
           <Card id="facturas" icon={<CircleDollarSign className="size-4 text-success" />} title="Tus facturas y saldo">
             <div className="mb-3 grid grid-cols-3 gap-2 text-center">
-              <Stat label="Facturado" value={money(d.totals.facturado, "DOP")} />
-              <Stat label="Pagado" value={money(d.totals.pagado, "DOP")} />
-              <Stat label="Saldo" value={money(d.totals.saldo, "DOP")} highlight />
+              <Stat label="Facturado" amount={d.totals.facturado} />
+              <Stat label="Pagado" amount={d.totals.pagado} />
+              <Stat label="Saldo" amount={d.totals.saldo} highlight />
             </div>
             {d.invoices.length === 0 ? <Empty text="Aún no hay facturas." /> : (
               <ul className="space-y-2">
@@ -122,7 +127,7 @@ export default async function PortalPage() {
               </ul>
             )}
           </Card>
-        </div>
+        </StaggerContainer>
 
         {/* Activar notificaciones */}
         <PortalPush />
@@ -135,19 +140,21 @@ export default async function PortalPage() {
 
 function Card({ id, icon, title, children }: { id?: string; icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-20 rounded-xl border border-border bg-card">
+    <AnimatedCard id={id} className="scroll-mt-20 overflow-hidden">
       <div className="flex items-center gap-2 border-b border-border px-5 py-3">
         {icon}<h2 className="font-semibold">{title}</h2>
       </div>
       <div className="p-5">{children}</div>
-    </section>
+    </AnimatedCard>
   );
 }
-function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function Stat({ label, amount, highlight }: { label: string; amount: number; highlight?: boolean }) {
   return (
     <div className={`rounded-lg border border-border p-2.5 ${highlight ? "bg-accent/40" : ""}`}>
       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={`text-sm font-semibold ${highlight ? "text-gradient" : ""}`}>{value}</p>
+      <p className={`text-sm font-semibold ${highlight ? "text-gradient" : ""}`}>
+        <CountUp value={amount} prefix="RD$ " decimals={2} />
+      </p>
     </div>
   );
 }
