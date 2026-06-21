@@ -4,9 +4,10 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles, Loader2, Code2, Package, Plus, Trash2, Save, Download,
-  MessageCircle, ArrowRightCircle, Check, Wand2,
+  MessageCircle, ArrowRightCircle, Check, Wand2, UserSearch, UserPlus,
 } from "lucide-react";
 import { saveQuote, convertQuoteToOrder, type SaveQuoteInput } from "@/app/(app)/cotizador/actions";
+import { createLead } from "@/app/(app)/leads/actions";
 import {
   TIPOS_SOLUCION_COT, INDUSTRIAS_COT, MODULO_LABEL, RELEVANCIA, modulosOrdenados,
 } from "@/lib/cotizador";
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils";
 type Client = {
   id: string; nombre: string; apellido: string | null;
   whatsapp: string | null; telefono: string | null; brand_id: string | null;
+  industria: string | null; correo: string | null;
 };
 type PrintProduct = { id: string; nombre: string; categoria: string | null; precio_base: number; moneda: string };
 type PItem = { producto: string; categoria: string; metodo: "unidad" | "tamano"; cantidad: number; ancho: number; alto: number; precio_unitario: number };
@@ -36,7 +38,9 @@ const pSubtotal = (it: PItem) => Math.round((it.metodo === "tamano" ? it.ancho *
 export function CotizadorView({ clients, printProducts }: { clients: Client[]; printProducts: PrintProduct[] }) {
   const router = useRouter();
   const [rama, setRama] = useState<"designs" | "distribution">("designs");
+  const [clientMode, setClientMode] = useState<"existing" | "new">("existing");
   const [clientId, setClientId] = useState("");
+  const [nuevo, setNuevo] = useState({ nombre: "", apellido: "", whatsapp: "", correo: "" });
   const [savedId, setSavedId] = useState<string | null>(null);
   const [aiUsed, setAiUsed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,26 +107,45 @@ export function CotizadorView({ clients, printProducts }: { clients: Client[]; p
 
   function doSave() {
     setError(null);
-    if (!clientId) { setError("Elige un cliente para la cotización."); return; }
-    const base: SaveQuoteInput = {
-      client_id: clientId,
-      rama,
-      brand_id: client?.brand_id ?? null,
-      ai_generado: aiUsed,
-    };
-    let input: SaveQuoteInput;
-    if (rama === "designs") {
-      if (modulos.size === 0) { setError("Selecciona al menos un módulo."); return; }
-      input = { ...base, tipo_solucion: tipoSolucion || null, industria: industria || null,
-        modulos_json: [...modulos], notas: notas || null, precio_manual: precioManual === "" ? null : Number(precioManual) };
-    } else {
-      const valid = items.filter((it) => it.producto.trim());
-      if (valid.length === 0) { setError("Agrega al menos un producto."); return; }
-      input = { ...base, notas: notas || null, precio_manual: printTotal,
-        items_json: valid.map((it) => ({ producto: it.producto, categoria: it.categoria, metodo: it.metodo,
-          cantidad: it.cantidad, ancho: it.ancho, alto: it.alto, precio_unitario: it.precio_unitario, subtotal: pSubtotal(it) })) };
+    // Validación previa (rápida, antes de tocar el servidor).
+    if (clientMode === "existing" && !clientId) { setError("Busca y elige un cliente, o cambia a 'Persona nueva'."); return; }
+    if (clientMode === "new") {
+      if (!nuevo.nombre.trim()) { setError("Escribe el nombre de la persona nueva."); return; }
+      if (!nuevo.whatsapp.trim() && !nuevo.correo.trim()) { setError("Agrega al menos WhatsApp o correo de la persona nueva."); return; }
     }
+    if (rama === "designs" && modulos.size === 0) { setError("Selecciona al menos un módulo."); return; }
+    if (rama === "distribution" && items.filter((it) => it.producto.trim()).length === 0) { setError("Agrega al menos un producto."); return; }
+
     startTransition(async () => {
+      let cid = clientId;
+      let brandId = client?.brand_id ?? null;
+
+      // Persona nueva → se guarda como LEAD automáticamente (no se pierde).
+      if (clientMode === "new") {
+        const r = await createLead({
+          nombre: nuevo.nombre.trim(),
+          apellido: nuevo.apellido.trim() || null,
+          whatsapp: nuevo.whatsapp.trim() || null,
+          correo: nuevo.correo.trim() || null,
+          industria: rama === "designs" ? (industria || null) : null,
+          fuente: "Cotización",
+        });
+        if ("error" in r && r.error) { setError(r.error); return; }
+        cid = (r as { id: string }).id;
+        brandId = null;
+      }
+
+      const base: SaveQuoteInput = { client_id: cid, rama, brand_id: brandId, ai_generado: aiUsed };
+      let input: SaveQuoteInput;
+      if (rama === "designs") {
+        input = { ...base, tipo_solucion: tipoSolucion || null, industria: industria || null,
+          modulos_json: [...modulos], notas: notas || null, precio_manual: precioManual === "" ? null : Number(precioManual) };
+      } else {
+        const valid = items.filter((it) => it.producto.trim());
+        input = { ...base, notas: notas || null, precio_manual: printTotal,
+          items_json: valid.map((it) => ({ producto: it.producto, categoria: it.categoria, metodo: it.metodo,
+            cantidad: it.cantidad, ancho: it.ancho, alto: it.alto, precio_unitario: it.precio_unitario, subtotal: pSubtotal(it) })) };
+      }
       const res = await saveQuote(input);
       if (res?.error) { setError(res.error); return; }
       setSavedId(res.id!);
@@ -140,28 +163,53 @@ export function CotizadorView({ clients, printProducts }: { clients: Client[]; p
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const pdfUrl = savedId ? `${origin}/api/pdf/quote/${savedId}` : "";
-  const waText = `¡Hola ${client?.nombre ?? ""}! 🎉 Gracias por considerar a JM Designs Worldwide. Preparamos tu cotización hecha a la medida de tu proyecto.\n\n📄 Tu cotización: ${pdfUrl}\n\nCuando quieras avanzamos — será un gusto construir esto contigo. 💜`;
-  const waNum = (client?.whatsapp ?? client?.telefono ?? "").replace(/\D/g, "");
+  const contactoNombre = clientMode === "existing" ? (client?.nombre ?? "") : nuevo.nombre.trim();
+  const waText = `¡Hola ${contactoNombre}! 🎉 Gracias por considerar a JM Designs Worldwide. Preparamos tu cotización hecha a la medida de tu proyecto.\n\n📄 Tu cotización: ${pdfUrl}\n\nCuando quieras avanzamos — será un gusto construir esto contigo. 💜`;
+  const waNum = (clientMode === "existing" ? (client?.whatsapp ?? client?.telefono ?? "") : nuevo.whatsapp).replace(/\D/g, "");
 
   return (
     <StaggerContainer className="grid grid-cols-1 gap-5 lg:grid-cols-3">
       <StaggerItem className="space-y-5 lg:col-span-2">
-        {/* Cliente + rama */}
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Cliente</Label>
-              <Select value={clientId} onChange={(e) => { setClientId(e.target.value); setSavedId(null); }}>
-                <option value="">— Elegir cliente —</option>
-                {clients.map((c) => <option key={c.id} value={c.id}>{c.nombre} {c.apellido ?? ""}</option>)}
-              </Select>
+        {/* Para quién + rama */}
+        <div className="space-y-4 rounded-xl border border-border bg-card p-4">
+          <div className="space-y-2">
+            <Label>¿Para quién es la cotización?</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <BranchBtn active={clientMode === "existing"} onClick={() => { setClientMode("existing"); setSavedId(null); }} icon={<UserSearch className="size-4" />} label="Cliente existente" />
+              <BranchBtn active={clientMode === "new"} onClick={() => { setClientMode("new"); setSavedId(null); }} icon={<UserPlus className="size-4" />} label="Persona nueva" />
             </div>
+          </div>
+
+          {clientMode === "existing" ? (
             <div className="space-y-1.5">
-              <Label>Rama</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <BranchBtn active={rama === "designs"} onClick={() => { setRama("designs"); setSavedId(null); }} icon={<Code2 className="size-4" />} label="Software" />
-                <BranchBtn active={rama === "distribution"} onClick={() => { setRama("distribution"); setSavedId(null); }} icon={<Package className="size-4" />} label="Imprenta" />
-              </div>
+              <Label>Buscar cliente o lead</Label>
+              <Combobox
+                options={clients.map((c) => ({ value: c.id, label: `${c.nombre} ${c.apellido ?? ""}`.trim() }))}
+                value={clientId}
+                onChange={(v) => { setClientId(v); setSavedId(null); const c = clients.find((x) => x.id === v); if (c?.industria) setIndustria(c.industria); }}
+                placeholder="Escribe el nombre…"
+              />
+              {client && (
+                <p className="text-xs text-muted-foreground">
+                  {[client.whatsapp ?? client.telefono, client.correo, client.industria].filter(Boolean).join(" · ") || "Sin datos de contacto"}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label>Nombre *</Label><Input value={nuevo.nombre} onChange={(e) => { setNuevo((n) => ({ ...n, nombre: e.target.value })); setSavedId(null); }} placeholder="Nombre" /></div>
+              <div className="space-y-1.5"><Label>Apellido</Label><Input value={nuevo.apellido} onChange={(e) => setNuevo((n) => ({ ...n, apellido: e.target.value }))} placeholder="Apellido" /></div>
+              <div className="space-y-1.5"><Label>WhatsApp</Label><Input type="tel" value={nuevo.whatsapp} onChange={(e) => setNuevo((n) => ({ ...n, whatsapp: e.target.value }))} placeholder="1 809 000 0000" /></div>
+              <div className="space-y-1.5"><Label>Correo</Label><Input type="email" value={nuevo.correo} onChange={(e) => setNuevo((n) => ({ ...n, correo: e.target.value }))} placeholder="correo@ejemplo.com" /></div>
+              <p className="text-xs text-muted-foreground sm:col-span-2">Se guardará como <span className="font-medium text-foreground">lead</span> automáticamente para no perderla.</p>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Rama</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <BranchBtn active={rama === "designs"} onClick={() => { setRama("designs"); setSavedId(null); }} icon={<Code2 className="size-4" />} label="Software" />
+              <BranchBtn active={rama === "distribution"} onClick={() => { setRama("distribution"); setSavedId(null); }} icon={<Package className="size-4" />} label="Imprenta" />
             </div>
           </div>
         </div>
