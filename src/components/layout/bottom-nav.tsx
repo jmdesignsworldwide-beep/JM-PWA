@@ -39,8 +39,8 @@ export function BottomNav({ onMore }: { onMore: () => void }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors",
-                active ? "text-electric" : "text-muted-foreground",
+                "relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors",
+                active ? "text-primary" : "text-foreground/75",
               )}
             >
               {active && (
@@ -57,7 +57,7 @@ export function BottomNav({ onMore }: { onMore: () => void }) {
         })}
         <button
           onClick={onMore}
-          className="flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors active:text-foreground"
+          className="flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold text-foreground/75 transition-colors active:text-primary"
         >
           <Menu className="size-[22px]" />
           <span>Más</span>

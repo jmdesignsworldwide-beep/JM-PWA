@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, CheckCircle2, Loader2, Lock, Mail } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Lock, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { staffLogin } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,18 +30,10 @@ export function LoginForm() {
     setError(null);
     setNotice(null);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setError(
-        error.message === "Invalid login credentials"
-          ? "Correo o contraseña incorrectos."
-          : error.message,
-      );
+    // Acepta correo O username (resuelto de forma segura en el servidor).
+    const res = await staffLogin(email, password);
+    if (res?.error) {
+      setError(res.error);
       setLoading(false);
       return;
     }
@@ -76,15 +69,17 @@ export function LoginForm() {
       className="space-y-4"
     >
       <div className="space-y-2">
-        <Label htmlFor="email">Correo</Label>
+        <Label htmlFor="email">{mode === "login" ? "Correo o usuario" : "Correo"}</Label>
         <div className="relative">
-          <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <User className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="email"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            placeholder="tu@correo.com"
+            type={mode === "login" ? "text" : "email"}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            autoComplete="username"
+            placeholder={mode === "login" ? "tu@correo.com o usuario" : "tu@correo.com"}
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}

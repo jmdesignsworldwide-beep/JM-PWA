@@ -14,6 +14,7 @@ export const metadata = { title: "Configuración" };
 
 export default async function ConfiguracionPage() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   const [
     { data: settings },
     { data: owners },
@@ -22,7 +23,7 @@ export default async function ConfiguracionPage() {
     { data: templates },
   ] = await Promise.all([
     supabase.from("app_settings").select("resumen_hora, dias_aviso_entrega, dias_aviso_cobro").eq("id", "global").maybeSingle(),
-    supabase.from("users_profiles").select("id, nombre, correo").eq("rol", "owner").order("created_at"),
+    supabase.from("users_profiles").select("id, nombre, correo, username").eq("rol", "owner").order("created_at"),
     supabase.from("brands").select("id, nombre, activo, rnc, telefono, direccion, logo_url").order("created_at"),
     supabase.from("categories").select("id, nombre, tipo").order("nombre"),
     supabase.from("message_templates").select("id, tipo, nombre, contenido").order("tipo"),
@@ -35,7 +36,7 @@ export default async function ConfiguracionPage() {
         subtitle="Usuarios, marcas, plantillas, categorías, tema, recordatorios y notificaciones."
       />
       <StaggerContainer className="space-y-4">
-        <UsuariosSettings owners={(owners ?? []) as { id: string; nombre: string | null; correo: string | null }[]} />
+        <UsuariosSettings owners={(owners ?? []) as { id: string; nombre: string | null; correo: string | null; username: string | null }[]} currentUserId={user?.id ?? ""} />
 
         <BrandsSettings brands={(brands ?? []) as { id: string; nombre: string; activo: boolean; rnc: string | null; telefono: string | null; direccion: string | null; logo_url: string | null }[]} />
 
