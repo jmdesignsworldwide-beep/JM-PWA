@@ -1,4 +1,4 @@
-import { TrendingUp, Users, FileText, Wallet, Repeat, Target, ArrowUpRight } from "lucide-react";
+import { TrendingUp, Users, FileText, Wallet, Repeat, Target, ArrowUpRight, Sparkles, Lightbulb, BarChart3 } from "lucide-react";
 import { StaggerContainer, StaggerItem } from "@/components/animations/motion";
 import { MagneticCard } from "@/components/animations/magnetic-card";
 import { BlurInText } from "@/components/animations/blur-in-text";
@@ -15,6 +15,7 @@ import { getKpis, getRuleInsights, getFunnel, getProjectsByStatus } from "@/lib/
 import { getSuggestedActions } from "@/lib/data/acciones";
 import { createClient } from "@/lib/supabase/server";
 import { rdToday } from "@/lib/fecha";
+import { fechaCorta } from "@/lib/format";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -45,7 +46,10 @@ export default async function DashboardPage() {
   return (
     <>
       <div className="mb-6">
-        <BlurInText as="h1" text="Bienvenida, Marien 👋" className="block text-2xl font-semibold tracking-tight sm:text-3xl" />
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground backdrop-blur">
+          <Sparkles className="size-3 text-electric" /> {fechaCorta(rdToday())}
+        </span>
+        <BlurInText as="h1" text="Bienvenida, Marien 👋" className="mt-2 block text-2xl font-semibold tracking-tight sm:text-3xl" />
         <p className="mt-1 text-sm text-muted-foreground">Tu centro de mando inteligente. El sistema corre adelante de ti.</p>
       </div>
 
@@ -62,12 +66,13 @@ export default async function DashboardPage() {
           const Icon = kpi.icon;
           return (
             <StaggerItem key={kpi.label}>
-              <MagneticCard className="h-full p-4">
+              <MagneticCard className="group relative h-full overflow-hidden p-4">
+                <span aria-hidden className="pointer-events-none absolute -right-8 -top-8 size-20 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--electric)_18%,transparent),transparent_70%)] opacity-0 blur-xl transition-opacity group-hover:opacity-100" />
                 <div className="flex items-start justify-between">
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-accent text-electric"><Icon className="size-4" /></div>
-                  <ArrowUpRight className="size-4 text-muted-foreground" />
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-[linear-gradient(135deg,var(--electric),var(--brand-purple))] text-white shadow-sm"><Icon className="size-5" /></div>
+                  <ArrowUpRight className="size-4 text-muted-foreground/50 transition-colors group-hover:text-electric" />
                 </div>
-                <p className="mt-3 text-2xl font-semibold tracking-tight">
+                <p className="mt-3 text-2xl font-bold tracking-tight">
                   <CountUp value={kpi.value} prefix={kpi.prefix} suffix={kpi.suffix} />
                 </p>
                 <p className="mt-1 text-xs font-medium">{kpi.label}</p>
@@ -85,15 +90,18 @@ export default async function DashboardPage() {
       </StaggerContainer>
 
       {/* Insights */}
-      <div className="mt-6">
-        <h2 className="mb-3 font-semibold">Insights</h2>
+      <div className="mt-8">
+        <h2 className="mb-3 flex items-center gap-2 font-semibold"><Lightbulb className="size-4 text-electric" /> Insights</h2>
         <InsightCards insights={insights} />
       </div>
 
       {/* Gráficos */}
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <FunnelChart data={funnel} />
-        <StatusChart data={byStatus} />
+      <div className="mt-8">
+        <h2 className="mb-3 flex items-center gap-2 font-semibold"><BarChart3 className="size-4 text-electric" /> Embudo y proyectos</h2>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <FunnelChart data={funnel} />
+          <StatusChart data={byStatus} />
+        </div>
       </div>
     </>
   );
