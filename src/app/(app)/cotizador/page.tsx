@@ -18,6 +18,7 @@ export default async function CotizadorPage() {
         clients={clients.map((c) => ({
           id: c.id, nombre: c.nombre, apellido: c.apellido,
           whatsapp: c.whatsapp, telefono: c.telefono, brand_id: c.brand_id,
+          industria: c.industria, correo: c.correo,
         }))}
         printProducts={printProducts.map((p) => ({
           id: p.id, nombre: p.nombre, categoria: p.categoria, precio_base: p.precio_base, moneda: p.moneda,

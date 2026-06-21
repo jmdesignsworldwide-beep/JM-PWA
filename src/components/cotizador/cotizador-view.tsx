@@ -4,9 +4,10 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles, Loader2, Code2, Package, Plus, Trash2, Save, Download,
-  MessageCircle, ArrowRightCircle, Check, Wand2,
+  MessageCircle, ArrowRightCircle, Check, Wand2, UserSearch, UserPlus,
 } from "lucide-react";
 import { saveQuote, convertQuoteToOrder, type SaveQuoteInput } from "@/app/(app)/cotizador/actions";
+import { createLead } from "@/app/(app)/leads/actions";
 import {
   TIPOS_SOLUCION_COT, INDUSTRIAS_COT, MODULO_LABEL, RELEVANCIA, modulosOrdenados,
 } from "@/lib/cotizador";
@@ -20,11 +21,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Combobox } from "@/components/ui/combobox";
+import { StaggerContainer, StaggerItem } from "@/components/animations/motion";
 import { cn } from "@/lib/utils";
 
 type Client = {
   id: string; nombre: string; apellido: string | null;
   whatsapp: string | null; telefono: string | null; brand_id: string | null;
+  industria: string | null; correo: string | null;
 };
 type PrintProduct = { id: string; nombre: string; categoria: string | null; precio_base: number; moneda: string };
 type PItem = { producto: string; categoria: string; metodo: "unidad" | "tamano"; cantidad: number; ancho: number; alto: number; precio_unitario: number };
@@ -35,7 +38,9 @@ const pSubtotal = (it: PItem) => Math.round((it.metodo === "tamano" ? it.ancho *
 export function CotizadorView({ clients, printProducts }: { clients: Client[]; printProducts: PrintProduct[] }) {
   const router = useRouter();
   const [rama, setRama] = useState<"designs" | "distribution">("designs");
+  const [clientMode, setClientMode] = useState<"existing" | "new">("existing");
   const [clientId, setClientId] = useState("");
+  const [nuevo, setNuevo] = useState({ nombre: "", apellido: "", whatsapp: "", correo: "" });
   const [savedId, setSavedId] = useState<string | null>(null);
   const [aiUsed, setAiUsed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,26 +107,45 @@ export function CotizadorView({ clients, printProducts }: { clients: Client[]; p
 
   function doSave() {
     setError(null);
-    if (!clientId) { setError("Elige un cliente para la cotización."); return; }
-    const base: SaveQuoteInput = {
-      client_id: clientId,
-      rama,
-      brand_id: client?.brand_id ?? null,
-      ai_generado: aiUsed,
-    };
-    let input: SaveQuoteInput;
-    if (rama === "designs") {
-      if (modulos.size === 0) { setError("Selecciona al menos un módulo."); return; }
-      input = { ...base, tipo_solucion: tipoSolucion || null, industria: industria || null,
-        modulos_json: [...modulos], notas: notas || null, precio_manual: precioManual === "" ? null : Number(precioManual) };
-    } else {
-      const valid = items.filter((it) => it.producto.trim());
-      if (valid.length === 0) { setError("Agrega al menos un producto."); return; }
-      input = { ...base, notas: notas || null, precio_manual: printTotal,
-        items_json: valid.map((it) => ({ producto: it.producto, categoria: it.categoria, metodo: it.metodo,
-          cantidad: it.cantidad, ancho: it.ancho, alto: it.alto, precio_unitario: it.precio_unitario, subtotal: pSubtotal(it) })) };
+    // Validación previa (rápida, antes de tocar el servidor).
+    if (clientMode === "existing" && !clientId) { setError("Busca y elige un cliente, o cambia a 'Persona nueva'."); return; }
+    if (clientMode === "new") {
+      if (!nuevo.nombre.trim()) { setError("Escribe el nombre de la persona nueva."); return; }
+      if (!nuevo.whatsapp.trim() && !nuevo.correo.trim()) { setError("Agrega al menos WhatsApp o correo de la persona nueva."); return; }
     }
+    if (rama === "designs" && modulos.size === 0) { setError("Selecciona al menos un módulo."); return; }
+    if (rama === "distribution" && items.filter((it) => it.producto.trim()).length === 0) { setError("Agrega al menos un producto."); return; }
+
     startTransition(async () => {
+      let cid = clientId;
+      let brandId = client?.brand_id ?? null;
+
+      // Persona nueva → se guarda como LEAD automáticamente (no se pierde).
+      if (clientMode === "new") {
+        const r = await createLead({
+          nombre: nuevo.nombre.trim(),
+          apellido: nuevo.apellido.trim() || null,
+          whatsapp: nuevo.whatsapp.trim() || null,
+          correo: nuevo.correo.trim() || null,
+          industria: rama === "designs" ? (industria || null) : null,
+          fuente: "Cotización",
+        });
+        if ("error" in r && r.error) { setError(r.error); return; }
+        cid = (r as { id: string }).id;
+        brandId = null;
+      }
+
+      const base: SaveQuoteInput = { client_id: cid, rama, brand_id: brandId, ai_generado: aiUsed };
+      let input: SaveQuoteInput;
+      if (rama === "designs") {
+        input = { ...base, tipo_solucion: tipoSolucion || null, industria: industria || null,
+          modulos_json: [...modulos], notas: notas || null, precio_manual: precioManual === "" ? null : Number(precioManual) };
+      } else {
+        const valid = items.filter((it) => it.producto.trim());
+        input = { ...base, notas: notas || null, precio_manual: printTotal,
+          items_json: valid.map((it) => ({ producto: it.producto, categoria: it.categoria, metodo: it.metodo,
+            cantidad: it.cantidad, ancho: it.ancho, alto: it.alto, precio_unitario: it.precio_unitario, subtotal: pSubtotal(it) })) };
+      }
       const res = await saveQuote(input);
       if (res?.error) { setError(res.error); return; }
       setSavedId(res.id!);
@@ -139,28 +163,53 @@ export function CotizadorView({ clients, printProducts }: { clients: Client[]; p
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const pdfUrl = savedId ? `${origin}/api/pdf/quote/${savedId}` : "";
-  const waText = `¡Hola ${client?.nombre ?? ""}! 🎉 Gracias por considerar a JM Designs Worldwide. Preparamos tu cotización hecha a la medida de tu proyecto.\n\n📄 Tu cotización: ${pdfUrl}\n\nCuando quieras avanzamos — será un gusto construir esto contigo. 💜`;
-  const waNum = (client?.whatsapp ?? client?.telefono ?? "").replace(/\D/g, "");
+  const contactoNombre = clientMode === "existing" ? (client?.nombre ?? "") : nuevo.nombre.trim();
+  const waText = `¡Hola ${contactoNombre}! 🎉 Gracias por considerar a JM Designs Worldwide. Preparamos tu cotización hecha a la medida de tu proyecto.\n\n📄 Tu cotización: ${pdfUrl}\n\nCuando quieras avanzamos — será un gusto construir esto contigo. 💜`;
+  const waNum = (clientMode === "existing" ? (client?.whatsapp ?? client?.telefono ?? "") : nuevo.whatsapp).replace(/\D/g, "");
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-      <div className="space-y-5 lg:col-span-2">
-        {/* Cliente + rama */}
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Cliente</Label>
-              <Select value={clientId} onChange={(e) => { setClientId(e.target.value); setSavedId(null); }}>
-                <option value="">— Elegir cliente —</option>
-                {clients.map((c) => <option key={c.id} value={c.id}>{c.nombre} {c.apellido ?? ""}</option>)}
-              </Select>
+    <StaggerContainer className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <StaggerItem className="space-y-5 lg:col-span-2">
+        {/* Para quién + rama */}
+        <div className="space-y-4 rounded-xl border border-border bg-card p-4">
+          <div className="space-y-2">
+            <Label>¿Para quién es la cotización?</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <BranchBtn active={clientMode === "existing"} onClick={() => { setClientMode("existing"); setSavedId(null); }} icon={<UserSearch className="size-4" />} label="Cliente existente" />
+              <BranchBtn active={clientMode === "new"} onClick={() => { setClientMode("new"); setSavedId(null); }} icon={<UserPlus className="size-4" />} label="Persona nueva" />
             </div>
+          </div>
+
+          {clientMode === "existing" ? (
             <div className="space-y-1.5">
-              <Label>Rama</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <BranchBtn active={rama === "designs"} onClick={() => { setRama("designs"); setSavedId(null); }} icon={<Code2 className="size-4" />} label="Software" />
-                <BranchBtn active={rama === "distribution"} onClick={() => { setRama("distribution"); setSavedId(null); }} icon={<Package className="size-4" />} label="Imprenta" />
-              </div>
+              <Label>Buscar cliente o lead</Label>
+              <Combobox
+                options={clients.map((c) => ({ value: c.id, label: `${c.nombre} ${c.apellido ?? ""}`.trim() }))}
+                value={clientId}
+                onChange={(v) => { setClientId(v); setSavedId(null); const c = clients.find((x) => x.id === v); if (c?.industria) setIndustria(c.industria); }}
+                placeholder="Escribe el nombre…"
+              />
+              {client && (
+                <p className="text-xs text-muted-foreground">
+                  {[client.whatsapp ?? client.telefono, client.correo, client.industria].filter(Boolean).join(" · ") || "Sin datos de contacto"}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label>Nombre *</Label><Input value={nuevo.nombre} onChange={(e) => { setNuevo((n) => ({ ...n, nombre: e.target.value })); setSavedId(null); }} placeholder="Nombre" /></div>
+              <div className="space-y-1.5"><Label>Apellido</Label><Input value={nuevo.apellido} onChange={(e) => setNuevo((n) => ({ ...n, apellido: e.target.value }))} placeholder="Apellido" /></div>
+              <div className="space-y-1.5"><Label>WhatsApp</Label><Input type="tel" value={nuevo.whatsapp} onChange={(e) => setNuevo((n) => ({ ...n, whatsapp: e.target.value }))} placeholder="1 809 000 0000" /></div>
+              <div className="space-y-1.5"><Label>Correo</Label><Input type="email" value={nuevo.correo} onChange={(e) => setNuevo((n) => ({ ...n, correo: e.target.value }))} placeholder="correo@ejemplo.com" /></div>
+              <p className="text-xs text-muted-foreground sm:col-span-2">Se guardará como <span className="font-medium text-foreground">lead</span> automáticamente para no perderla.</p>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Rama</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <BranchBtn active={rama === "designs"} onClick={() => { setRama("designs"); setSavedId(null); }} icon={<Code2 className="size-4" />} label="Software" />
+              <BranchBtn active={rama === "distribution"} onClick={() => { setRama("distribution"); setSavedId(null); }} icon={<Package className="size-4" />} label="Imprenta" />
             </div>
           </div>
         </div>
@@ -279,32 +328,40 @@ export function CotizadorView({ clients, printProducts }: { clients: Client[]; p
 
         {error && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
-        {/* Acciones */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="gradient" onClick={doSave} disabled={pending}>
+        {/* Acción principal */}
+        {!savedId && (
+          <Button variant="gradient" size="lg" onClick={doSave} disabled={pending}>
             {pending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} Guardar cotización
           </Button>
-          {savedId && (
-            <>
-              <a href={`/api/pdf/quote/${savedId}`} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline"><Download className="size-4" /> PDF</Button>
-              </a>
+        )}
+
+        {/* Panel premium tras guardar: compartir o convertir sin re-teclear */}
+        {savedId && (
+          <div className="space-y-3 rounded-xl border border-success/30 bg-[color-mix(in_srgb,var(--success)_7%,transparent)] p-4">
+            <p className="flex items-center gap-2 font-medium text-success"><Check className="size-5" /> Cotización guardada</p>
+            <p className="text-sm text-muted-foreground">Compártela con tu cliente o conviértela en pedido — sin volver a teclear nada.</p>
+            <div className="flex flex-wrap gap-2">
               {waNum && (
                 <a target="_blank" rel="noopener noreferrer" href={`https://wa.me/${waNum}?text=${encodeURIComponent(waText)}`}>
-                  <Button variant="outline" className="text-success"><MessageCircle className="size-4" /> WhatsApp</Button>
+                  <Button variant="gradient"><MessageCircle className="size-4" /> Enviar por WhatsApp</Button>
                 </a>
               )}
+              <a href={`/api/pdf/quote/${savedId}`} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline"><Download className="size-4" /> Ver PDF</Button>
+              </a>
               <Button variant="outline" onClick={doConvert} disabled={pending}>
-                <ArrowRightCircle className="size-4" /> Convertir en pedido
+                {pending ? <Loader2 className="size-4 animate-spin" /> : <ArrowRightCircle className="size-4" />} Convertir en pedido
               </Button>
-              <span className="flex items-center gap-1.5 text-sm text-success"><Check className="size-4" /> Guardada</span>
-            </>
-          )}
-        </div>
-      </div>
+            </div>
+            <button onClick={doSave} className="text-xs text-muted-foreground underline-offset-2 hover:underline" disabled={pending}>
+              Guardar cambios de nuevo
+            </button>
+          </div>
+        )}
+      </StaggerItem>
 
       {/* AI Assistant */}
-      <div className="lg:col-span-1">
+      <StaggerItem className="lg:col-span-1">
         <div className="sticky top-20 rounded-xl border border-border bg-card">
           <div className="flex items-center gap-2 border-b border-border px-4 py-3">
             <Wand2 className="size-4 text-electric" />
@@ -325,8 +382,8 @@ export function CotizadorView({ clients, printProducts }: { clients: Client[]; p
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </StaggerItem>
+    </StaggerContainer>
   );
 }
 
