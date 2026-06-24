@@ -3,13 +3,38 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, Users, UserCheck, Target } from "lucide-react";
 import type { Client } from "@/lib/data/clients";
 import { ETAPA_LABEL, INDUSTRIAS } from "@/lib/ventas";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { NewLeadDialog } from "@/components/leads/new-lead-dialog";
 import { containerVariants, itemVariants } from "@/components/animations/motion";
+import { CountUp } from "@/components/animations/count-up";
+
+function initials(nombre: string, apellido?: string | null) {
+  return `${(nombre[0] ?? "").toUpperCase()}${(apellido?.[0] ?? "").toUpperCase()}` || "?";
+}
+
+function Avatar({ nombre, apellido }: { nombre: string; apellido?: string | null }) {
+  return (
+    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--electric),var(--brand-purple))] text-xs font-semibold text-white">
+      {initials(nombre, apellido)}
+    </span>
+  );
+}
+
+function StatChip({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: number }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+      <div className="flex size-9 items-center justify-center rounded-lg bg-accent text-electric"><Icon className="size-4" /></div>
+      <div>
+        <p className="text-lg font-bold leading-none"><CountUp value={value} /></p>
+        <p className="text-[11px] text-muted-foreground">{label}</p>
+      </div>
+    </div>
+  );
+}
 
 type Brand = { id: string; nombre: string };
 
@@ -55,8 +80,21 @@ export function ClientsTable({
     });
   }, [clients, q, fEstado, fIndustria, fCategoria, fMarca]);
 
+  const totales = useMemo(() => ({
+    total: clients.length,
+    activos: clients.filter((c) => !c.es_lead).length,
+    leads: clients.filter((c) => c.es_lead).length,
+  }), [clients]);
+
   return (
     <div className="space-y-4">
+      {/* Resumen rápido */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatChip icon={Users} label="Total" value={totales.total} />
+        <StatChip icon={UserCheck} label="Clientes activos" value={totales.activos} />
+        <StatChip icon={Target} label="Leads" value={totales.leads} />
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -104,19 +142,22 @@ export function ClientsTable({
         <motion.ul variants={containerVariants} initial="hidden" animate="show" className="space-y-2 sm:hidden">
           {filtered.map((c) => (
             <motion.li key={c.id} variants={itemVariants}>
-              <Link href={`/clientes/${c.id}`} className="block rounded-xl border border-border bg-card p-4 active:bg-accent/40">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium">{c.nombre} {c.apellido ?? ""}</span>
-                  {c.es_lead ? (
-                    <Badge dot="var(--warning)">Lead</Badge>
-                  ) : (
-                    <Badge dot="var(--success)">Activo</Badge>
-                  )}
+              <Link href={`/clientes/${c.id}`} className="flex gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:border-electric/40 hover:shadow-md active:bg-accent/40">
+                <Avatar nombre={c.nombre} apellido={c.apellido} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate font-medium">{c.nombre} {c.apellido ?? ""}</span>
+                    {c.es_lead ? (
+                      <Badge dot="var(--warning)">Lead</Badge>
+                    ) : (
+                      <Badge dot="var(--success)">Activo</Badge>
+                    )}
+                  </div>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">
+                    {[c.categoria_servicio, c.industria, c.brand_id ? brandMap[c.brand_id] : null].filter(Boolean).join(" · ") || "Sin datos"}
+                  </p>
+                  <p className="mt-1 truncate text-sm text-muted-foreground">{c.whatsapp ?? c.telefono ?? c.correo ?? "Sin contacto"}</p>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {[c.categoria_servicio, c.industria, c.brand_id ? brandMap[c.brand_id] : null].filter(Boolean).join(" · ") || "Sin datos"}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">{c.whatsapp ?? c.telefono ?? c.correo ?? "Sin contacto"}</p>
               </Link>
             </motion.li>
           ))}
@@ -143,7 +184,8 @@ export function ClientsTable({
                   className="border-t border-border transition-colors hover:bg-accent/40"
                 >
                   <td className="px-4 py-3">
-                    <Link href={`/clientes/${c.id}`} className="font-medium hover:text-electric">
+                    <Link href={`/clientes/${c.id}`} className="flex items-center gap-2.5 font-medium hover:text-electric">
+                      <Avatar nombre={c.nombre} apellido={c.apellido} />
                       {c.nombre} {c.apellido ?? ""}
                     </Link>
                   </td>
