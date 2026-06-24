@@ -25,13 +25,15 @@ function isActive(pathname: string, href: string) {
  * Barra de navegación inferior (solo móvil/tablet). En escritorio se usa el
  * sidebar. "Más" abre el menú completo (el drawer del AppShell).
  */
-export function BottomNav({ onMore }: { onMore: () => void }) {
+export function BottomNav({ onMore, hidden = [] }: { onMore: () => void; hidden?: string[] }) {
   const pathname = usePathname();
+  // "/" (Inicio) siempre visible; el resto se puede ocultar desde Configuración.
+  const items = PRIMARY.filter((item) => item.href === "/" || !hidden.includes(item.href));
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/85 pb-safe backdrop-blur-xl lg:hidden">
-      <div className="mx-auto grid max-w-md grid-cols-5">
-        {PRIMARY.map((item) => {
+      <div className="mx-auto grid max-w-md" style={{ gridTemplateColumns: `repeat(${items.length + 1}, minmax(0, 1fr))` }}>
+        {items.map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = item.icon;
           return (

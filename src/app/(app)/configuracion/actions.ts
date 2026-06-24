@@ -121,6 +121,19 @@ export async function deleteOwner(id: string) {
   return { ok: true };
 }
 
+// ---------- Visibilidad de módulos del menú ----------
+/** Guarda qué módulos del menú se ocultan (solo owner). No afecta los datos. */
+export async function updateHiddenModules(hrefs: string[]) {
+  const auth = await requireOwner();
+  if ("error" in auth) return { error: auth.error };
+  // Nunca permitir ocultar Dashboard ni Configuración.
+  const limpio = [...new Set(hrefs)].filter((h) => h !== "/" && h !== "/configuracion");
+  const { error } = await auth.admin.from("app_settings").update({ modulos_ocultos: limpio }).eq("id", "global");
+  if (error) return { error: error.message };
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 // ---------- Marcas ----------
 export async function createBrand(nombre: string) {
   const supabase = await createClient();

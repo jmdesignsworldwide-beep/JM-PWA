@@ -13,10 +13,12 @@ import type { AgendaEvent } from "@/lib/data/agenda";
 export function AppShell({
   email,
   alerts,
+  hiddenModules = [],
   children,
 }: {
   email: string;
   alerts: { count: number; items: AgendaEvent[] };
+  hiddenModules?: string[];
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -27,7 +29,7 @@ export function AppShell({
       {/* Sidebar fijo (desktop) */}
       <aside className="hidden w-72 shrink-0 lg:block">
         <div className="fixed inset-y-0 left-0 w-72">
-          <Sidebar />
+          <Sidebar hidden={hiddenModules} />
         </div>
       </aside>
 
@@ -49,7 +51,7 @@ export function AppShell({
               transition={{ type: "spring", stiffness: 320, damping: 34 }}
               className="absolute inset-y-0 left-0 w-72"
             >
-              <Sidebar onNavigate={() => setMobileOpen(false)} />
+              <Sidebar hidden={hiddenModules} onNavigate={() => setMobileOpen(false)} />
             </motion.div>
           </div>
         )}
@@ -66,7 +68,7 @@ export function AppShell({
       </div>
 
       {/* Navegación inferior (móvil) — "Más" abre el menú completo */}
-      <BottomNav onMore={() => setMobileOpen(true)} />
+      <BottomNav onMore={() => setMobileOpen(true)} hidden={hiddenModules} />
     </div>
   );
 }
