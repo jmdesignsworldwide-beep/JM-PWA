@@ -21,6 +21,24 @@ export async function getExpenses(limit = 100): Promise<Expense[]> {
   return (data ?? []) as Expense[];
 }
 
+/**
+ * Trae TODOS los movimientos (ingresos + gastos) con sus campos completos
+ * para la vista interactiva de Finanzas. La agregación (balance, mensual,
+ * categorías) se hace en el cliente para que los filtros — Negocio/Personal,
+ * rango de fechas y marca — recalculen todo al instante.
+ */
+export async function getMovimientos(limit = 2000): Promise<{ incomes: Income[]; expenses: Expense[] }> {
+  const supabase = await createClient();
+  const [inc, exp] = await Promise.all([
+    supabase.from("incomes").select("*").order("fecha", { ascending: false }).limit(limit),
+    supabase.from("expenses").select("*").order("fecha", { ascending: false }).limit(limit),
+  ]);
+  return {
+    incomes: (inc.data ?? []) as Income[],
+    expenses: (exp.data ?? []) as Expense[],
+  };
+}
+
 /** Balance global por moneda + neto. */
 export async function getBalance() {
   const supabase = await createClient();
