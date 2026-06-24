@@ -226,3 +226,61 @@ export async function buildQuotePdf(data: {
   footer(ctx);
   return ctx.doc.save();
 }
+
+type CollabPlatform = { red: string; handle: string; seguidores: string; engagement: string };
+type CollabPromo = { tipo: string; cantidad: number; plataforma: string; valor: number; moneda: string; fecha: string };
+
+export async function buildCollabPdf(data: {
+  brand: string;
+  influencer: string;
+  nicho: string | null;
+  contacto: string | null;
+  plataformas: CollabPlatform[];
+  doyTipo: string | null;
+  doyDesc: string | null;
+  doyValor: number | null;
+  doyMoneda: string;
+  doyEntrega: string | null;
+  promos: CollabPromo[];
+  estado: string;
+  notas: string | null;
+  fecha: string | null;
+}): Promise<Uint8Array> {
+  const ctx = await newCtx();
+  header(ctx, data.brand || "JM Designs Worldwide", "Acuerdo de colaboración", fechaCorta(data.fecha));
+
+  text(ctx, `Influencer: ${data.influencer}`, 11, { bold: true });
+  const meta = [data.nicho, data.contacto].filter(Boolean).join("  -  ");
+  if (meta) text(ctx, meta, 9, { color: MUTED });
+  for (const p of data.plataformas) {
+    const segs = [p.handle, p.seguidores ? `${p.seguidores} seg.` : "", p.engagement ? `${p.engagement} eng.` : ""].filter(Boolean).join(" - ");
+    text(ctx, `- ${p.red}: ${segs}`, 9, { color: MUTED, indent: 8 });
+  }
+  ctx.y -= 8;
+
+  text(ctx, "Mi aporte (JM Designs)", 11, { bold: true, color: ACCENT });
+  text(ctx, `${data.doyTipo ?? "Proyecto"}${data.doyValor != null ? `  -  valor estimado ${money(data.doyValor, data.doyMoneda)}` : ""}`, 10);
+  if (data.doyDesc) text(ctx, data.doyDesc, 9, { color: MUTED });
+  if (data.doyEntrega) text(ctx, `Fecha de entrega: ${fechaCorta(data.doyEntrega)}`, 9, { color: MUTED });
+  ctx.y -= 8;
+
+  text(ctx, "Aporte del influencer", 11, { bold: true, color: ACCENT });
+  if (data.promos.length === 0) text(ctx, "- (sin promociones especificadas)", 9, { color: MUTED, indent: 8 });
+  for (const p of data.promos) {
+    const linea = `- ${p.cantidad}x ${p.tipo} en ${p.plataforma}${p.valor ? ` - ${money(p.valor, p.moneda)}` : ""}${p.fecha ? ` - publica ${fechaCorta(p.fecha)}` : ""}`;
+    text(ctx, linea, 10, { indent: 8 });
+  }
+  ctx.y -= 8;
+
+  text(ctx, `Estado del acuerdo: ${data.estado}`, 10, { bold: true });
+  if (data.notas) {
+    ctx.y -= 4;
+    text(ctx, "Notas", 11, { bold: true, color: ACCENT });
+    text(ctx, data.notas, 9, { color: MUTED });
+  }
+
+  ctx.y -= 10;
+  text(ctx, "Este documento resume un intercambio de colaboracion entre ambas partes.", 8, { color: MUTED });
+  footer(ctx);
+  return ctx.doc.save();
+}

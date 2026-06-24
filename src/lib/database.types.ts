@@ -294,6 +294,15 @@ export interface Tables {
     fecha_respondio: string | null;
     notas: string | null;
     fecha_acuerdo: string | null;
+    nicho: string | null;
+    plataformas: Json;
+    estado_trato: "propuesto" | "acordado" | "activo" | "completado" | "no_concreto";
+    doy_tipo: string | null;
+    doy_desc: string | null;
+    doy_valor: number | null;
+    doy_moneda: Moneda;
+    doy_fecha_entrega: string | null;
+    promos: Json;
     brand_id: string | null;
     created_by: string | null;
   } & Timestamps;

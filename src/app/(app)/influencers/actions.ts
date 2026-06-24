@@ -2,24 +2,35 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { InfluencerEstado } from "@/lib/influencers";
+import type { InfluencerEstado, EstadoTrato, Plataforma, Promo } from "@/lib/influencers";
 
 export type InfluencerInput = {
   nombre: string;
+  nicho?: string | null;
   ig_url?: string | null; ig_handle?: string | null;
   tiene_whatsapp?: boolean; whatsapp?: string | null;
   tiene_correo?: boolean; correo?: string | null;
   tiene_manager?: boolean; empresa?: string | null; manager_nombre?: string | null;
   empresa_whatsapp?: string | null; empresa_correo?: string | null;
   estado?: InfluencerEstado; notas?: string | null; brand_id?: string | null;
+  // Colaboración
+  plataformas?: Plataforma[];
+  estado_trato?: EstadoTrato;
+  doy_tipo?: string | null; doy_desc?: string | null;
+  doy_valor?: number | null; doy_moneda?: "DOP" | "USD"; doy_fecha_entrega?: string | null;
+  promos?: Promo[];
 };
 
 export async function createInfluencer(input: InfluencerInput) {
   const supabase = await createClient();
-  const { error } = await supabase.from("influencers").insert({ ...input, estado: input.estado ?? "nuevo" });
+  const { error, data } = await supabase
+    .from("influencers")
+    .insert({ ...input, estado: input.estado ?? "nuevo" } as never)
+    .select("id")
+    .single();
   if (error) return { error: error.message };
   revalidatePath("/influencers");
-  return { ok: true };
+  return { ok: true, id: (data as { id: string }).id };
 }
 
 export async function updateInfluencer(id: string, input: Partial<InfluencerInput>) {
