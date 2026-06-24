@@ -68,24 +68,30 @@ export function CalendarMonth({
 
       <div className="grid grid-cols-7">
         {cells.map((iso, i) => (
-          <div key={i} className={cn("min-h-24 border-b border-r border-border p-1.5", i % 7 === 6 && "border-r-0")}>
+          <div key={i} className={cn(
+            "min-h-24 border-b border-r border-border p-1.5 transition-colors",
+            i % 7 === 6 && "border-r-0",
+            iso && iso === hoy && "bg-[color-mix(in_srgb,var(--electric)_7%,transparent)]",
+            iso && "hover:bg-accent/30",
+          )}>
             {iso && (
               <>
                 <div className={cn(
                   "mb-1 flex size-6 items-center justify-center rounded-full text-xs",
-                  iso === hoy ? "bg-electric font-semibold text-white" : "text-muted-foreground",
+                  iso === hoy ? "bg-electric font-semibold text-white shadow-[0_2px_10px_-2px_var(--electric)]" : "text-muted-foreground",
                 )}>
                   {Number(iso.slice(-2))}
                 </div>
                 <div className="space-y-1">
                   {(byDay.get(iso) ?? []).slice(0, 3).map((e) => {
                     const t = e.tipo ? EVENT_TIPOS[e.tipo] : null;
-                    const label = e.monto != null ? money(e.monto, e.moneda ?? "DOP") : (e.cliente?.nombre ?? e.titulo ?? "Evento");
+                    const base = e.monto != null ? money(e.monto, e.moneda ?? "DOP") : (e.cliente?.nombre ?? e.titulo ?? "Evento");
+                    const label = `${e.hora ? `${e.hora} ` : ""}${base}`;
                     const chip = (
                       <span
-                        className={cn("block truncate rounded px-1.5 py-0.5 text-[10px]", e.completado && "line-through opacity-50")}
+                        className={cn("block truncate rounded px-1.5 py-0.5 text-[10px] font-medium transition-transform hover:scale-[1.03]", e.completado && "line-through opacity-50")}
                         style={{ background: `color-mix(in srgb, ${t?.color ?? "var(--muted)"} 18%, transparent)`, color: t?.color }}
-                        title={`${t?.label ?? ""}: ${e.titulo ?? ""}`}
+                        title={`${t?.label ?? ""}: ${e.titulo ?? ""}${e.hora ? ` (${e.hora})` : ""}`}
                       >
                         {label}
                       </span>

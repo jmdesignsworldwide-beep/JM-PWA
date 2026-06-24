@@ -20,9 +20,15 @@ export type NewEventInput = {
   titulo: string;
   tipo: "inicio" | "entrega" | "cobro" | "acuerdo" | "personal";
   fecha: string;
+  hora?: string | null;
   monto?: number | null;
   moneda?: "DOP" | "USD" | null;
   client_id?: string | null;
+  project_id?: string | null;
+  meeting_url?: string | null;
+  ubicacion?: string | null;
+  descripcion?: string | null;
+  recordatorio_min?: number | null;
   brand_id?: string | null;
 };
 
@@ -31,7 +37,7 @@ export async function addEvent(input: NewEventInput) {
   const { error } = await supabase.from("calendar_events").insert({
     ...input,
     auto_generado: false,
-  });
+  } as never);
   if (error) return { error: error.message };
   revalidatePath("/calendario");
   revalidatePath("/cobros");
@@ -60,6 +66,20 @@ export async function updateReminderSettings(input: {
   if (error) return { error: error.message };
   revalidatePath("/configuracion");
   return { ok: true };
+}
+
+/** Crea un proyecto rápido (solo nombre) ligado a un cliente, desde el calendario. */
+export async function createQuickProject(nombre: string, clientId: string) {
+  const supabase = await createClient();
+  if (!clientId) return { error: "Primero elige o crea un cliente para el proyecto." };
+  const { data, error } = await supabase
+    .from("projects")
+    .insert({ nombre: nombre.trim(), client_id: clientId, estado: "pendiente" } as never)
+    .select("id")
+    .single();
+  if (error) return { error: error.message };
+  revalidatePath("/calendario");
+  return { id: (data as { id: string }).id };
 }
 
 /** Guarda la suscripción Web Push del usuario actual. */

@@ -373,6 +373,11 @@ export interface Tables {
     completado: boolean;
     monto: number | null;
     moneda: Moneda | null;
+    hora: string | null;
+    meeting_url: string | null;
+    ubicacion: string | null;
+    descripcion: string | null;
+    recordatorio_min: number | null;
     created_by: string | null;
   } & Timestamps;
 

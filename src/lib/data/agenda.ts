@@ -16,6 +16,10 @@ export type AgendaEvent = {
   completado: boolean;
   brand_id: string | null;
   auto_generado: boolean;
+  hora: string | null;
+  meeting_url: string | null;
+  ubicacion: string | null;
+  descripcion: string | null;
   cliente?: { nombre: string; apellido: string | null; whatsapp: string | null; telefono: string | null } | null;
 };
 
@@ -37,7 +41,7 @@ async function attachClients(
   }));
 }
 
-const COLS = "id, titulo, tipo, fecha, client_id, project_id, monto, moneda, completado, brand_id, auto_generado";
+const COLS = "id, titulo, tipo, fecha, client_id, project_id, monto, moneda, completado, brand_id, auto_generado, hora, meeting_url, ubicacion, descripcion";
 
 /** Eventos en un rango de fechas [from, to]. */
 export async function getEventsRange(from: string, to: string): Promise<AgendaEvent[]> {
