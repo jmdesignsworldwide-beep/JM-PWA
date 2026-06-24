@@ -26,7 +26,7 @@ export async function getBalance() {
   const supabase = await createClient();
   const [inc, exp] = await Promise.all([
     supabase.from("incomes").select("monto, moneda"),
-    supabase.from("expenses").select("monto, moneda"),
+    supabase.from("expenses").select("monto, moneda").eq("es_personal", false),
   ]);
   const ingresos: Bucket = { DOP: 0, USD: 0 };
   const gastos: Bucket = { DOP: 0, USD: 0 };
@@ -46,7 +46,7 @@ export async function getMonthlyFlow() {
   const from = addDays(startOfMonth(today), -160);
   const [inc, exp] = await Promise.all([
     supabase.from("incomes").select("monto, moneda, fecha").gte("fecha", from),
-    supabase.from("expenses").select("monto, moneda, fecha").gte("fecha", from),
+    supabase.from("expenses").select("monto, moneda, fecha").gte("fecha", from).eq("es_personal", false),
   ]);
   const meses: Record<string, { ingresos: number; gastos: number }> = {};
   for (let i = 5; i >= 0; i--) {
@@ -65,7 +65,7 @@ export async function getMonthlyFlow() {
 /** Gastos por categoría (DOP). */
 export async function getExpensesByCategory() {
   const supabase = await createClient();
-  const { data } = await supabase.from("expenses").select("categoria, monto");
+  const { data } = await supabase.from("expenses").select("categoria, monto").eq("es_personal", false);
   const map: Record<string, number> = {};
   for (const r of (data ?? []) as { categoria: string | null; monto: number }[]) {
     const k = r.categoria ?? "Sin categoría";
@@ -88,6 +88,7 @@ export async function getProjectMargins() {
   const { data: exps } = await supabase
     .from("expenses")
     .select("project_id, monto")
+    .eq("es_personal", false)
     .in("project_id", projs.map((p) => p.id));
   const gastosByProj: Record<string, number> = {};
   for (const e of (exps ?? []) as { project_id: string | null; monto: number }[]) {

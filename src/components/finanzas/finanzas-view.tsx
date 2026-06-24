@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 type Opt = { id: string; nombre: string };
 type Bucket = { DOP: number; USD: number };
 type Income = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null };
-type Expense = Income & { project_id: string | null };
+type Expense = Income & { project_id: string | null; es_personal?: boolean | null; comercio?: string | null };
 type Margin = { id: string; nombre: string | null; precio_total: number; moneda: string; gastos: number; ganancia: number; margen: number };
 type Plan = { id: string; client_id: string; tipo: string | null; monto: number; moneda: string; frecuencia: string | null; proxima_factura: string | null; activo: boolean };
 
@@ -178,12 +178,22 @@ function MovList({ title, rows, tone }: { title: string; rows: Income[]; tone: s
     <div className="rounded-xl border border-border bg-card">
       <div className="border-b border-border px-4 py-3 font-semibold">{title}</div>
       <div className="max-h-[28rem] overflow-y-auto p-2">
-        {rows.length === 0 ? <Empty text={`Sin ${title.toLowerCase()}.`} /> : rows.map((r) => (
+        {rows.length === 0 ? <Empty text={`Sin ${title.toLowerCase()}.`} /> : rows.map((r) => {
+          const e = r as Expense;
+          const sub = [e.comercio, e.descripcion].filter(Boolean).join(" · ");
+          return (
           <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm hover:bg-accent/40">
-            <div className="min-w-0"><p className="truncate font-medium">{r.categoria ?? "—"}</p><p className="truncate text-xs text-muted-foreground">{r.descripcion ?? ""} · {fechaCorta(r.fecha)}</p></div>
+            <div className="min-w-0">
+              <p className="flex items-center gap-1.5 truncate font-medium">
+                {r.categoria ?? "—"}
+                {e.es_personal ? <span className="rounded-full border border-border bg-secondary/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">Personal</span> : null}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">{sub ? `${sub} · ` : ""}{fechaCorta(r.fecha)}</p>
+            </div>
             <span className="shrink-0 font-medium" style={{ color }}>{money(r.monto, r.moneda)}</span>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
