@@ -71,7 +71,7 @@ export function WelcomeOverlay({ greeting, name, sub }: { greeting: string; name
               </>
             )}
             <span className="absolute size-32 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--brand-purple)_45%,transparent),transparent_70%)] blur-2xl" />
-            <Logo size={84} className="relative text-white drop-shadow-[0_8px_30px_rgba(79,140,255,0.5)]" />
+            <Logo size={92} variant="white" className="relative drop-shadow-[0_8px_30px_rgba(79,140,255,0.5)]" />
           </motion.div>
 
           {/* Saludo */}

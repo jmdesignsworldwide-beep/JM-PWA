@@ -29,8 +29,10 @@ export function LoginIntro({ children }: { children: React.ReactNode }) {
             className="mb-6 flex flex-col items-center text-center"
           >
             <Logo
-              size={56}
-              className="mb-4 drop-shadow-[0_8px_24px_rgba(79,140,255,0.45)]"
+              size={132}
+              variant="white"
+              lockup
+              className="mb-2 drop-shadow-[0_8px_24px_rgba(79,140,255,0.45)]"
             />
             <BlurInText
               as="h1"

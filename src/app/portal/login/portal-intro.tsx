@@ -17,7 +17,7 @@ export function PortalIntro({ children }: { children: React.ReactNode }) {
       <ShimmerBorder radius={20} className="shadow-2xl">
         <Spotlight className="rounded-[19px] p-8" size={400}>
           <div className="mb-6 flex flex-col items-center text-center">
-            <Logo size={52} className="mb-4 drop-shadow-[0_8px_24px_rgba(79,140,255,0.45)]" />
+            <Logo size={120} variant="white" lockup className="mb-2 drop-shadow-[0_8px_24px_rgba(79,140,255,0.45)]" />
             <BlurInText as="h1" text="Tu espacio de proyecto" className="text-2xl font-semibold tracking-tight" />
             <p className="mt-1 text-sm text-muted-foreground">
               Bienvenido a tu portal de cliente de JM Designs Worldwide.

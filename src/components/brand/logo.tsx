@@ -1,36 +1,41 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Monograma JM Designs. Usa `currentColor`, así que toma el color del texto:
- * blanco en fondos oscuros, negro/oscuro en fondos claros — nunca invisible.
- * Para forzar un color, pásalo por className (ej. text-white en el login).
- *
- * NOTA: es una versión vectorial limpia del monograma M; se puede reemplazar
- * por el SVG exacto de marca dejando un archivo en /brand y cambiando este path.
+ * Logo real de JM Designs (PNG). Dos versiones: blanca (fondos oscuros) y negra
+ * (fondos claros). Por defecto auto-cambia según el tema; en superficies que
+ * siempre son oscuras (login, bienvenida) usa variant="white".
+ * - lockup=false (def.): solo el monograma M/S (para menú, ícono, espacios chicos).
+ * - lockup=true: monograma + "DESIGNS" (para login/bienvenida).
  */
 export function Logo({
   className,
   size = 36,
+  variant = "auto",
+  lockup = false,
 }: {
   className?: string;
   size?: number;
+  variant?: "auto" | "white" | "black";
+  lockup?: boolean;
 }) {
+  const base = lockup ? "/brand/logo" : "/brand/logo-mark";
+  const white = `${base}-white.png`;
+  const black = `${base}-black.png`;
+  const box = { width: size, height: size } as const;
+
+  if (variant === "white" || variant === "black") {
+    /* eslint-disable-next-line @next/next/no-img-element */
+    return <img src={variant === "white" ? white : black} alt="JM Designs" style={box} className={cn("shrink-0 object-contain", className)} />;
+  }
+
+  // auto: muestra negra en claro, blanca en oscuro (por la clase .dark del tema).
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={12}
-      strokeLinejoin="round"
-      strokeLinecap="round"
-      className={cn("shrink-0", className)}
-      aria-hidden="true"
-    >
-      <path d="M14 82 V24 L50 58 L86 24 V82" />
-      <path d="M50 58 V84" opacity={0.85} />
-    </svg>
+    <span style={box} className={cn("relative inline-block shrink-0", className)}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={black} alt="JM Designs" className="absolute inset-0 size-full object-contain dark:hidden" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={white} alt="" aria-hidden="true" className="absolute inset-0 hidden size-full object-contain dark:block" />
+    </span>
   );
 }
 
