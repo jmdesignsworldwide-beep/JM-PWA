@@ -13,8 +13,12 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+/** Dashboard y Configuración nunca se ocultan (para no perder el acceso). */
+const SIEMPRE_VISIBLE = ["/", "/configuracion"];
+
+export function Sidebar({ onNavigate, hidden = [] }: { onNavigate?: () => void; hidden?: string[] }) {
   const pathname = usePathname();
+  const items = NAV_ITEMS.filter((i) => SIEMPRE_VISIBLE.includes(i.href) || !hidden.includes(i.href));
 
   return (
     <div className="flex h-full flex-col gap-2 border-r border-border bg-card/40 backdrop-blur-xl">
@@ -23,7 +27,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = item.icon;
           return (

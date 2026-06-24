@@ -4,6 +4,7 @@ import { AppearanceSettings } from "@/components/settings/appearance-settings";
 import { ReminderSettings } from "@/components/settings/reminder-settings";
 import { PushSubscribe } from "@/components/settings/push-subscribe";
 import { UsuariosSettings } from "@/components/settings/usuarios-settings";
+import { VisibilitySettings } from "@/components/settings/visibility-settings";
 import { BrandsSettings } from "@/components/settings/brands-settings";
 import { CategoriesSettings } from "@/components/settings/categories-settings";
 import { TemplatesSettings } from "@/components/settings/templates-settings";
@@ -22,7 +23,7 @@ export default async function ConfiguracionPage() {
     { data: categories },
     { data: templates },
   ] = await Promise.all([
-    supabase.from("app_settings").select("resumen_hora, dias_aviso_entrega, dias_aviso_cobro").eq("id", "global").maybeSingle(),
+    supabase.from("app_settings").select("resumen_hora, dias_aviso_entrega, dias_aviso_cobro, modulos_ocultos").eq("id", "global").maybeSingle(),
     supabase.from("users_profiles").select("id, nombre, correo, username").eq("rol", "owner").order("created_at"),
     supabase.from("brands").select("id, nombre, activo, rnc, telefono, direccion, logo_url").order("created_at"),
     supabase.from("categories").select("id, nombre, tipo").order("nombre"),
@@ -37,6 +38,8 @@ export default async function ConfiguracionPage() {
       />
       <StaggerContainer className="space-y-4">
         <UsuariosSettings owners={(owners ?? []) as { id: string; nombre: string | null; correo: string | null; username: string | null }[]} currentUserId={user?.id ?? ""} />
+
+        <VisibilitySettings hidden={(settings?.modulos_ocultos as string[] | null) ?? []} />
 
         <BrandsSettings brands={(brands ?? []) as { id: string; nombre: string; activo: boolean; rnc: string | null; telefono: string | null; direccion: string | null; logo_url: string | null }[]} />
 

@@ -372,6 +372,7 @@ export interface Tables {
     resumen_hora: string;
     dias_aviso_entrega: number;
     dias_aviso_cobro: number;
+    modulos_ocultos: Json;
     updated_at: string;
   };
 
