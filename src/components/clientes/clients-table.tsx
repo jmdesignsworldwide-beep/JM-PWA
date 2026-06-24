@@ -92,7 +92,7 @@ export function ClientsTable({
       <div className="grid grid-cols-3 gap-3">
         <StatChip icon={Users} label="Total" value={totales.total} />
         <StatChip icon={UserCheck} label="Clientes activos" value={totales.activos} />
-        <StatChip icon={Target} label="Leads" value={totales.leads} />
+        <StatChip icon={Target} label="Prospectos" value={totales.leads} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -107,7 +107,7 @@ export function ClientsTable({
         </div>
         <Select value={fEstado} onChange={(e) => setFEstado(e.target.value)} className="h-9 w-auto">
           <option value="">Todos</option>
-          <option value="lead">Solo leads</option>
+          <option value="lead">Solo prospectos</option>
           <option value="activo">Solo clientes</option>
         </Select>
         <Select value={fCategoria} onChange={(e) => setFCategoria(e.target.value)} className="h-9 w-auto">
@@ -148,7 +148,7 @@ export function ClientsTable({
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate font-medium">{c.nombre} {c.apellido ?? ""}</span>
                     {c.es_lead ? (
-                      <Badge dot="var(--warning)">Lead</Badge>
+                      <Badge dot="var(--warning)">Prospecto</Badge>
                     ) : (
                       <Badge dot="var(--success)">Activo</Badge>
                     )}
@@ -191,7 +191,7 @@ export function ClientsTable({
                   </td>
                   <td className="px-4 py-3">
                     {c.es_lead ? (
-                      <Badge dot="var(--warning)">Lead · {ETAPA_LABEL[c.etapa_venta]}</Badge>
+                      <Badge dot="var(--warning)">Prospecto · {ETAPA_LABEL[c.etapa_venta]}</Badge>
                     ) : (
                       <Badge dot="var(--success)">Cliente activo</Badge>
                     )}

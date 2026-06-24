@@ -9,7 +9,7 @@ export function FunnelChart({ data }: { data: { etapa: string; count: number }[]
   const max = Math.max(1, ...data.map((d) => d.count));
   return (
     <div className="rounded-xl border border-border bg-card p-5">
-      <h3 className="mb-4 font-semibold">Embudo de conversión (leads)</h3>
+      <h3 className="mb-4 font-semibold">Embudo de conversión (prospectos)</h3>
       <div className="space-y-2">
         {data.map((d) => (
           <div key={d.etapa} className="flex items-center gap-3 text-sm">

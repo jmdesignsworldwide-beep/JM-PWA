@@ -15,7 +15,7 @@ type Stats = {
 export function currentLifecycleStep(client: Client, stats: Stats): number {
   const idx = (p: CicloPaso) => CICLO_VIDA.indexOf(p);
 
-  let step = client.es_lead ? idx("Lead") : idx("Pedido");
+  let step = client.es_lead ? idx("Prospecto") : idx("Pedido");
 
   if (stats.orders.length > 0) step = Math.max(step, idx("Pedido"));
   if (stats.contracts.length > 0) step = Math.max(step, idx("Contrato"));

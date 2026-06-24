@@ -11,7 +11,7 @@ export default async function ClientesPage() {
     <>
       <PageHeader
         title="Clientes y Proyectos"
-        subtitle="Leads y clientes activos. Todo fluye desde aquí."
+        subtitle="Prospectos y clientes activos. Todo fluye desde aquí."
       />
       <ClientsTable clients={clients} brands={brands} />
     </>

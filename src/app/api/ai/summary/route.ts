@@ -18,16 +18,16 @@ export async function GET() {
     `Ingresado: ${money(kpis.ingresado.DOP, "DOP")}${kpis.ingresado.USD ? " + " + money(kpis.ingresado.USD, "USD") : ""}`,
     `Gastado: ${money(kpis.gastado.DOP, "DOP")}`,
     `Por cobrar: ${money(kpis.porCobrar, "DOP")}`,
-    `Leads activos: ${kpis.leadsActivos}`,
+    `Prospectos activos: ${kpis.leadsActivos}`,
     `Proyectos activos: ${kpis.proyectosActivos}`,
-    `Conversión de leads: ${kpis.conversion}%`,
+    `Conversión de prospectos: ${kpis.conversion}%`,
     `MRR: ${money(kpis.mrr, "DOP")}`,
     `Acciones sugeridas hoy: ${acciones.length}`,
     ...insights.map((i) => i.texto),
   ].join("\n");
 
   // Fallback sin IA: resumen basado en reglas (nunca inventa).
-  const fallback = `Hoy tienes ${acciones.length} acción(es) sugerida(s), ${kpis.leadsActivos} lead(s) activo(s) y ${kpis.proyectosActivos} proyecto(s) en curso. Por cobrar: ${money(kpis.porCobrar, "DOP")}.`;
+  const fallback = `Hoy tienes ${acciones.length} acción(es) sugerida(s), ${kpis.leadsActivos} prospecto(s) activo(s) y ${kpis.proyectosActivos} proyecto(s) en curso. Por cobrar: ${money(kpis.porCobrar, "DOP")}.`;
 
   const key = process.env.GEMINI_API_KEY;
   if (!key || key.startsWith("tu-")) {

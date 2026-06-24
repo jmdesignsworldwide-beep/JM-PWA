@@ -36,9 +36,9 @@ export default async function DashboardPage() {
 
   const KPIS = [
     { label: "Por cobrar (DOP)", value: kpis.porCobrar, icon: Wallet, hint: "Saldo pendiente", prefix: "RD$ " },
-    { label: "Leads activos", value: kpis.leadsActivos, icon: TrendingUp, hint: "Pipeline" },
+    { label: "Prospectos activos", value: kpis.leadsActivos, icon: TrendingUp, hint: "Pipeline" },
     { label: "Proyectos activos", value: kpis.proyectosActivos, icon: FileText, hint: "En curso" },
-    { label: "Conversión", value: kpis.conversion, icon: Target, hint: "Leads ganados", suffix: "%" },
+    { label: "Conversión", value: kpis.conversion, icon: Target, hint: "Prospectos ganados", suffix: "%" },
     { label: "MRR (DOP)", value: kpis.mrr, icon: Repeat, hint: "Recurrente mensual", prefix: "RD$ " },
     { label: "Ingresado (DOP)", value: kpis.ingresado.DOP, icon: Users, hint: "Total histórico", prefix: "RD$ " },
   ];

@@ -52,7 +52,7 @@ export default async function ClientePage({
               {client.nombre} {client.apellido ?? ""}
             </h1>
             {client.es_lead ? (
-              <Badge dot="var(--warning)">Lead</Badge>
+              <Badge dot="var(--warning)">Prospecto</Badge>
             ) : (
               <Badge dot="var(--success)">Cliente activo</Badge>
             )}

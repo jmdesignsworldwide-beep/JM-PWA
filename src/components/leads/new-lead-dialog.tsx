@@ -15,7 +15,7 @@ import { Combobox } from "@/components/ui/combobox";
 
 type Brand = { id: string; nombre: string };
 
-export function NewLeadDialog({ brands, label = "Nuevo lead" }: { brands: Brand[]; label?: string }) {
+export function NewLeadDialog({ brands, label = "Nuevo prospecto" }: { brands: Brand[]; label?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -133,7 +133,7 @@ export function NewLeadDialog({ brands, label = "Nuevo lead" }: { brands: Brand[
           </div>
 
           <Field label="Lo que quiere">
-            <Textarea name="lo_que_quiere" placeholder="Describe lo que el lead necesita…" />
+            <Textarea name="lo_que_quiere" placeholder="Describe lo que el prospecto necesita…" />
           </Field>
           <Field label="Dirección">
             <Input name="direccion" placeholder="Dirección" />
@@ -154,7 +154,7 @@ export function NewLeadDialog({ brands, label = "Nuevo lead" }: { brands: Brand[
             </Button>
             <Button type="submit" variant="gradient" disabled={pending}>
               {pending && <Loader2 className="size-4 animate-spin" />}
-              Guardar lead
+              Guardar prospecto
             </Button>
           </div>
         </form>

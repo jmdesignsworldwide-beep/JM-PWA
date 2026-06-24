@@ -11,7 +11,7 @@ type Item = { label: string; href: string; icon: LucideIcon };
 /** Accesos principales (pulgar). El resto del menú vive tras "Más". */
 const PRIMARY: Item[] = [
   { label: "Inicio", href: "/", icon: LayoutDashboard },
-  { label: "Leads", href: "/leads", icon: Target },
+  { label: "Prospectos", href: "/leads", icon: Target },
   { label: "Clientes", href: "/clientes", icon: Users },
   { label: "Cobros", href: "/cobros", icon: CalendarClock },
 ];

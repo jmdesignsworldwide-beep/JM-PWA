@@ -163,7 +163,7 @@ export async function GET(req: Request) {
     const { data: lead } = await admin.from("clients")
       .select("id").eq("es_lead", true).lt("updated_at", `${addDays(hoy, -5)}T23:59:59`);
     for (const l of (lead ?? []) as { id: string }[])
-      rows.push({ entidad: "lead", entidad_id: l.id, motivo: "Lead estancado", fecha_sugerida: hoy });
+      rows.push({ entidad: "lead", entidad_id: l.id, motivo: "Prospecto estancado", fecha_sugerida: hoy });
 
     if (rows.length) await admin.from("followups").insert(rows);
     result.followups = rows.length;
