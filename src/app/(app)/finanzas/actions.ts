@@ -7,7 +7,7 @@ import { rdToday } from "@/lib/fecha";
 export type IncomeInput = {
   monto: number; moneda: "DOP" | "USD"; fecha: string; categoria?: string | null;
   client_id?: string | null; project_id?: string | null; descripcion?: string | null;
-  comprobante_url?: string | null; brand_id?: string | null;
+  comprobante_url?: string | null; brand_id?: string | null; es_personal?: boolean;
 };
 export async function addIncome(input: IncomeInput) {
   const supabase = await createClient();
@@ -15,6 +15,44 @@ export async function addIncome(input: IncomeInput) {
   if (error) return { error: error.message };
   revalidatePath("/finanzas");
   return { ok: true };
+}
+
+/** Edita un movimiento existente (ingreso o gasto). */
+export async function updateMovimiento(
+  kind: "income" | "expense",
+  id: string,
+  patch: Partial<ExpenseInput & IncomeInput>,
+) {
+  const supabase = await createClient();
+  const table = kind === "income" ? "incomes" : "expenses";
+  const { error } = await supabase.from(table).update(patch as never).eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/finanzas");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/** Borra un movimiento (ingreso o gasto). */
+export async function deleteMovimiento(kind: "income" | "expense", id: string) {
+  const supabase = await createClient();
+  const table = kind === "income" ? "incomes" : "expenses";
+  const { error } = await supabase.from(table).delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/finanzas");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/** URL firmada temporal para ver el recibo/comprobante guardado (bucket privado). */
+export async function getReceiptUrl(fileUrl: string) {
+  const supabase = await createClient();
+  const slash = fileUrl.indexOf("/");
+  if (slash < 0) return { error: "Ruta inválida" };
+  const bucket = fileUrl.slice(0, slash);
+  const path = fileUrl.slice(slash + 1);
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+  if (error) return { error: error.message };
+  return { url: data.signedUrl };
 }
 
 export type ExpenseInput = {

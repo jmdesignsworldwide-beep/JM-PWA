@@ -2,8 +2,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { FinanzasView } from "@/components/finanzas/finanzas-view";
 import { DailyExpensePrompt } from "@/components/finanzas/daily-expense-prompt";
 import {
-  getBalance, getMonthlyFlow, getExpensesByCategory, getProjectMargins,
-  getIncomes, getExpenses, getRecurringPlans, getMRR,
+  getProjectMargins, getMovimientos, getRecurringPlans, getMRR,
 } from "@/lib/data/finanzas";
 import { getClients, getBrands } from "@/lib/data/clients";
 import { createClient } from "@/lib/supabase/server";
@@ -14,15 +13,15 @@ export const metadata = { title: "Finanzas" };
 export default async function FinanzasPage() {
   const supabase = await createClient();
   const [
-    balance, monthly, byCategory, margins, incomes, expenses, plans, mrr, clients, brands,
+    movimientos, margins, plans, mrr, clients, brands,
     cats, projs, dailyLog,
   ] = await Promise.all([
-    getBalance(), getMonthlyFlow(), getExpensesByCategory(), getProjectMargins(),
-    getIncomes(), getExpenses(), getRecurringPlans(), getMRR(), getClients(), getBrands(),
+    getMovimientos(), getProjectMargins(), getRecurringPlans(), getMRR(), getClients(), getBrands(),
     supabase.from("categories").select("nombre, tipo"),
     supabase.from("projects").select("id, nombre").order("created_at", { ascending: false }).limit(100),
     supabase.from("daily_expense_log").select("fecha").eq("fecha", rdToday()).maybeSingle(),
   ]);
+  const { incomes, expenses } = movimientos;
 
   const categorias = (cats.data ?? []) as { nombre: string; tipo: string }[];
   const categoriasIngreso = categorias.filter((c) => c.tipo === "ingreso").map((c) => c.nombre);
@@ -38,7 +37,7 @@ export default async function FinanzasPage() {
         <DailyExpensePrompt registradoHoy={!!dailyLog.data} categorias={categoriasGasto} projects={projects} brands={brands} />
       </div>
       <FinanzasView
-        balance={balance} monthly={monthly} byCategory={byCategory} margins={margins}
+        margins={margins}
         incomes={incomes} expenses={expenses} plans={plans} mrr={mrr}
         categoriasIngreso={categoriasIngreso} categoriasGasto={categoriasGasto}
         clients={clientOpts} projects={projects} brands={brands}

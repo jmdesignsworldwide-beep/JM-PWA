@@ -339,6 +339,7 @@ export interface Tables {
     descripcion: string | null;
     comprobante_url: string | null;
     brand_id: string | null;
+    es_personal: boolean;
     created_by: string | null;
   } & Timestamps;
 
