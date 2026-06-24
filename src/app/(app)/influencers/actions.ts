@@ -8,6 +8,7 @@ export type InfluencerInput = {
   nombre: string;
   nicho?: string | null;
   ig_url?: string | null; ig_handle?: string | null;
+  facebook_url?: string | null;
   tiene_whatsapp?: boolean; whatsapp?: string | null;
   tiene_correo?: boolean; correo?: string | null;
   tiene_manager?: boolean; empresa?: string | null; manager_nombre?: string | null;

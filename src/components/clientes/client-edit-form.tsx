@@ -52,6 +52,8 @@ export function ClientEditForm({
       telefono: get("telefono"),
       whatsapp: get("whatsapp"),
       correo: get("correo"),
+      instagram: get("instagram"),
+      facebook: get("facebook"),
       direccion: get("direccion"),
       info_nota: get("info_nota"),
       categoria_servicio: (get("categoria_servicio") as ClientUpdate["categoria_servicio"]) ?? null,
@@ -84,6 +86,8 @@ export function ClientEditForm({
         <Field label="Teléfono"><Input name="telefono" type="tel" defaultValue={client.telefono ?? ""} /></Field>
         <Field label="WhatsApp"><Input name="whatsapp" type="tel" defaultValue={client.whatsapp ?? ""} /></Field>
         <Field label="Correo"><Input name="correo" type="email" defaultValue={client.correo ?? ""} /></Field>
+        <Field label="Instagram"><Input name="instagram" defaultValue={client.instagram ?? ""} placeholder="@usuario o link" /></Field>
+        <Field label="Facebook"><Input name="facebook" defaultValue={client.facebook ?? ""} placeholder="usuario o link" /></Field>
         <Field label="Categoría de servicio">
           <Combobox name="categoria_servicio" options={CATEGORIA_OPTIONS} defaultValue={client.categoria_servicio ?? ""} placeholder="Elegir categoría" />
         </Field>

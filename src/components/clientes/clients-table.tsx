@@ -9,6 +9,7 @@ import { ETAPA_LABEL, INDUSTRIAS } from "@/lib/ventas";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { NewLeadDialog } from "@/components/leads/new-lead-dialog";
+import { SocialLinks } from "@/components/ui/social-links";
 import { containerVariants, itemVariants } from "@/components/animations/motion";
 import { CountUp } from "@/components/animations/count-up";
 
@@ -157,6 +158,7 @@ export function ClientsTable({
                     {[c.categoria_servicio, c.industria, c.brand_id ? brandMap[c.brand_id] : null].filter(Boolean).join(" · ") || "Sin datos"}
                   </p>
                   <p className="mt-1 truncate text-sm text-muted-foreground">{c.whatsapp ?? c.telefono ?? c.correo ?? "Sin contacto"}</p>
+                  <SocialLinks instagram={c.instagram} facebook={c.facebook} whatsapp={c.whatsapp ?? c.telefono} waText={`Hola ${c.nombre}!`} size="sm" className="mt-2" />
                 </div>
               </Link>
             </motion.li>
@@ -199,7 +201,12 @@ export function ClientsTable({
                   <td className="px-4 py-3 capitalize text-muted-foreground">{c.categoria_servicio ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.industria ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.brand_id ? brandMap[c.brand_id] ?? "—" : "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.whatsapp ?? c.telefono ?? c.correo ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-muted-foreground">{c.whatsapp ?? c.telefono ?? c.correo ?? "—"}</span>
+                      <SocialLinks instagram={c.instagram} facebook={c.facebook} whatsapp={c.whatsapp ?? c.telefono} waText={`Hola ${c.nombre}!`} size="sm" />
+                    </div>
+                  </td>
                 </motion.tr>
               ))}
             </motion.tbody>

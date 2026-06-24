@@ -45,6 +45,8 @@ export interface Tables {
     telefono: string | null;
     whatsapp: string | null;
     correo: string | null;
+    instagram: string | null;
+    facebook: string | null;
     direccion: string | null;
     info_nota: string | null;
     categoria_servicio: "web" | "software" | "app" | "distribution" | null;
@@ -274,6 +276,7 @@ export interface Tables {
     nombre: string;
     ig_url: string | null;
     ig_handle: string | null;
+    facebook_url: string | null;
     tiene_whatsapp: boolean;
     whatsapp: string | null;
     tiene_correo: boolean;

@@ -41,6 +41,8 @@ export function NewLeadDialog({ brands, label = "Nuevo prospecto" }: { brands: B
       telefono: get("telefono"),
       whatsapp: get("whatsapp"),
       correo: get("correo"),
+      instagram: get("instagram"),
+      facebook: get("facebook"),
       direccion: get("direccion"),
       info_nota: get("info_nota"),
       categoria_servicio: (get("categoria_servicio") as NewLeadInput["categoria_servicio"]) ?? null,
@@ -96,6 +98,12 @@ export function NewLeadDialog({ brands, label = "Nuevo prospecto" }: { brands: B
             </Field>
             <Field label="Correo">
               <Input name="correo" type="email" placeholder="correo@ejemplo.com" />
+            </Field>
+            <Field label="Instagram">
+              <Input name="instagram" placeholder="@usuario o link" />
+            </Field>
+            <Field label="Facebook">
+              <Input name="facebook" placeholder="usuario o link" />
             </Field>
             <Field label="Categoría de servicio">
               <Combobox name="categoria_servicio" options={CATEGORIA_OPTIONS} placeholder="Elegir categoría" />

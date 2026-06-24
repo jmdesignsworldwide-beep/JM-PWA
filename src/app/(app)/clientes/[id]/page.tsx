@@ -15,6 +15,7 @@ import { ClientDetail } from "@/components/clientes/client-detail";
 import { WhatsappButton } from "@/components/clientes/whatsapp-button";
 import { ConvertButton } from "@/components/clientes/convert-button";
 import { PortalAccessButton } from "@/components/clientes/portal-access-button";
+import { SocialLinks } from "@/components/ui/social-links";
 import { Badge } from "@/components/ui/badge";
 
 export default async function ClientePage({
@@ -63,6 +64,7 @@ export default async function ClientePage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <SocialLinks instagram={client.instagram} facebook={client.facebook} />
           <WhatsappButton phone={client.whatsapp ?? client.telefono} text={`Hola ${client.nombre}!`} />
           <PortalAccessButton clientId={client.id} clientName={client.nombre} whatsapp={client.whatsapp ?? client.telefono} />
           {client.es_lead && <ConvertButton clientId={client.id} />}
