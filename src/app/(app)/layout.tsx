@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/layout/app-shell";
+import { WelcomeOverlay } from "@/components/brand/welcome-overlay";
 import { getAlerts } from "@/lib/data/agenda";
 import { getMyProfile } from "@/lib/data/profile";
 
@@ -23,10 +24,14 @@ export default async function AppLayout({
   if (profile?.rol === "equipo") redirect("/trabajo");
 
   const alerts = await getAlerts();
+  const nombre = (profile?.nombre?.trim() || user.email?.split("@")[0] || "de nuevo").split(" ")[0];
 
   return (
-    <AppShell email={user.email ?? "usuario"} alerts={alerts}>
-      {children}
-    </AppShell>
+    <>
+      <WelcomeOverlay greeting="Bienvenido de nuevo," name={nombre} sub="Tu centro de mando está listo." />
+      <AppShell email={user.email ?? "usuario"} alerts={alerts}>
+        {children}
+      </AppShell>
+    </>
   );
 }

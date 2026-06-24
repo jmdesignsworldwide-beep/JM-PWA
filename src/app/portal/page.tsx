@@ -10,6 +10,7 @@ import { ProjectJourney } from "@/components/portal/project-journey";
 import { UpdateFeed } from "@/components/portal/update-feed";
 import { PortalPush } from "@/components/portal/portal-push";
 import { PortalBottomNav } from "@/components/portal/portal-bottom-nav";
+import { WelcomeOverlay } from "@/components/brand/welcome-overlay";
 import { AuroraBackground } from "@/components/animations/aurora-background";
 import { BlurInText } from "@/components/animations/blur-in-text";
 import { StaggerContainer, StaggerItem, AnimatedCard } from "@/components/animations/motion";
@@ -40,6 +41,7 @@ export default async function PortalPage() {
 
   return (
     <div className="relative min-h-dvh">
+      <WelcomeOverlay greeting="Bienvenido," name={(d.client?.nombre ?? "").split(" ")[0]} sub={`Así va tu proyecto con ${d.brandName ?? "JM Designs"}.`} />
       <AuroraBackground className="opacity-60" />
       <PortalHeader brandName={d.brandName} />
 
