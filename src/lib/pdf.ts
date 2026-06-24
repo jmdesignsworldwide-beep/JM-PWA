@@ -258,13 +258,13 @@ export async function buildCollabPdf(data: {
   }
   ctx.y -= 8;
 
-  text(ctx, "JM Designs entrega", 11, { bold: true, color: ACCENT });
+  text(ctx, "Mi aporte (JM Designs)", 11, { bold: true, color: ACCENT });
   text(ctx, `${data.doyTipo ?? "Proyecto"}${data.doyValor != null ? `  -  valor estimado ${money(data.doyValor, data.doyMoneda)}` : ""}`, 10);
   if (data.doyDesc) text(ctx, data.doyDesc, 9, { color: MUTED });
   if (data.doyEntrega) text(ctx, `Fecha de entrega: ${fechaCorta(data.doyEntrega)}`, 9, { color: MUTED });
   ctx.y -= 8;
 
-  text(ctx, "El influencer entrega", 11, { bold: true, color: ACCENT });
+  text(ctx, "Aporte del influencer", 11, { bold: true, color: ACCENT });
   if (data.promos.length === 0) text(ctx, "- (sin promociones especificadas)", 9, { color: MUTED, indent: 8 });
   for (const p of data.promos) {
     const linea = `- ${p.cantidad}x ${p.tipo} en ${p.plataforma}${p.valor ? ` - ${money(p.valor, p.moneda)}` : ""}${p.fecha ? ` - publica ${fechaCorta(p.fecha)}` : ""}`;

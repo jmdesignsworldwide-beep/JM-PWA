@@ -165,8 +165,8 @@ export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
               </Select>
             </Field>
 
-            {/* Lo que doy */}
-            <Section icon={<Gift className="size-4 text-electric" />} title="Lo que YO doy">
+            {/* Mi aporte */}
+            <Section icon={<Gift className="size-4 text-electric" />} title="Mi aporte">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Qué construyo"><Select value={doyTipo} onChange={(e) => setDoyTipo(e.target.value)}>{DOY_TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}</Select></Field>
                 <Field label="Fecha de entrega"><Input type="date" value={doyEntrega} onChange={(e) => setDoyEntrega(e.target.value)} /></Field>
@@ -178,19 +178,22 @@ export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
               </div>
             </Section>
 
-            {/* Lo que dan */}
-            <Section icon={<Megaphone className="size-4 text-brand-purple" />} title="Lo que ELLOS dan (promoción)">
-              <div className="space-y-2">
+            {/* Aporte del influencer */}
+            <Section icon={<Megaphone className="size-4 text-brand-purple" />} title="Aporte del influencer">
+              <div className="space-y-3">
                 {promos.map((p, i) => (
-                  <div key={i} className="grid grid-cols-2 gap-2 sm:grid-cols-12">
-                    <Select className="sm:col-span-3" value={p.tipo} onChange={(e) => setProm(i, { tipo: e.target.value })}>{PROMO_TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}</Select>
-                    <Input className="sm:col-span-1" type="number" min="0" value={p.cantidad} onChange={(e) => setProm(i, { cantidad: Number(e.target.value) })} placeholder="Cant." />
-                    <Select className="sm:col-span-2" value={p.plataforma} onChange={(e) => setProm(i, { plataforma: e.target.value })}>{REDES.map((r) => <option key={r} value={r}>{r}</option>)}</Select>
-                    <Input className="sm:col-span-2" type="number" min="0" step="0.01" value={p.valor} onChange={(e) => setProm(i, { valor: Number(e.target.value) })} placeholder="Valor" />
-                    <Select className="sm:col-span-1" value={p.moneda} onChange={(e) => setProm(i, { moneda: e.target.value as "DOP" | "USD" })}><option value="DOP">DOP</option><option value="USD">USD</option></Select>
-                    <Input className="sm:col-span-2" type="date" value={p.fecha} onChange={(e) => setProm(i, { fecha: e.target.value })} title="Fecha de publicación" />
-                    <div className="flex items-center sm:col-span-1">
+                  <div key={i} className="rounded-lg border border-border bg-background/40 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-medium text-muted-foreground">Promoción {i + 1}</span>
                       {promos.length > 1 && <button type="button" onClick={() => setPromos((a) => a.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-destructive"><Trash2 className="size-4" /></button>}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      <Field label="Tipo"><Select value={p.tipo} onChange={(e) => setProm(i, { tipo: e.target.value })}>{PROMO_TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}</Select></Field>
+                      <Field label="Cantidad"><Input type="number" min="0" value={p.cantidad} onChange={(e) => setProm(i, { cantidad: Number(e.target.value) })} /></Field>
+                      <Field label="Plataforma"><Select value={p.plataforma} onChange={(e) => setProm(i, { plataforma: e.target.value })}>{REDES.map((r) => <option key={r} value={r}>{r}</option>)}</Select></Field>
+                      <Field label="Valor estimado"><Input type="number" min="0" step="0.01" value={p.valor} onChange={(e) => setProm(i, { valor: Number(e.target.value) })} placeholder="0.00" /></Field>
+                      <Field label="Moneda"><Select value={p.moneda} onChange={(e) => setProm(i, { moneda: e.target.value as "DOP" | "USD" })}><option value="DOP">DOP</option><option value="USD">USD</option></Select></Field>
+                      <Field label="Fecha de publicación"><Input type="date" value={p.fecha} onChange={(e) => setProm(i, { fecha: e.target.value })} /></Field>
                     </div>
                   </div>
                 ))}
