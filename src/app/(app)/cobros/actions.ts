@@ -20,9 +20,15 @@ export type NewEventInput = {
   titulo: string;
   tipo: "inicio" | "entrega" | "cobro" | "acuerdo" | "personal";
   fecha: string;
+  hora?: string | null;
   monto?: number | null;
   moneda?: "DOP" | "USD" | null;
   client_id?: string | null;
+  project_id?: string | null;
+  meeting_url?: string | null;
+  ubicacion?: string | null;
+  descripcion?: string | null;
+  recordatorio_min?: number | null;
   brand_id?: string | null;
 };
 
@@ -31,7 +37,7 @@ export async function addEvent(input: NewEventInput) {
   const { error } = await supabase.from("calendar_events").insert({
     ...input,
     auto_generado: false,
-  });
+  } as never);
   if (error) return { error: error.message };
   revalidatePath("/calendario");
   revalidatePath("/cobros");
