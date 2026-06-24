@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileSpreadsheet, TrendingUp, Repeat, ArrowDownUp } from "lucide-react";
+import { Download, FileSpreadsheet, TrendingUp, Repeat, ArrowDownUp, ArrowUpRight, ArrowDownRight, Wallet } from "lucide-react";
 import { money, fechaCorta } from "@/lib/format";
 import { AddIncomeDialog } from "./add-income-dialog";
 import { AddExpenseDialog } from "./add-expense-dialog";
@@ -157,10 +157,16 @@ export function FinanzasView({
 
 function BalanceCard({ label, b, tone }: { label: string; b: Bucket; tone: string }) {
   const color = tone === "success" ? "var(--success)" : tone === "destructive" ? "var(--destructive)" : "var(--electric)";
+  const Icon = tone === "success" ? ArrowUpRight : tone === "destructive" ? ArrowDownRight : Wallet;
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 text-xl font-semibold" style={{ color }}>{money(b.DOP, "DOP")}</p>
+    <div className="rounded-xl border border-border bg-card p-4 transition-all hover:border-electric/40 hover:shadow-md">
+      <div className="flex items-center justify-between">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+        <span className="flex size-8 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in srgb, ${color} 14%, transparent)`, color }}>
+          <Icon className="size-4" />
+        </span>
+      </div>
+      <p className="mt-2 text-2xl font-bold tracking-tight" style={{ color }}>{money(b.DOP, "DOP")}</p>
       {b.USD !== 0 && <p className="text-sm text-muted-foreground">{money(b.USD, "USD")}</p>}
     </div>
   );

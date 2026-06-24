@@ -52,12 +52,19 @@ export function EquipoView({ members, tasks, debts, projects, brands }: {
         members.length === 0 ? <Empty text="Aún no hay personas en el equipo." /> : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {members.map((m) => (
-              <Link key={m.id} href={`/equipo/${m.id}`} className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent/40">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium">{m.nombre}</p>
-                  {!m.activo && <Badge>Inactivo</Badge>}
+              <Link key={m.id} href={`/equipo/${m.id}`} className="rounded-xl border border-border bg-card p-4 transition-all hover:border-electric/40 hover:shadow-md">
+                <div className="flex items-center gap-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--electric),var(--brand-purple))] text-xs font-semibold text-white">
+                    {(m.nombre.trim()[0] ?? "?").toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate font-medium">{m.nombre}</p>
+                      {!m.activo && <Badge>Inactivo</Badge>}
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">{m.rol_especialidad ?? "—"}</p>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground">{m.rol_especialidad ?? "—"}</p>
                 <div className="mt-3 flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Saldo</span>
                   <span className={cn("font-semibold", m.saldo > 0 ? "text-destructive" : "text-success")}>{money(m.saldo, "DOP")}</span>

@@ -126,12 +126,12 @@ function InfluencerKanban({ influencers }: { influencers: Influencer[] }) {
   }
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4">
+    <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 [-webkit-overflow-scrolling:touch]">
       {INFLUENCER_ESTADOS.map((est) => {
         const list = grouped[est.id] ?? [];
         return (
           <div key={est.id} onDragOver={(e) => { e.preventDefault(); setOver(est.id); }} onDragLeave={() => setOver((c) => c === est.id ? null : c)} onDrop={() => drop(est.id)}
-            className={cn("flex w-64 shrink-0 flex-col rounded-xl border border-border bg-card/40", over === est.id && "border-electric/60 bg-accent/40")}>
+            className={cn("flex w-[82vw] shrink-0 snap-center flex-col rounded-xl border border-border bg-card/40 sm:w-64 sm:snap-start", over === est.id && "border-electric/60 bg-accent/40")}>
             <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
               <span className="flex items-center gap-2 text-sm font-medium"><span className="size-2 rounded-full" style={{ background: est.color }} />{est.label}</span>
               <Badge>{list.length}</Badge>
