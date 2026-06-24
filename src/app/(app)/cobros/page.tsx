@@ -1,4 +1,6 @@
+import { ListChecks } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { StaggerContainer, StaggerItem } from "@/components/animations/motion";
 import { HoyPanel } from "@/components/cobros/hoy-panel";
 import { CashflowPanel } from "@/components/cobros/cashflow-panel";
 import { CalendarMonth } from "@/components/cobros/calendar-month";
@@ -33,21 +35,21 @@ export default async function CobrosPage({
         subtitle="Tu dinero en movimiento. Lo vencido va primero."
       />
 
-      <div className="space-y-6">
-        <CashflowPanel data={cashflow} />
+      <StaggerContainer className="space-y-6">
+        <StaggerItem><CashflowPanel data={cashflow} /></StaggerItem>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <HoyPanel data={hoy} />
-          <div className="space-y-6">
+          <StaggerItem><HoyPanel data={hoy} /></StaggerItem>
+          <StaggerItem className="space-y-6">
             <CalendarMonth month={month} events={calEvents} basePath="/cobros" />
-          </div>
+          </StaggerItem>
         </div>
 
-        <section>
-          <h2 className="mb-3 font-semibold">Pendientes (próximos 60 días)</h2>
+        <StaggerItem>
+          <h2 className="mb-3 flex items-center gap-2 font-semibold"><ListChecks className="size-4 text-electric" /> Pendientes (próximos 60 días)</h2>
           <PendientesList items={pendientes} />
-        </section>
-      </div>
+        </StaggerItem>
+      </StaggerContainer>
     </>
   );
 }
