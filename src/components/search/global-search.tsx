@@ -71,7 +71,7 @@ export function GlobalSearch() {
         onChange={(e) => setQ(e.target.value)}
         onFocus={() => hits.length && setOpen(true)}
         type="search"
-        placeholder="Buscar leads, clientes…"
+        placeholder="Buscar prospectos, clientes…"
         className="h-9 w-full rounded-lg border border-border bg-background/50 pl-9 pr-8 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />
       {loading && (
@@ -98,7 +98,7 @@ export function GlobalSearch() {
               </Group>
             )}
             {leads.length > 0 && (
-              <Group title="Leads">
+              <Group title="Prospectos">
                 {leads.map((h) => (
                   <Result key={h.id} onClick={() => go(h.id)} hit={h} />
                 ))}

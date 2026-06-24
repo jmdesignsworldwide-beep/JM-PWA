@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { LeadsView } from "@/components/leads/leads-view";
 import { getLeads, getBrands } from "@/lib/data/clients";
 
-export const metadata = { title: "Leads / Ventas" };
+export const metadata = { title: "Prospectos / Ventas" };
 
 export default async function LeadsPage() {
   const [leads, brands] = await Promise.all([getLeads(), getBrands()]);
@@ -10,7 +10,7 @@ export default async function LeadsPage() {
   return (
     <>
       <PageHeader
-        title="Leads / Ventas"
+        title="Prospectos / Ventas"
         subtitle="Pipeline inbound. Arrastra las tarjetas para mover de etapa."
       />
       <LeadsView leads={leads} brands={brands} />

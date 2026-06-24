@@ -182,7 +182,7 @@ export function CotizadorView({ clients, printProducts }: { clients: Client[]; p
 
           {clientMode === "existing" ? (
             <div className="space-y-1.5">
-              <Label>Buscar cliente o lead</Label>
+              <Label>Buscar cliente o prospecto</Label>
               <Combobox
                 options={clients.map((c) => ({ value: c.id, label: `${c.nombre} ${c.apellido ?? ""}`.trim() }))}
                 value={clientId}
@@ -201,7 +201,7 @@ export function CotizadorView({ clients, printProducts }: { clients: Client[]; p
               <div className="space-y-1.5"><Label>Apellido</Label><Input value={nuevo.apellido} onChange={(e) => setNuevo((n) => ({ ...n, apellido: e.target.value }))} placeholder="Apellido" /></div>
               <div className="space-y-1.5"><Label>WhatsApp</Label><Input type="tel" value={nuevo.whatsapp} onChange={(e) => setNuevo((n) => ({ ...n, whatsapp: e.target.value }))} placeholder="1 809 000 0000" /></div>
               <div className="space-y-1.5"><Label>Correo</Label><Input type="email" value={nuevo.correo} onChange={(e) => setNuevo((n) => ({ ...n, correo: e.target.value }))} placeholder="correo@ejemplo.com" /></div>
-              <p className="text-xs text-muted-foreground sm:col-span-2">Se guardará como <span className="font-medium text-foreground">lead</span> automáticamente para no perderla.</p>
+              <p className="text-xs text-muted-foreground sm:col-span-2">Se guardará como <span className="font-medium text-foreground">prospecto</span> automáticamente para no perderla.</p>
             </div>
           )}
 

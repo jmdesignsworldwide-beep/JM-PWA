@@ -70,7 +70,7 @@ export async function getSuggestedActions(): Promise<SuggestedAction[]> {
     const dias = Math.floor((Date.now() - new Date(l.updated_at).getTime()) / 86400000);
     acc.push({
       id: `lead-${l.id}`, tipo: "lead", prioridad: 50,
-      titulo: `Lead estancado: ${nombre}`,
+      titulo: `Prospecto estancado: ${nombre}`,
       detalle: `Sin avanzar hace ${dias} días (${l.etapa_venta})`,
       clientId: l.id, nombre, phone: phoneOf(l.id),
       waText: `Hola ${nombre} 👋, ¿seguimos con su proyecto? Me encantaría ayudarle a arrancar. ¿Le parece si conversamos?`,

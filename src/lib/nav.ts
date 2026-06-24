@@ -23,7 +23,7 @@ export type NavItem = {
 /** Ítems del sidebar — orden y nombres según 00-MASTER-SPEC.md. */
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Leads / Ventas", href: "/leads", icon: Target },
+  { label: "Prospectos / Ventas", href: "/leads", icon: Target },
   { label: "Clientes y Proyectos", href: "/clientes", icon: Users },
   { label: "Pedidos / Contratos / Facturas", href: "/pedidos", icon: FileText },
   { label: "Cobros y Entregas", href: "/cobros", icon: CalendarClock },

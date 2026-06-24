@@ -8,7 +8,7 @@ export const ETAPAS: {
   label: string;
   color: string;
 }[] = [
-  { id: "nuevo", label: "Nuevo lead", color: "var(--electric)" },
+  { id: "nuevo", label: "Nuevo prospecto", color: "var(--electric)" },
   { id: "contactado", label: "Contactado", color: "#38bdf8" },
   { id: "cotizado", label: "Cotizado", color: "var(--brand-purple)" },
   { id: "contrato_enviado", label: "Contrato enviado", color: "#f59e0b" },
@@ -74,7 +74,7 @@ export const FUENTE_OPTIONS = FUENTES.map((f) => ({ value: f, label: f }));
 
 /** Pasos del ciclo de vida del cliente (barra visual). */
 export const CICLO_VIDA = [
-  "Lead",
+  "Prospecto",
   "Pedido",
   "Contrato",
   "Facturado",

@@ -14,7 +14,7 @@ export default async function InfluencersPage() {
     <>
       <PageHeader
         title="Influencers"
-        subtitle="CRM outbound (separado de Leads): pipeline, plantillas, campañas y tasa de respuesta."
+        subtitle="CRM outbound (separado de Prospectos): pipeline, plantillas, campañas y tasa de respuesta."
       />
       <InfluencersView
         influencers={influencers}

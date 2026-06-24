@@ -60,7 +60,7 @@ export async function getRuleInsights(): Promise<Insight[]> {
   const { data: leads } = await supabase
     .from("clients").select("id, updated_at").eq("es_lead", true).lt("updated_at", `${addDays(hoy, -7)}T23:59:59`);
   const nLeads = (leads ?? []).length;
-  if (nLeads > 0) insights.push({ icon: "clock", texto: `${nLeads} lead${nLeads > 1 ? "s llevan" : " lleva"} +7 días sin avanzar de etapa.` });
+  if (nLeads > 0) insights.push({ icon: "clock", texto: `${nLeads} prospecto${nLeads > 1 ? "s llevan" : " lleva"} +7 días sin avanzar de etapa.` });
 
   // Industria más rentable (por margen promedio)
   const margins = await getProjectMargins();

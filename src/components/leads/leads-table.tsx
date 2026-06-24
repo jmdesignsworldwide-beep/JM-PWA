@@ -18,7 +18,7 @@ export function LeadsTable({
   if (leads.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center text-sm text-muted-foreground">
-        No hay leads con estos filtros.
+        No hay prospectos con estos filtros.
       </div>
     );
   }
