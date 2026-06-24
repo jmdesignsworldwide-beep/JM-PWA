@@ -39,7 +39,12 @@ export function Combobox({
   const [creating, setCreating] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  const all = useMemo(() => [...options, ...extra], [options, extra]);
+  // Une opciones + creadas al vuelo, SIN duplicar (si la creada ya entró en
+  // options tras un refresh, no se repite).
+  const all = useMemo(() => {
+    const seen = new Set(options.map((o) => o.value));
+    return [...options, ...extra.filter((e) => !seen.has(e.value))];
+  }, [options, extra]);
 
   useEffect(() => {
     if (!open) return;
