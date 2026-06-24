@@ -349,6 +349,10 @@ export interface Tables {
     factura_url: string | null;
     project_id: string | null;
     brand_id: string | null;
+    comercio: string | null;
+    itbis: number | null;
+    metodo_pago: string | null;
+    es_personal: boolean;
     created_by: string | null;
   } & Timestamps;
 

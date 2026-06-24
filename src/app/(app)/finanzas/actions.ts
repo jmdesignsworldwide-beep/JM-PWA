@@ -20,6 +20,7 @@ export async function addIncome(input: IncomeInput) {
 export type ExpenseInput = {
   monto: number; moneda: "DOP" | "USD"; fecha: string; categoria?: string | null;
   descripcion?: string | null; factura_url?: string | null; project_id?: string | null; brand_id?: string | null;
+  comercio?: string | null; itbis?: number | null; metodo_pago?: string | null; es_personal?: boolean;
 };
 export async function addExpense(input: ExpenseInput) {
   const supabase = await createClient();
