@@ -15,6 +15,29 @@ export const INFLUENCER_ESTADO_LABEL: Record<InfluencerEstado, string> = Object.
   INFLUENCER_ESTADOS.map((e) => [e.id, e.label]),
 ) as Record<InfluencerEstado, string>;
 
+/** Estado general del TRATO de colaboración (distinto del pipeline de outreach). */
+export type EstadoTrato = "propuesto" | "acordado" | "activo" | "completado" | "no_concreto";
+export const ESTADOS_TRATO: { id: EstadoTrato; label: string }[] = [
+  { id: "propuesto", label: "Propuesto" },
+  { id: "acordado", label: "Acordado" },
+  { id: "activo", label: "Activo" },
+  { id: "completado", label: "Completado" },
+  { id: "no_concreto", label: "No se concretó" },
+];
+export const ESTADO_TRATO_LABEL: Record<EstadoTrato, string> = Object.fromEntries(
+  ESTADOS_TRATO.map((e) => [e.id, e.label]),
+) as Record<EstadoTrato, string>;
+
+/** Redes soportadas en una colaboración. */
+export const REDES = ["Instagram", "TikTok", "YouTube", "Facebook", "X / Twitter", "Otra"] as const;
+/** Tipos de promoción que el influencer entrega. */
+export const PROMO_TIPOS = ["Post", "Reel / Video", "Story", "Mención", "Reseña", "Otro"] as const;
+
+/** Una plataforma del influencer (se guarda en jsonb plataformas[]). */
+export type Plataforma = { red: string; handle: string; seguidores: string; engagement: string };
+/** Una promoción acordada (se guarda en jsonb promos[]). */
+export type Promo = { tipo: string; cantidad: number; plataforma: string; valor: number; moneda: "DOP" | "USD"; fecha: string };
+
 /** Extrae el @handle de una URL de Instagram. */
 export function igHandle(url: string | null): string | null {
   if (!url) return null;
