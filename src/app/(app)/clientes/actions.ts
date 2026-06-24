@@ -36,6 +36,8 @@ export type ClientUpdate = {
   telefono?: string | null;
   whatsapp?: string | null;
   correo?: string | null;
+  instagram?: string | null;
+  facebook?: string | null;
   direccion?: string | null;
   info_nota?: string | null;
   categoria_servicio?: "web" | "software" | "app" | "distribution" | null;

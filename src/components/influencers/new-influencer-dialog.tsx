@@ -34,6 +34,7 @@ export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
   const [whatsapp, setWhatsapp] = useState("");
   const [tieneCorreo, setTieneCorreo] = useState(false);
   const [correo, setCorreo] = useState("");
+  const [facebook, setFacebook] = useState("");
   const [tieneManager, setTieneManager] = useState(false);
   const [empresa, setEmpresa] = useState("");
   const [managerNombre, setManagerNombre] = useState("");
@@ -51,7 +52,7 @@ export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
 
   function reset() {
     setNombre(""); setNicho(""); setPlataformas([emptyPlat()]); setTieneWa(false); setWhatsapp("");
-    setTieneCorreo(false); setCorreo(""); setTieneManager(false); setEmpresa(""); setManagerNombre("");
+    setTieneCorreo(false); setCorreo(""); setFacebook(""); setTieneManager(false); setEmpresa(""); setManagerNombre("");
     setBrandId(""); setDoyTipo("Sitio web"); setDoyDesc(""); setDoyValor(""); setDoyMoneda("DOP");
     setDoyEntrega(""); setPromos([emptyPromo()]); setEstadoTrato("propuesto"); setNotas(""); setError(null); setCreado(null);
   }
@@ -71,6 +72,7 @@ export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
         plataformas: plataformas.filter((p) => p.handle.trim() || p.seguidores.trim()),
         tiene_whatsapp: tieneWa, whatsapp: tieneWa ? (whatsapp.trim() || null) : null,
         tiene_correo: tieneCorreo, correo: tieneCorreo ? (correo.trim() || null) : null,
+        facebook_url: facebook.trim() || null,
         tiene_manager: tieneManager,
         empresa: tieneManager ? (empresa.trim() || null) : null,
         manager_nombre: tieneManager ? (managerNombre.trim() || null) : null,
@@ -144,6 +146,8 @@ export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
                   {tieneWa && <Input type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="1 809 000 0000" />}
                   <label className="flex items-center gap-2 text-sm"><Switch checked={tieneCorreo} onCheckedChange={setTieneCorreo} /> Correo</label>
                   {tieneCorreo && <Input type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="correo@ejemplo.com" />}
+                  <label className="flex items-center gap-2 pt-1 text-sm text-muted-foreground">Facebook (opcional)</label>
+                  <Input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="usuario o link" />
                 </div>
                 <div className="rounded-lg border border-border p-3 space-y-2">
                   <label className="flex items-center gap-2 text-sm"><Switch checked={tieneManager} onCheckedChange={setTieneManager} /> Tiene manager / agencia</label>

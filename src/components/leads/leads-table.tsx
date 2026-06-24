@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ETAPA_LABEL } from "@/lib/ventas";
 import type { Client } from "@/lib/data/clients";
 import { Badge } from "@/components/ui/badge";
+import { SocialLinks } from "@/components/ui/social-links";
 import { money } from "@/lib/format";
 import { containerVariants, itemVariants } from "@/components/animations/motion";
 
@@ -34,6 +35,7 @@ export function LeadsTable({
             <th className="px-4 py-3 font-medium">Industria</th>
             <th className="px-4 py-3 font-medium">Fuente</th>
             <th className="px-4 py-3 font-medium">Marca</th>
+            <th className="px-4 py-3 font-medium">Contacto</th>
           </tr>
         </thead>
         <motion.tbody variants={containerVariants} initial="hidden" animate="show">
@@ -61,6 +63,9 @@ export function LeadsTable({
               <td className="px-4 py-3 text-muted-foreground">{l.fuente ?? "—"}</td>
               <td className="px-4 py-3 text-muted-foreground">
                 {l.brand_id ? brandMap[l.brand_id] ?? "—" : "—"}
+              </td>
+              <td className="px-4 py-3">
+                <SocialLinks instagram={l.instagram} facebook={l.facebook} whatsapp={l.whatsapp ?? l.telefono} waText={`Hola ${l.nombre}!`} size="sm" />
               </td>
             </motion.tr>
           ))}

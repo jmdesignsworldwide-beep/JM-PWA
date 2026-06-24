@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { LayoutGrid, Table2, AtSign, MessageCircle, FileSpreadsheet, BarChart3, GripVertical } from "lucide-react";
+import { LayoutGrid, Table2, FileSpreadsheet, BarChart3, GripVertical } from "lucide-react";
 import type { Influencer } from "@/lib/data/influencers";
 import { INFLUENCER_ESTADOS, INFLUENCER_ESTADO_LABEL, igHandle, type InfluencerEstado } from "@/lib/influencers";
 import { updateInfluencerStage } from "@/app/(app)/influencers/actions";
@@ -11,7 +11,13 @@ import { NewInfluencerDialog } from "./new-influencer-dialog";
 import { EmailCampaignDialog } from "./email-campaign-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SocialLinks } from "@/components/ui/social-links";
 import { cn } from "@/lib/utils";
+
+/** WhatsApp del influencer: el suyo si lo tiene, si no el de la empresa. */
+function waNumber(i: Influencer): string | null {
+  return (i.tiene_whatsapp ? i.whatsapp : i.empresa_whatsapp) ?? null;
+}
 
 type Brand = { id: string; nombre: string };
 type Rate = { agencia: string; escritos: number; respondieron: number; tasa: number }[];
@@ -96,12 +102,6 @@ export function InfluencersView({ influencers, brands, responseRate, dmTemplates
   );
 }
 
-function waLink(i: Influencer): string | null {
-  const num = (i.tiene_whatsapp ? i.whatsapp : i.empresa_whatsapp)?.replace(/\D/g, "");
-  if (!num) return null;
-  return `https://wa.me/${num}?text=${encodeURIComponent(`Hola ${i.nombre}!`)}`;
-}
-
 function InfluencerKanban({ influencers }: { influencers: Influencer[] }) {
   const router = useRouter();
   const [items, setItems] = useState(influencers);
@@ -139,7 +139,7 @@ function InfluencerKanban({ influencers }: { influencers: Influencer[] }) {
             <div className="flex flex-1 flex-col gap-2 p-2">
               <AnimatePresence initial={false}>
                 {list.map((i) => {
-                  const handle = igHandle(i.ig_url); const wa = waLink(i);
+                  const handle = igHandle(i.ig_url);
                   return (
                     <motion.div key={i.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
                       draggable onDragStart={() => setDragId(i.id)} onDragEnd={() => setDragId(null)}
@@ -153,10 +153,7 @@ function InfluencerKanban({ influencers }: { influencers: Influencer[] }) {
                         <Badge>{i.tiene_manager ? (i.empresa ?? "Agencia") : "Independiente"}</Badge>
                         {i.tiene_correo && <Badge dot="var(--electric)">correo</Badge>}
                       </div>
-                      <div className="mt-2 flex items-center gap-2">
-                        {i.ig_url && <a href={i.ig_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-muted-foreground hover:text-electric"><AtSign className="size-4" /></a>}
-                        {wa && <a href={wa} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-success"><MessageCircle className="size-4" /></a>}
-                      </div>
+                      <SocialLinks instagram={i.ig_url} facebook={i.facebook_url} whatsapp={waNumber(i)} waText={`Hola ${i.nombre}!`} size="sm" className="mt-2" />
                     </motion.div>
                   );
                 })}
@@ -198,7 +195,9 @@ function InfluencerTable({ influencers }: { influencers: Influencer[] }) {
                 <td className="px-4 py-3 text-muted-foreground">{igHandle(i.ig_url) ?? "—"}</td>
                 <td className="px-4 py-3"><Badge>{INFLUENCER_ESTADO_LABEL[i.estado as InfluencerEstado] ?? i.estado}</Badge></td>
                 <td className="px-4 py-3 text-muted-foreground">{i.tiene_manager ? (i.empresa ?? "Sí") : "Independiente"}</td>
-                <td className="px-4 py-3 text-muted-foreground">{(i.tiene_whatsapp && i.whatsapp) || (i.tiene_correo && i.correo) || "—"}</td>
+                <td className="px-4 py-3">
+                  <SocialLinks instagram={i.ig_url} facebook={i.facebook_url} whatsapp={waNumber(i)} waText={`Hola ${i.nombre}!`} size="sm" />
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">Sin influencers.</td></tr>}
