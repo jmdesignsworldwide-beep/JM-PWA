@@ -3,7 +3,8 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarPlus, Loader2, MessageCircle, Video, MapPin } from "lucide-react";
-import { addEvent } from "@/app/(app)/cobros/actions";
+import { addEvent, createQuickProject } from "@/app/(app)/cobros/actions";
+import { createLead } from "@/app/(app)/leads/actions";
 import { EVENT_TIPO_LIST } from "@/lib/eventos";
 import { rdToday } from "@/lib/fecha";
 import { fechaCorta } from "@/lib/format";
@@ -118,15 +119,34 @@ export function AddEventDialog({ clients = [], projects = [] }: { clients?: Clie
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Cliente (opcional)</Label>
-              <Combobox options={clients.map((c) => ({ value: c.id, label: `${c.nombre} ${c.apellido ?? ""}`.trim() }))}
-                value={clientId} onChange={setClientId} placeholder="Buscar cliente…" />
+              <Combobox
+                options={clients.map((c) => ({ value: c.id, label: `${c.nombre} ${c.apellido ?? ""}`.trim() }))}
+                value={clientId} onChange={setClientId} placeholder="Buscar o crear cliente…"
+                createLabel="Agregar cliente"
+                onCreate={async (label) => {
+                  setError(null);
+                  const r = await createLead({ nombre: label, fuente: "Calendario" });
+                  if ("id" in r && r.id) return { value: r.id, label };
+                  setError(("error" in r && r.error) || "No se pudo crear el cliente.");
+                  return null;
+                }}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Proyecto (opcional)</Label>
-              <Select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-                <option value="">— Ninguno —</option>
-                {projects.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-              </Select>
+              <Combobox
+                options={projects.map((p) => ({ value: p.id, label: p.nombre }))}
+                value={projectId} onChange={setProjectId} placeholder="Buscar o crear proyecto…"
+                createLabel="Crear proyecto"
+                onCreate={async (label) => {
+                  setError(null);
+                  if (!clientId) { setError("Para crear un proyecto, primero elige o crea un cliente."); return null; }
+                  const r = await createQuickProject(label, clientId);
+                  if ("id" in r && r.id) return { value: r.id, label };
+                  setError(("error" in r && r.error) || "No se pudo crear el proyecto.");
+                  return null;
+                }}
+              />
             </div>
           </div>
 
