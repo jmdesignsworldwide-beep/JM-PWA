@@ -13,9 +13,9 @@ export const metadata = { title: "Calendario" };
 export default async function CalendarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ m?: string }>;
+  searchParams: Promise<{ m?: string; ev?: string }>;
 }) {
-  const { m } = await searchParams;
+  const { m, ev } = await searchParams;
   const month = m && /^\d{4}-\d{2}$/.test(m) ? m : rdToday().slice(0, 7);
   const first = `${month}-01`;
   const supabase = await createClient();
@@ -43,7 +43,7 @@ export default async function CalendarioPage({
         ))}
       </div>
 
-      <CalendarMonth month={month} events={events} basePath="/calendario" />
+      <CalendarMonth month={month} events={events} basePath="/calendario" openEventId={ev} />
     </>
   );
 }
