@@ -32,7 +32,7 @@ export default async function AppLayout({
   return (
     <>
       <WelcomeOverlay greeting="Bienvenido de nuevo," name={nombre} sub="Tu centro de mando está listo." />
-      <AppShell email={user.email ?? "usuario"} alerts={alerts} hiddenModules={hiddenModules}>
+      <AppShell email={user.email ?? "usuario"} alerts={alerts} hiddenModules={hiddenModules} isOwner={profile?.rol === "owner"}>
         {children}
       </AppShell>
     </>

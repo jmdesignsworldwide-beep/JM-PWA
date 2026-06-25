@@ -9,19 +9,22 @@ import { DailyExpensePrompt } from "@/components/finanzas/daily-expense-prompt";
 import { ExecSummary } from "@/components/dashboard/exec-summary";
 import { AccionesPanel } from "@/components/dashboard/acciones-panel";
 import { AgendaProximos } from "@/components/dashboard/agenda-proximos";
+import { PendientesWidget } from "@/components/pendientes/pendientes-widget";
 import { InsightCards } from "@/components/dashboard/insight-cards";
 import { FunnelChart, StatusChart } from "@/components/dashboard/mini-charts";
 import { getHoy, getProximosEventos } from "@/lib/data/agenda";
 import { getBrands } from "@/lib/data/clients";
 import { getKpis, getRuleInsights, getFunnel, getProjectsByStatus } from "@/lib/data/insights";
 import { getSuggestedActions } from "@/lib/data/acciones";
+import { getMyTodos } from "@/lib/data/todos";
+import { getMyProfile } from "@/lib/data/profile";
 import { createClient } from "@/lib/supabase/server";
 import { rdToday } from "@/lib/fecha";
 import { fechaCorta } from "@/lib/format";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const [hoy, proximos, brands, kpis, insights, acciones, funnel, byStatus, cats, projs, dailyLog] = await Promise.all([
+  const [hoy, proximos, brands, kpis, insights, acciones, funnel, byStatus, cats, projs, dailyLog, todos, profile] = await Promise.all([
     getHoy(),
     getProximosEventos(7),
     getBrands(),
@@ -33,7 +36,10 @@ export default async function DashboardPage() {
     supabase.from("categories").select("nombre, tipo").eq("tipo", "gasto"),
     supabase.from("projects").select("id, nombre").order("created_at", { ascending: false }).limit(100),
     supabase.from("daily_expense_log").select("fecha").eq("fecha", rdToday()).maybeSingle(),
+    getMyTodos(),
+    getMyProfile(),
   ]);
+  const isOwner = profile?.rol === "owner";
   const categoriasGasto = ((cats.data ?? []) as { nombre: string }[]).map((c) => c.nombre);
   const projects = ((projs.data ?? []) as { id: string; nombre: string | null }[]).map((p) => ({ id: p.id, nombre: p.nombre ?? "Proyecto" }));
 
@@ -94,8 +100,15 @@ export default async function DashboardPage() {
         <StaggerItem><HoyPanel data={hoy} compact /></StaggerItem>
       </StaggerContainer>
 
-      {/* Acciones sugeridas */}
-      <div className="mt-4"><AccionesPanel acciones={acciones} /></div>
+      {/* Mis pendientes (privado, owner) + Acciones sugeridas */}
+      {isOwner ? (
+        <StaggerContainer className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <StaggerItem><PendientesWidget todos={todos} /></StaggerItem>
+          <StaggerItem><AccionesPanel acciones={acciones} /></StaggerItem>
+        </StaggerContainer>
+      ) : (
+        <div className="mt-4"><AccionesPanel acciones={acciones} /></div>
+      )}
 
       {/* Insights */}
       <div className="mt-8">

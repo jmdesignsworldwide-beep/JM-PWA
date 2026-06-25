@@ -14,11 +14,13 @@ export function AppShell({
   email,
   alerts,
   hiddenModules = [],
+  isOwner = false,
   children,
 }: {
   email: string;
   alerts: { count: number; items: AgendaEvent[] };
   hiddenModules?: string[];
+  isOwner?: boolean;
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -29,7 +31,7 @@ export function AppShell({
       {/* Sidebar fijo (desktop) */}
       <aside className="hidden w-72 shrink-0 lg:block">
         <div className="fixed inset-y-0 left-0 w-72">
-          <Sidebar hidden={hiddenModules} />
+          <Sidebar hidden={hiddenModules} isOwner={isOwner} />
         </div>
       </aside>
 
@@ -51,7 +53,7 @@ export function AppShell({
               transition={{ type: "spring", stiffness: 320, damping: 34 }}
               className="absolute inset-y-0 left-0 w-72"
             >
-              <Sidebar hidden={hiddenModules} onNavigate={() => setMobileOpen(false)} />
+              <Sidebar hidden={hiddenModules} isOwner={isOwner} onNavigate={() => setMobileOpen(false)} />
             </motion.div>
           </div>
         )}

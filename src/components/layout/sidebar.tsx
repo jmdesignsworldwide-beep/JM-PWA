@@ -16,9 +16,11 @@ function isActive(pathname: string, href: string) {
 /** Dashboard y Configuración nunca se ocultan (para no perder el acceso). */
 const SIEMPRE_VISIBLE = ["/", "/configuracion"];
 
-export function Sidebar({ onNavigate, hidden = [] }: { onNavigate?: () => void; hidden?: string[] }) {
+export function Sidebar({ onNavigate, hidden = [], isOwner = false }: { onNavigate?: () => void; hidden?: string[]; isOwner?: boolean }) {
   const pathname = usePathname();
-  const items = NAV_ITEMS.filter((i) => SIEMPRE_VISIBLE.includes(i.href) || !hidden.includes(i.href));
+  const items = NAV_ITEMS.filter((i) =>
+    (i.href !== "/pendientes" || isOwner) &&
+    (SIEMPRE_VISIBLE.includes(i.href) || !hidden.includes(i.href)));
 
   return (
     <div className="flex h-full flex-col gap-2 border-r border-border bg-card/40 pt-safe backdrop-blur-xl">
