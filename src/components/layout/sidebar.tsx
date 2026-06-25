@@ -21,7 +21,7 @@ export function Sidebar({ onNavigate, hidden = [] }: { onNavigate?: () => void; 
   const items = NAV_ITEMS.filter((i) => SIEMPRE_VISIBLE.includes(i.href) || !hidden.includes(i.href));
 
   return (
-    <div className="flex h-full flex-col gap-2 border-r border-border bg-card/40 backdrop-blur-xl">
+    <div className="flex h-full flex-col gap-2 border-r border-border bg-card/40 pt-safe backdrop-blur-xl">
       <div className="flex h-16 items-center px-5">
         <LogoWordmark />
       </div>
