@@ -22,6 +22,26 @@ export type InfluencerInput = {
   promos?: Promo[];
 };
 
+/**
+ * Sincroniza la entrega acordada con un influencer como evento del calendario.
+ * Borra el evento auto previo y crea uno fresco si hay fecha de entrega, para
+ * que esa fecha aparezca sola en el calendario (tipo "entrega").
+ */
+async function syncDeliveryEvent(supabase: Awaited<ReturnType<typeof createClient>>, influencerId: string) {
+  const { data: inf } = await supabase
+    .from("influencers").select("nombre, doy_tipo, doy_fecha_entrega").eq("id", influencerId).maybeSingle();
+  await supabase.from("calendar_events").delete()
+    .eq("influencer_id", influencerId).eq("auto_generado", true).eq("tipo", "entrega");
+  const row = inf as { nombre: string; doy_tipo: string | null; doy_fecha_entrega: string | null } | null;
+  if (row?.doy_fecha_entrega) {
+    await supabase.from("calendar_events").insert({
+      titulo: `Entrega a ${row.nombre}${row.doy_tipo ? `: ${row.doy_tipo}` : ""}`,
+      tipo: "entrega", fecha: row.doy_fecha_entrega,
+      influencer_id: influencerId, auto_generado: true,
+    } as never);
+  }
+}
+
 export async function createInfluencer(input: InfluencerInput) {
   const supabase = await createClient();
   const { error, data } = await supabase
@@ -30,15 +50,30 @@ export async function createInfluencer(input: InfluencerInput) {
     .select("id")
     .single();
   if (error) return { error: error.message };
+  const id = (data as { id: string }).id;
+  await syncDeliveryEvent(supabase, id);
   revalidatePath("/influencers");
-  return { ok: true, id: (data as { id: string }).id };
+  revalidatePath("/calendario");
+  return { ok: true, id };
 }
 
 export async function updateInfluencer(id: string, input: Partial<InfluencerInput>) {
   const supabase = await createClient();
   const { error } = await supabase.from("influencers").update(input).eq("id", id);
   if (error) return { error: error.message };
+  await syncDeliveryEvent(supabase, id);
   revalidatePath("/influencers");
+  revalidatePath(`/influencers/${id}`);
+  revalidatePath("/calendario");
+  return { ok: true };
+}
+
+export async function deleteInfluencer(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("influencers").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/influencers");
+  revalidatePath("/calendario");
   return { ok: true };
 }
 

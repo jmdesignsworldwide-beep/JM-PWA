@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 type EvTipo = "inicio" | "entrega" | "cobro" | "acuerdo" | "personal";
 type Client = { id: string; nombre: string; apellido: string | null; whatsapp: string | null; telefono: string | null };
 type Project = { id: string; nombre: string };
+type Influencer = { id: string; nombre: string };
 
 const RECORDATORIOS = [
   { v: "", label: "Sin recordatorio" },
@@ -30,7 +31,7 @@ const RECORDATORIOS = [
   { v: "1440", label: "1 día antes" },
 ];
 
-export function AddEventDialog({ clients = [], projects = [] }: { clients?: Client[]; projects?: Project[] }) {
+export function AddEventDialog({ clients = [], projects = [], influencers = [] }: { clients?: Client[]; projects?: Project[]; influencers?: Influencer[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -44,6 +45,7 @@ export function AddEventDialog({ clients = [], projects = [] }: { clients?: Clie
   const [hora, setHora] = useState("");
   const [clientId, setClientId] = useState("");
   const [projectId, setProjectId] = useState("");
+  const [influencerId, setInfluencerId] = useState("");
   const [meetingUrl, setMeetingUrl] = useState("");
   const [ubicacion, setUbicacion] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -64,7 +66,7 @@ export function AddEventDialog({ clients = [], projects = [] }: { clients?: Clie
   }, [client, fecha, hora, meetingUrl, ubicacion]);
 
   function reset() {
-    setModo("rapido"); setTitulo(""); setTipo("personal"); setFecha(rdToday()); setHora(""); setClientId(""); setProjectId("");
+    setModo("rapido"); setTitulo(""); setTipo("personal"); setFecha(rdToday()); setHora(""); setClientId(""); setProjectId(""); setInfluencerId("");
     setMeetingUrl(""); setUbicacion(""); setDescripcion(""); setRecordatorio(""); setMonto(""); setMoneda("DOP");
     setTelManual(""); setError(null); setDone(false);
   }
@@ -75,7 +77,7 @@ export function AddEventDialog({ clients = [], projects = [] }: { clients?: Clie
     startTransition(async () => {
       const res = await addEvent({
         titulo: titulo.trim(), tipo, fecha, hora: hora || null,
-        client_id: clientId || null, project_id: projectId || null,
+        client_id: clientId || null, project_id: projectId || null, influencer_id: influencerId || null,
         meeting_url: meetingUrl.trim() || null, ubicacion: ubicacion.trim() || null,
         descripcion: descripcion.trim() || null,
         recordatorio_min: recordatorio ? Number(recordatorio) : null,
@@ -169,6 +171,14 @@ export function AddEventDialog({ clients = [], projects = [] }: { clients?: Clie
                 }}
               />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Influencer (opcional)</Label>
+            <Combobox
+              options={influencers.map((i) => ({ value: i.id, label: i.nombre }))}
+              value={influencerId} onChange={setInfluencerId} placeholder="Buscar influencer…"
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

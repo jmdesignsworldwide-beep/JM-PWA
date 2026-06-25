@@ -11,6 +11,7 @@ export type AgendaEvent = {
   fecha: string;
   client_id: string | null;
   project_id: string | null;
+  influencer_id: string | null;
   monto: number | null;
   moneda: string | null;
   completado: boolean;
@@ -21,6 +22,7 @@ export type AgendaEvent = {
   ubicacion: string | null;
   descripcion: string | null;
   cliente?: { nombre: string; apellido: string | null; whatsapp: string | null; telefono: string | null } | null;
+  influencer?: { nombre: string } | null;
 };
 
 /** Adjunta los datos de cliente (nombre/teléfono) a una lista de eventos. */
@@ -35,13 +37,20 @@ async function attachClients(
     .select("id, nombre, apellido, whatsapp, telefono")
     .in("id", ids);
   const map = new Map((data ?? []).map((c) => [c.id, c]));
+  const infIds = [...new Set(events.map((e) => e.influencer_id).filter(Boolean))] as string[];
+  let infMap = new Map<string, { nombre: string }>();
+  if (infIds.length) {
+    const { data: infs } = await supabase.from("influencers").select("id, nombre").in("id", infIds);
+    infMap = new Map((infs ?? []).map((i) => [i.id, { nombre: i.nombre }]));
+  }
   return events.map((e) => ({
     ...e,
     cliente: e.client_id ? map.get(e.client_id) ?? null : null,
+    influencer: e.influencer_id ? infMap.get(e.influencer_id) ?? null : null,
   }));
 }
 
-const COLS = "id, titulo, tipo, fecha, client_id, project_id, monto, moneda, completado, brand_id, auto_generado, hora, meeting_url, ubicacion, descripcion";
+const COLS = "id, titulo, tipo, fecha, client_id, project_id, influencer_id, monto, moneda, completado, brand_id, auto_generado, hora, meeting_url, ubicacion, descripcion";
 
 /** Eventos en un rango de fechas [from, to]. */
 export async function getEventsRange(from: string, to: string): Promise<AgendaEvent[]> {

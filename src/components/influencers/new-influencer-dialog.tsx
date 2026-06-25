@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Loader2, Trash2, Download, MessageCircle, Handshake, Gift, Megaphone, AtSign } from "lucide-react";
-import { createInfluencer } from "@/app/(app)/influencers/actions";
+import { createInfluencer, updateInfluencer } from "@/app/(app)/influencers/actions";
+import type { Influencer } from "@/lib/data/influencers";
 import { REDES, PROMO_TIPOS, ESTADOS_TRATO, type Plataforma, type Promo } from "@/lib/influencers";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -20,8 +21,9 @@ const DOY_TIPOS = ["Sitio web", "App móvil", "Sistema / Software", "Branding / 
 const emptyPlat = (): Plataforma => ({ red: "Instagram", handle: "", seguidores: "", engagement: "" });
 const emptyPromo = (): Promo => ({ tipo: "Reel / Video", cantidad: 1, plataforma: "Instagram", valor: 0, moneda: "DOP", fecha: "" });
 
-export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
+export function NewInfluencerDialog({ brands, influencer, trigger }: { brands: Brand[]; influencer?: Influencer; trigger?: React.ReactNode }) {
   const router = useRouter();
+  const isEdit = !!influencer;
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +60,28 @@ export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
     setDoyEntrega(""); setPromos([emptyPromo()]); setEstadoTrato("propuesto"); setNotas(""); setError(null); setCreado(null);
   }
 
+  /** Carga el estado desde el influencer (edición) o lo limpia (nuevo). */
+  function reinit() {
+    if (!influencer) { reset(); return; }
+    setNombre(influencer.nombre ?? "");
+    setNicho(influencer.nicho ?? "");
+    const plats = Array.isArray(influencer.plataformas) ? (influencer.plataformas as unknown as Plataforma[]) : [];
+    setPlataformas(plats.length ? plats : [emptyPlat()]);
+    setTieneWa(!!influencer.tiene_whatsapp); setWhatsapp(influencer.whatsapp ?? "");
+    setTieneCorreo(!!influencer.tiene_correo); setCorreo(influencer.correo ?? "");
+    setFacebook(influencer.facebook_url ?? "");
+    setTieneManager(!!influencer.tiene_manager); setEmpresa(influencer.empresa ?? ""); setManagerNombre(influencer.manager_nombre ?? "");
+    setBrandId(influencer.brand_id ?? "");
+    setDoyTipo(influencer.doy_tipo ?? "Sitio web"); setDoyDesc(influencer.doy_desc ?? "");
+    setDoyValor(influencer.doy_valor ?? ""); setDoyMoneda((influencer.doy_moneda as "DOP" | "USD") ?? "DOP");
+    setDoyEntrega(influencer.doy_fecha_entrega ?? "");
+    const proms = Array.isArray(influencer.promos) ? (influencer.promos as unknown as Promo[]) : [];
+    setPromos(proms.length ? proms : [emptyPromo()]);
+    setEstadoTrato(influencer.estado_trato ?? "propuesto");
+    setNotas(influencer.notas ?? "");
+    setError(null); setCreado(null);
+  }
+
   function setPlat(i: number, p: Partial<Plataforma>) { setPlataformas((a) => a.map((x, idx) => idx === i ? { ...x, ...p } : x)); }
   function setProm(i: number, p: Partial<Promo>) { setPromos((a) => a.map((x, idx) => idx === i ? { ...x, ...p } : x)); }
 
@@ -66,7 +90,7 @@ export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
     if (!nombre.trim()) { setError("El nombre del influencer es obligatorio."); return; }
     startTransition(async () => {
       const handlePrincipal = plataformas.find((p) => p.handle.trim())?.handle.trim() || null;
-      const res = await createInfluencer({
+      const payload = {
         nombre: nombre.trim(),
         nicho: nicho.trim() || null,
         ig_handle: handlePrincipal,
@@ -84,7 +108,14 @@ export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
         promos: promos.filter((p) => p.tipo && (p.cantidad > 0 || p.valor > 0 || p.fecha)),
         estado_trato: estadoTrato as "propuesto",
         notas: notas.trim() || null,
-      });
+      };
+      if (isEdit) {
+        const res = await updateInfluencer(influencer!.id, payload);
+        if (res?.error) { setError(res.error); return; }
+        setOpen(false); router.refresh();
+        return;
+      }
+      const res = await createInfluencer(payload);
       if (res?.error) { setError(res.error); return; }
       setCreado({ id: res.id!, nombre: nombre.trim(), whatsapp: tieneWa ? whatsapp.trim() : null });
       router.refresh();
@@ -99,8 +130,10 @@ export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
 
   return (
     <>
-      <Button variant="gradient" onClick={() => { reset(); setOpen(true); }}><Plus className="size-4" /> Nueva colaboración</Button>
-      <Dialog open={open} onClose={() => setOpen(false)} title={creado ? "Colaboración guardada" : "Nueva colaboración con influencer"} className="max-w-3xl">
+      {trigger
+        ? <span onClick={() => { reinit(); setOpen(true); }}>{trigger}</span>
+        : <Button variant="gradient" onClick={() => { reinit(); setOpen(true); }}><Plus className="size-4" /> Nueva colaboración</Button>}
+      <Dialog open={open} onClose={() => setOpen(false)} title={creado ? "Colaboración guardada" : isEdit ? "Editar colaboración" : "Nueva colaboración con influencer"} className="max-w-3xl">
         {creado ? (
           <div className="space-y-3">
             <p className="text-sm text-success">✅ Guardada. Genera el acuerdo branded y compártelo.</p>
@@ -217,7 +250,7 @@ export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
             {error && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
             <div className="flex justify-end gap-2">
               <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button onClick={submit} variant="gradient" disabled={pending}>{pending ? <Loader2 className="size-4 animate-spin" /> : <Handshake className="size-4" />} Guardar colaboración</Button>
+              <Button onClick={submit} variant="gradient" disabled={pending}>{pending ? <Loader2 className="size-4 animate-spin" /> : <Handshake className="size-4" />} {isEdit ? "Guardar cambios" : "Guardar colaboración"}</Button>
             </div>
           </div>
         )}

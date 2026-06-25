@@ -1,18 +1,16 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { LayoutGrid, Table2, FileSpreadsheet, BarChart3, GripVertical } from "lucide-react";
+import { Search, MoreHorizontal, BarChart3, FileSpreadsheet, FileText, Mail, MessageSquareText, ChevronRight } from "lucide-react";
 import type { Influencer } from "@/lib/data/influencers";
 import { INFLUENCER_ESTADOS, INFLUENCER_ESTADO_LABEL, igHandle, type InfluencerEstado } from "@/lib/influencers";
-import { updateInfluencerStage } from "@/app/(app)/influencers/actions";
 import { NewInfluencerDialog } from "./new-influencer-dialog";
 import { EmailCampaignDialog } from "./email-campaign-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SocialLinks } from "@/components/ui/social-links";
-import { cn } from "@/lib/utils";
 
 /** WhatsApp del influencer: el suyo si lo tiene, si no el de la empresa. */
 function waNumber(i: Influencer): string | null {
@@ -26,8 +24,24 @@ type Tpl = { id: string; nombre: string; contenido: string | null }[];
 export function InfluencersView({ influencers, brands, responseRate, dmTemplates }: {
   influencers: Influencer[]; brands: Brand[]; responseRate: Rate; dmTemplates: Tpl;
 }) {
-  const [mode, setMode] = useState<"kanban" | "tabla">("kanban");
+  const router = useRouter();
+  const [q, setQ] = useState("");
+  const [fEstado, setFEstado] = useState("");
   const [showRate, setShowRate] = useState(false);
+  const [showTpl, setShowTpl] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    function onDoc(e: MouseEvent) { if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false); }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [moreOpen]);
+
+  const filtered = influencers.filter((i) =>
+    (!fEstado || i.estado === fEstado) &&
+    (!q.trim() || `${i.nombre} ${i.empresa ?? ""} ${igHandle(i.ig_url) ?? ""}`.toLowerCase().includes(q.toLowerCase())));
 
   function exportCsv() {
     const rows = [
@@ -46,22 +60,43 @@ export function InfluencersView({ influencers, brands, responseRate, dmTemplates
     URL.revokeObjectURL(url);
   }
 
+  const menuItem = "flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent";
+
   return (
     <div className="space-y-4">
+      {/* Barra: esencial visible + Más */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex rounded-lg border border-border p-0.5">
-          <button onClick={() => setMode("kanban")} className={cn("flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm", mode === "kanban" ? "bg-accent" : "text-muted-foreground")}><LayoutGrid className="size-4" /> Kanban</button>
-          <button onClick={() => setMode("tabla")} className={cn("flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm", mode === "tabla" ? "bg-accent" : "text-muted-foreground")}><Table2 className="size-4" /> Tabla</button>
+        <div className="relative min-w-[200px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar influencer…"
+            className="h-9 w-full rounded-lg border border-border bg-background/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
         </div>
-        <div className="ml-auto flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowRate((v) => !v)}><BarChart3 className="size-4" /> Tasa de respuesta</Button>
-          <Button variant="outline" size="sm" onClick={exportCsv}><FileSpreadsheet className="size-4" /> CSV</Button>
-          <a href="/api/pdf/influencers" target="_blank" rel="noopener noreferrer"><Button variant="outline" size="sm">PDF</Button></a>
-          <EmailCampaignDialog influencers={influencers.map((i) => ({ id: i.id, nombre: i.nombre, correo: i.tiene_correo ? i.correo : null }))} />
+        <select value={fEstado} onChange={(e) => setFEstado(e.target.value)} className="h-9 rounded-lg border border-border bg-background/50 px-3 text-sm">
+          <option value="">Todos los estados</option>
+          {INFLUENCER_ESTADOS.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
+        </select>
+
+        <div className="ml-auto flex items-center gap-2">
           <NewInfluencerDialog brands={brands} />
+          <div className="relative" ref={moreRef}>
+            <Button variant="outline" size="sm" onClick={() => setMoreOpen((v) => !v)}><MoreHorizontal className="size-4" /> Más</Button>
+            {moreOpen && (
+              <div className="absolute right-0 z-50 mt-2 w-60 rounded-xl border border-border bg-card p-1.5 shadow-xl">
+                <button className={menuItem} onClick={() => { setShowRate((v) => !v); setMoreOpen(false); }}><BarChart3 className="size-4 text-muted-foreground" /> Tasa de respuesta</button>
+                <button className={menuItem} onClick={() => { setShowTpl((v) => !v); setMoreOpen(false); }}><MessageSquareText className="size-4 text-muted-foreground" /> Plantillas de DM {dmTemplates.length > 0 && `(${dmTemplates.length})`}</button>
+                <EmailCampaignDialog
+                  influencers={influencers.map((i) => ({ id: i.id, nombre: i.nombre, correo: i.tiene_correo ? i.correo : null }))}
+                  trigger={<button className={menuItem} onClick={() => setMoreOpen(false)}><Mail className="size-4 text-muted-foreground" /> Campaña por correo</button>}
+                />
+                <button className={menuItem} onClick={() => { exportCsv(); setMoreOpen(false); }}><FileSpreadsheet className="size-4 text-muted-foreground" /> Exportar CSV</button>
+                <a href="/api/pdf/influencers" target="_blank" rel="noopener noreferrer" className={menuItem} onClick={() => setMoreOpen(false)}><FileText className="size-4 text-muted-foreground" /> PDF</a>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Paneles secundarios (desde "Más") */}
       <AnimatePresence>
         {showRate && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
@@ -83,10 +118,10 @@ export function InfluencersView({ influencers, brands, responseRate, dmTemplates
         )}
       </AnimatePresence>
 
-      {dmTemplates.length > 0 && (
-        <details className="rounded-xl border border-border bg-card p-4">
-          <summary className="cursor-pointer text-sm font-medium">Plantillas de DM ({dmTemplates.length})</summary>
-          <div className="mt-3 space-y-2">
+      {showTpl && dmTemplates.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h3 className="mb-3 font-semibold">Plantillas de DM</h3>
+          <div className="space-y-2">
             {dmTemplates.map((t) => (
               <div key={t.id} className="rounded-lg border border-border bg-background/40 p-3">
                 <p className="text-sm font-medium">{t.nombre}</p>
@@ -94,113 +129,31 @@ export function InfluencersView({ influencers, brands, responseRate, dmTemplates
               </div>
             ))}
           </div>
-        </details>
+        </div>
       )}
 
-      {mode === "kanban" ? <InfluencerKanban influencers={influencers} /> : <InfluencerTable influencers={influencers} />}
-    </div>
-  );
-}
-
-function InfluencerKanban({ influencers }: { influencers: Influencer[] }) {
-  const router = useRouter();
-  const [items, setItems] = useState(influencers);
-  const [dragId, setDragId] = useState<string | null>(null);
-  const [over, setOver] = useState<string | null>(null);
-  const [, start] = useTransition();
-
-  const grouped = useMemo(() => {
-    const g: Record<string, Influencer[]> = {};
-    for (const e of INFLUENCER_ESTADOS) g[e.id] = [];
-    for (const i of items) (g[i.estado] ??= []).push(i);
-    return g;
-  }, [items]);
-
-  function drop(estado: InfluencerEstado) {
-    setOver(null); const id = dragId; setDragId(null);
-    if (!id) return;
-    const it = items.find((x) => x.id === id);
-    if (!it || it.estado === estado) return;
-    setItems((p) => p.map((x) => x.id === id ? { ...x, estado } : x));
-    start(async () => { await updateInfluencerStage(id, estado); router.refresh(); });
-  }
-
-  return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-      {INFLUENCER_ESTADOS.map((est) => {
-        const list = grouped[est.id] ?? [];
-        return (
-          <div key={est.id} onDragOver={(e) => { e.preventDefault(); setOver(est.id); }} onDragLeave={() => setOver((c) => c === est.id ? null : c)} onDrop={() => drop(est.id)}
-            className={cn("flex min-w-0 flex-col rounded-xl border border-border bg-card/40", over === est.id && "border-electric/60 bg-accent/40")}>
-            <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
-              <span className="flex items-center gap-2 text-sm font-medium"><span className="size-2 rounded-full" style={{ background: est.color }} />{est.label}</span>
-              <Badge>{list.length}</Badge>
-            </div>
-            <div className="flex flex-1 flex-col gap-2 p-2">
-              <AnimatePresence initial={false}>
-                {list.map((i) => {
-                  const handle = igHandle(i.ig_url);
-                  return (
-                    <motion.div key={i.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                      draggable onDragStart={() => setDragId(i.id)} onDragEnd={() => setDragId(null)}
-                      className={cn("group cursor-grab rounded-lg border border-border bg-card p-3 active:cursor-grabbing", dragId === i.id && "opacity-50")}>
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-medium leading-tight">{i.nombre}</p>
-                        <GripVertical className="size-4 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100" />
-                      </div>
-                      {handle && <p className="text-xs text-muted-foreground">{handle}</p>}
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <Badge>{i.tiene_manager ? (i.empresa ?? "Agencia") : "Independiente"}</Badge>
-                        {i.tiene_correo && <Badge dot="var(--electric)">correo</Badge>}
-                      </div>
-                      <SocialLinks instagram={i.ig_url} facebook={i.facebook_url} whatsapp={waNumber(i)} waText={`Hola ${i.nombre}!`} size="sm" className="mt-2" />
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-              {list.length === 0 && <div className="rounded-lg border border-dashed border-border/60 px-3 py-6 text-center text-xs text-muted-foreground">Arrastra aquí</div>}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function InfluencerTable({ influencers }: { influencers: Influencer[] }) {
-  const [q, setQ] = useState("");
-  const [fEstado, setFEstado] = useState("");
-  const filtered = influencers.filter((i) =>
-    (!fEstado || i.estado === fEstado) &&
-    (!q.trim() || `${i.nombre} ${i.empresa ?? ""}`.toLowerCase().includes(q.toLowerCase())));
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar…" className="h-9 flex-1 min-w-[200px] rounded-lg border border-border bg-background/50 px-3 text-sm" />
-        <select value={fEstado} onChange={(e) => setFEstado(e.target.value)} className="h-9 rounded-lg border border-border bg-background/50 px-3 text-sm">
-          <option value="">Todos los estados</option>
-          {INFLUENCER_ESTADOS.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
-        </select>
-      </div>
+      {/* Tabla (única vista) — filas clicables → ficha */}
       <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/40 text-left text-xs uppercase text-muted-foreground">
-            <tr><th className="px-4 py-3">Nombre</th><th className="px-4 py-3">IG</th><th className="px-4 py-3">Estado</th><th className="px-4 py-3">Manager</th><th className="px-4 py-3">Contacto</th></tr>
+            <tr>
+              <th className="px-4 py-3">Nombre</th><th className="px-4 py-3">IG</th><th className="px-4 py-3">Estado</th>
+              <th className="px-4 py-3">Manager</th><th className="px-4 py-3">Contacto</th><th className="px-4 py-3" />
+            </tr>
           </thead>
           <tbody>
             {filtered.map((i) => (
-              <tr key={i.id} className="border-t border-border hover:bg-accent/40">
+              <tr key={i.id} onClick={() => router.push(`/influencers/${i.id}`)}
+                className="cursor-pointer border-t border-border transition-colors hover:bg-accent/40">
                 <td className="px-4 py-3 font-medium">{i.nombre}</td>
                 <td className="px-4 py-3 text-muted-foreground">{igHandle(i.ig_url) ?? "—"}</td>
                 <td className="px-4 py-3"><Badge>{INFLUENCER_ESTADO_LABEL[i.estado as InfluencerEstado] ?? i.estado}</Badge></td>
                 <td className="px-4 py-3 text-muted-foreground">{i.tiene_manager ? (i.empresa ?? "Sí") : "Independiente"}</td>
-                <td className="px-4 py-3">
-                  <SocialLinks instagram={i.ig_url} facebook={i.facebook_url} whatsapp={waNumber(i)} waText={`Hola ${i.nombre}!`} size="sm" />
-                </td>
+                <td className="px-4 py-3"><SocialLinks instagram={i.ig_url} facebook={i.facebook_url} whatsapp={waNumber(i)} waText={`Hola ${i.nombre}!`} size="sm" /></td>
+                <td className="px-4 py-3 text-right"><ChevronRight className="ml-auto size-4 text-muted-foreground" /></td>
               </tr>
             ))}
-            {filtered.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">Sin influencers.</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">Sin influencers.</td></tr>}
           </tbody>
         </table>
       </div>
