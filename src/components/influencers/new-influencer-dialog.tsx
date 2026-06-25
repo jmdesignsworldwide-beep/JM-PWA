@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type Brand = { id: string; nombre: string };
 const DOY_TIPOS = ["Sitio web", "App móvil", "Sistema / Software", "Branding / Diseño", "Otro"];
@@ -123,18 +124,19 @@ export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
                 <Field label="Nombre *"><Input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre" /></Field>
                 <Field label="Nicho"><Input value={nicho} onChange={(e) => setNicho(e.target.value)} placeholder="Moda, fitness, tech…" /></Field>
               </div>
-              <Label className="mt-1 block text-xs text-muted-foreground">Plataformas</Label>
-              <div className="space-y-2">
+              <Label className="mt-1 block">Plataformas</Label>
+              <div className="space-y-3">
                 {plataformas.map((p, i) => (
-                  <div key={i} className="grid grid-cols-2 gap-2 sm:grid-cols-12">
-                    <Select className="sm:col-span-3" value={p.red} onChange={(e) => setPlat(i, { red: e.target.value })}>
-                      {REDES.map((r) => <option key={r} value={r}>{r}</option>)}
-                    </Select>
-                    <Input className="sm:col-span-3" value={p.handle} onChange={(e) => setPlat(i, { handle: e.target.value })} placeholder="@handle" />
-                    <Input className="sm:col-span-3" value={p.seguidores} onChange={(e) => setPlat(i, { seguidores: e.target.value })} placeholder="Seguidores" inputMode="numeric" />
-                    <Input className="sm:col-span-2" value={p.engagement} onChange={(e) => setPlat(i, { engagement: e.target.value })} placeholder="Eng. %" />
-                    <div className="flex items-center sm:col-span-1">
-                      {plataformas.length > 1 && <button type="button" onClick={() => setPlataformas((a) => a.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-destructive"><Trash2 className="size-4" /></button>}
+                  <div key={i} className="rounded-lg border border-border bg-background/40 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-medium text-muted-foreground">Plataforma {i + 1}</span>
+                      {plataformas.length > 1 && <button type="button" onClick={() => setPlataformas((a) => a.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-destructive" aria-label="Quitar plataforma"><Trash2 className="size-4" /></button>}
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <Field label="Red"><Select value={p.red} onChange={(e) => setPlat(i, { red: e.target.value })}>{REDES.map((r) => <option key={r} value={r}>{r}</option>)}</Select></Field>
+                      <Field label="Usuario / handle"><Input value={p.handle} onChange={(e) => setPlat(i, { handle: e.target.value })} placeholder="@usuario" /></Field>
+                      <Field label="Seguidores"><Input value={p.seguidores} onChange={(e) => setPlat(i, { seguidores: e.target.value })} placeholder="Ej. 12500" inputMode="numeric" /></Field>
+                      <Field label="Engagement %"><Input value={p.engagement} onChange={(e) => setPlat(i, { engagement: e.target.value })} placeholder="Ej. 3.5" inputMode="decimal" /></Field>
                     </div>
                   </div>
                 ))}
@@ -173,7 +175,7 @@ export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
             <Section icon={<Gift className="size-4 text-electric" />} title="Mi aporte">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Qué construyo"><Select value={doyTipo} onChange={(e) => setDoyTipo(e.target.value)}>{DOY_TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}</Select></Field>
-                <Field label="Fecha de entrega"><Input type="date" value={doyEntrega} onChange={(e) => setDoyEntrega(e.target.value)} /></Field>
+                <Field label="Fecha de entrega"><DatePicker value={doyEntrega} onChange={setDoyEntrega} /></Field>
               </div>
               <Field label="Descripción"><Textarea rows={2} value={doyDesc} onChange={(e) => setDoyDesc(e.target.value)} placeholder="Alcance de lo que entregas…" /></Field>
               <div className="grid grid-cols-2 gap-3">
@@ -197,7 +199,7 @@ export function NewInfluencerDialog({ brands }: { brands: Brand[] }) {
                       <Field label="Plataforma"><Select value={p.plataforma} onChange={(e) => setProm(i, { plataforma: e.target.value })}>{REDES.map((r) => <option key={r} value={r}>{r}</option>)}</Select></Field>
                       <Field label="Valor estimado"><Input type="number" min="0" step="0.01" value={p.valor} onChange={(e) => setProm(i, { valor: Number(e.target.value) })} placeholder="0.00" /></Field>
                       <Field label="Moneda"><Select value={p.moneda} onChange={(e) => setProm(i, { moneda: e.target.value as "DOP" | "USD" })}><option value="DOP">DOP</option><option value="USD">USD</option></Select></Field>
-                      <Field label="Fecha de publicación"><Input type="date" value={p.fecha} onChange={(e) => setProm(i, { fecha: e.target.value })} /></Field>
+                      <Field label="Fecha de publicación"><DatePicker value={p.fecha} onChange={(v) => setProm(i, { fecha: v })} /></Field>
                     </div>
                   </div>
                 ))}

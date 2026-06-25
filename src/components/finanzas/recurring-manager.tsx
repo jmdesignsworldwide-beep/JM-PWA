@@ -9,6 +9,7 @@ import { rdToday } from "@/lib/fecha";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -94,7 +95,7 @@ export function RecurringManager({ plans, mrr, clients, clientMap }: {
             <div className="space-y-1.5"><Label>Frecuencia</Label><Select name="frecuencia" defaultValue="mensual"><option value="mensual">Mensual</option><option value="trimestral">Trimestral</option><option value="anual">Anual</option></Select></div>
             <div className="space-y-1.5"><Label>Monto</Label><Input name="monto" type="number" step="0.01" min="0" required /></div>
             <div className="space-y-1.5"><Label>Moneda</Label><Select name="moneda" defaultValue="DOP"><option value="DOP">DOP</option><option value="USD">USD</option></Select></div>
-            <div className="space-y-1.5 col-span-2"><Label>Próxima factura</Label><Input name="proxima_factura" type="date" defaultValue={rdToday()} required /></div>
+            <div className="space-y-1.5 col-span-2"><Label>Próxima factura</Label><DatePicker name="proxima_factura" defaultValue={rdToday()} required /></div>
           </div>
           {error && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
           <div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button><Button type="submit" variant="gradient" disabled={pending}>{pending && <Loader2 className="size-4 animate-spin" />} Guardar</Button></div>

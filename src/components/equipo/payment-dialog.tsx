@@ -8,6 +8,7 @@ import { rdToday } from "@/lib/fecha";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,7 +44,7 @@ export function PaymentDialog({ memberId, saldo }: { memberId: string; saldo: nu
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5"><Label>Monto</Label><Input name="monto" type="number" step="0.01" min="0" required defaultValue={saldo > 0 ? saldo : ""} /></div>
             <div className="space-y-1.5"><Label>Moneda</Label><Select name="moneda" defaultValue="DOP"><option value="DOP">DOP</option><option value="USD">USD</option></Select></div>
-            <div className="space-y-1.5"><Label>Fecha</Label><Input name="fecha" type="date" defaultValue={rdToday()} required /></div>
+            <div className="space-y-1.5"><Label>Fecha</Label><DatePicker name="fecha" defaultValue={rdToday()} required /></div>
             <div className="space-y-1.5"><Label>Método</Label><Input name="metodo" placeholder="Efectivo, transferencia…" /></div>
           </div>
           <div className="space-y-1.5"><Label>Nota</Label><Textarea name="nota" /></div>

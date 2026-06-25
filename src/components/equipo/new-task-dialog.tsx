@@ -7,6 +7,7 @@ import { createTask } from "@/app/(app)/equipo/actions";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,7 +57,7 @@ export function NewTaskDialog({
             </div>
             <div className="space-y-1.5"><Label>Pago acordado</Label><Input name="monto" type="number" step="0.01" min="0" defaultValue="0" /></div>
             <div className="space-y-1.5"><Label>Moneda</Label><Select name="moneda" defaultValue="DOP"><option value="DOP">DOP</option><option value="USD">USD</option></Select></div>
-            <div className="space-y-1.5 sm:col-span-2"><Label>Fecha límite</Label><Input name="fecha_limite" type="date" /></div>
+            <div className="space-y-1.5 sm:col-span-2"><Label>Fecha límite</Label><DatePicker name="fecha_limite" placeholder="Sin fecha" /></div>
           </div>
           {error && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
           <div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button><Button type="submit" variant="gradient" disabled={pending}>{pending && <Loader2 className="size-4 animate-spin" />} Crear tarea</Button></div>
