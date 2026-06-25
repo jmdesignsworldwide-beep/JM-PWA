@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider, themeInitScript } from "@/components/theme/theme-provider";
 import { SettingsProvider } from "@/components/settings/settings-provider";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
+import { pwaInstallScript } from "@/components/pwa/install-prompt-script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -55,6 +56,7 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning className="h-full">
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: pwaInstallScript }} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-full antialiased`}
