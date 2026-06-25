@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { baseUsername, slugUsername } from "@/lib/username";
+import { NOTIF_KEYS, type NotifPrefs } from "@/lib/notificaciones";
 
 /** Solo el owner actual puede gestionar owners. Devuelve el admin client o error. */
 async function requireOwner() {
@@ -189,4 +190,79 @@ export async function deleteTemplate(id: string) {
   if (error) return { error: error.message };
   revalidatePath("/configuracion");
   return { ok: true };
+}
+
+// ============================================================================
+// NOTIFICACIONES — preferencias del owner + pruebas de canal
+// ============================================================================
+
+/** Guarda las preferencias de notificaciones (solo owner). */
+export async function updateNotificationSettings(input: NotifPrefs) {
+  const auth = await requireOwner();
+  if ("error" in auth) return { error: auth.error };
+  const { admin } = auth;
+  const patch: Record<string, unknown> = {
+    resumen_hora: input.resumen_hora,
+    dias_aviso_entrega: input.dias_aviso_entrega,
+    dias_aviso_cobro: input.dias_aviso_cobro,
+  };
+  for (const k of NOTIF_KEYS) patch[k] = !!input[k];
+  const { error } = await admin.from("app_settings").update(patch).eq("id", "global");
+  if (error) return { error: error.message };
+  revalidatePath("/configuracion");
+  return { ok: true };
+}
+
+/**
+ * Envía una notificación de PRUEBA al owner por el canal elegido, para confirmar
+ * que push (en este dispositivo) y/o correo realmente llegan.
+ */
+export async function sendTestNotification(channel: "push" | "email") {
+  const auth = await requireOwner();
+  if ("error" in auth) return { error: auth.error };
+  const { admin, meId } = auth;
+
+  if (channel === "email") {
+    const key = process.env.RESEND_API_KEY;
+    if (!key || key.startsWith("tu-")) return { error: "Falta RESEND_API_KEY en el servidor." };
+    const { data: me } = await admin.from("users_profiles").select("correo").eq("id", meId).maybeSingle();
+    const to = (me as { correo: string | null } | null)?.correo || process.env.OWNER_EMAIL;
+    if (!to) return { error: "No tienes un correo registrado en tu perfil." };
+    try {
+      const { Resend } = await import("resend");
+      const resend = new Resend(key);
+      await resend.emails.send({
+        from: process.env.RESEND_FROM || "JM Control <onboarding@resend.dev>",
+        to,
+        subject: "✅ Prueba de notificaciones — JM Control Center",
+        text: "Si recibiste este correo, las notificaciones por correo funcionan. Así te llegará tu resumen diario y los avisos que dejes activados.",
+      });
+      return { ok: true, mensaje: `Correo de prueba enviado a ${to}.` };
+    } catch (e) {
+      return { error: `No se pudo enviar el correo: ${e instanceof Error ? e.message : "?"}` };
+    }
+  }
+
+  // Push
+  const vapidPub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const vapidPriv = process.env.VAPID_PRIVATE_KEY;
+  if (!vapidPub || !vapidPriv || vapidPub.startsWith("tu-")) {
+    return { error: "Faltan las llaves VAPID en el servidor (push no configurado)." };
+  }
+  const { data: subs } = await admin.from("push_subscriptions").select("subscription_json").eq("user_id", meId);
+  const list = (subs ?? []) as { subscription_json: unknown }[];
+  if (list.length === 0) return { error: "No hay dispositivos con push activado. Activa push en este teléfono primero." };
+  try {
+    const webpush = (await import("web-push")).default;
+    webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:jm.designs.worldwide@gmail.com", vapidPub, vapidPriv);
+    const payload = JSON.stringify({ title: "✅ Prueba — JM Control", body: "¡Push funciona! Así te llegarán tus avisos.", url: "/configuracion" });
+    let ok = 0;
+    for (const s of list) {
+      try { await webpush.sendNotification(s.subscription_json as never, payload); ok++; } catch { /* vencida */ }
+    }
+    if (ok === 0) return { error: "No se pudo entregar a ningún dispositivo (suscripción vencida). Reactiva push." };
+    return { ok: true, mensaje: `Push de prueba enviado a ${ok} dispositivo(s). Revisa tu teléfono.` };
+  } catch (e) {
+    return { error: `No se pudo enviar push: ${e instanceof Error ? e.message : "?"}` };
+  }
 }

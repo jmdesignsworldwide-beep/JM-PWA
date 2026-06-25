@@ -396,6 +396,19 @@ export interface Tables {
     dias_aviso_entrega: number;
     dias_aviso_cobro: number;
     modulos_ocultos: Json;
+    notif_eventos_push: boolean;
+    notif_eventos_email: boolean;
+    notif_cobros_push: boolean;
+    notif_cobros_email: boolean;
+    notif_entregas_push: boolean;
+    notif_entregas_email: boolean;
+    notif_tareas_push: boolean;
+    notif_tareas_email: boolean;
+    notif_influencers_push: boolean;
+    notif_influencers_email: boolean;
+    notif_resumen_push: boolean;
+    notif_resumen_email: boolean;
+    resumen_ultimo_envio: string | null;
     updated_at: string;
   };
 
