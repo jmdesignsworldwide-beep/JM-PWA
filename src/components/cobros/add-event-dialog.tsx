@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarPlus, Loader2, MessageCircle, Video, MapPin } from "lucide-react";
+import { CalendarPlus, Loader2, MessageCircle, Video, MapPin, Zap, ListChecks } from "lucide-react";
 import { addEvent, createQuickProject } from "@/app/(app)/cobros/actions";
 import { createLead } from "@/app/(app)/leads/actions";
 import { EVENT_TIPO_LIST } from "@/lib/eventos";
@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
+import { DatePicker } from "@/components/ui/date-picker";
+import { cn } from "@/lib/utils";
 
 type EvTipo = "inicio" | "entrega" | "cobro" | "acuerdo" | "personal";
 type Client = { id: string; nombre: string; apellido: string | null; whatsapp: string | null; telefono: string | null };
@@ -35,6 +37,7 @@ export function AddEventDialog({ clients = [], projects = [] }: { clients?: Clie
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
+  const [modo, setModo] = useState<"rapido" | "completo">("rapido");
   const [titulo, setTitulo] = useState("");
   const [tipo, setTipo] = useState<EvTipo>("personal");
   const [fecha, setFecha] = useState(rdToday());
@@ -61,7 +64,7 @@ export function AddEventDialog({ clients = [], projects = [] }: { clients?: Clie
   }, [client, fecha, hora, meetingUrl, ubicacion]);
 
   function reset() {
-    setTitulo(""); setTipo("personal"); setFecha(rdToday()); setHora(""); setClientId(""); setProjectId("");
+    setModo("rapido"); setTitulo(""); setTipo("personal"); setFecha(rdToday()); setHora(""); setClientId(""); setProjectId("");
     setMeetingUrl(""); setUbicacion(""); setDescripcion(""); setRecordatorio(""); setMonto(""); setMoneda("DOP");
     setTelManual(""); setError(null); setDone(false);
   }
@@ -92,30 +95,48 @@ export function AddEventDialog({ clients = [], projects = [] }: { clients?: Clie
       </Button>
       <Dialog open={open} onClose={() => setOpen(false)} title="Nuevo evento" description="Ligado a tu cliente/proyecto. Compártelo por WhatsApp." className="max-w-2xl">
         <div className="space-y-4">
+          {!done && (
+            <div className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-background/40 p-1">
+              {([["rapido", "Rápido", Zap], ["completo", "Completo", ListChecks]] as const).map(([id, label, Icon]) => (
+                <button key={id} type="button" onClick={() => setModo(id)}
+                  className={cn("flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    modo === id ? "bg-electric/15 text-electric" : "text-muted-foreground hover:bg-accent/40")}>
+                  <Icon className="size-4" /> {label}
+                </button>
+              ))}
+            </div>
+          )}
+          {modo === "rapido" && !done && (
+            <p className="text-xs text-muted-foreground">Solo título y fecha para anotar un plan rápido. ¿Necesitas más? Cambia a <strong>Completo</strong>.</p>
+          )}
+
           <div className="space-y-1.5">
             <Label>Título</Label>
             <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej. Reunión con cliente" />
           </div>
 
           {/* Tipo con color */}
-          <div className="space-y-1.5">
-            <Label>Tipo</Label>
-            <div className="flex flex-wrap gap-2">
-              {EVENT_TIPO_LIST.map((t) => (
-                <button key={t.id} type="button" onClick={() => setTipo(t.id as EvTipo)}
-                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors ${tipo === t.id ? "border-transparent text-white" : "border-border text-muted-foreground hover:bg-accent/40"}`}
-                  style={tipo === t.id ? { background: t.color } : undefined}>
-                  <span className="size-2 rounded-full" style={{ background: tipo === t.id ? "rgba(255,255,255,.9)" : t.color }} /> {t.label}
-                </button>
-              ))}
+          {modo === "completo" && (
+            <div className="space-y-1.5">
+              <Label>Tipo</Label>
+              <div className="flex flex-wrap gap-2">
+                {EVENT_TIPO_LIST.map((t) => (
+                  <button key={t.id} type="button" onClick={() => setTipo(t.id as EvTipo)}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors ${tipo === t.id ? "border-transparent text-white" : "border-border text-muted-foreground hover:bg-accent/40"}`}
+                    style={tipo === t.id ? { background: t.color } : undefined}>
+                    <span className="size-2 rounded-full" style={{ background: tipo === t.id ? "rgba(255,255,255,.9)" : t.color }} /> {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Fecha</Label><Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} /></div>
-            <div className="space-y-1.5"><Label>Hora</Label><Input type="time" value={hora} onChange={(e) => setHora(e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Fecha</Label><DatePicker value={fecha} onChange={setFecha} /></div>
+            <div className="space-y-1.5"><Label>Hora {modo === "rapido" && <span className="text-muted-foreground">(opcional)</span>}</Label><Input type="time" value={hora} onChange={(e) => setHora(e.target.value)} /></div>
           </div>
 
+          {modo === "completo" && <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Cliente (opcional)</Label>
@@ -183,6 +204,7 @@ export function AddEventDialog({ clients = [], projects = [] }: { clients?: Clie
               ) : <span className="text-xs text-muted-foreground">Liga un cliente o escribe un número</span>}
             </div>
           </div>
+          </>}
 
           {error && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
           {done && <p className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">✅ Evento guardado en el calendario.</p>}

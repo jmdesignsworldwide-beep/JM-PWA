@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
 
 type Opt = { id: string; nombre: string };
@@ -216,7 +217,7 @@ export function AddExpenseDialog({
             <div className="space-y-1.5"><Label>Moneda</Label>
               <Select value={form.moneda} onChange={(e) => set("moneda", e.target.value as "DOP" | "USD")}><option value="DOP">DOP</option><option value="USD">USD</option></Select></div>
             <div className="space-y-1.5"><Label>Fecha</Label>
-              <Input type="date" required value={form.fecha} onChange={(e) => set("fecha", e.target.value)} /></div>
+              <DatePicker value={form.fecha} onChange={(v) => set("fecha", v)} /></div>
             <div className="space-y-1.5"><Label>Categoría</Label>
               <Select value={form.categoria} onChange={(e) => set("categoria", e.target.value)}>
                 <option value="">— Seleccionar —</option>{catOptions.map((c) => <option key={c} value={c}>{c}</option>)}

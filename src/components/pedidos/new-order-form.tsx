@@ -10,6 +10,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { money } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -267,8 +268,7 @@ export function NewOrderForm({ client }: { client: Client }) {
           </div>
           <div className="flex items-center justify-between gap-3">
             <Label>Fecha de entrega</Label>
-            <Input type="date" value={fechaEntrega}
-              onChange={(e) => setFechaEntrega(e.target.value)} className="h-9 w-44" />
+            <DatePicker value={fechaEntrega} onChange={setFechaEntrega} className="w-44" />
           </div>
           <div className="space-y-1.5">
             <Label>Regla de pago (split)</Label>

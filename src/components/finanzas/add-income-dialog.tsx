@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
 
 type Opt = { id: string; nombre: string };
@@ -76,7 +77,7 @@ export function AddIncomeDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5"><Label>Monto</Label><Input name="monto" type="number" step="0.01" min="0" required /></div>
             <div className="space-y-1.5"><Label>Moneda</Label><Select name="moneda" defaultValue="DOP"><option value="DOP">DOP</option><option value="USD">USD</option></Select></div>
-            <div className="space-y-1.5"><Label>Fecha</Label><Input name="fecha" type="date" defaultValue={rdToday()} required /></div>
+            <div className="space-y-1.5"><Label>Fecha</Label><DatePicker name="fecha" defaultValue={rdToday()} required /></div>
             <div className="space-y-1.5"><Label>Categoría</Label>
               <Select name="categoria" defaultValue=""><option value="">— Seleccionar —</option>{categorias.map((c) => <option key={c} value={c}>{c}</option>)}</Select>
             </div>
