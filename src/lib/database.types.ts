@@ -412,6 +412,13 @@ export interface Tables {
     updated_at: string;
   };
 
+  personal_todos: {
+    id: string;
+    texto: string;
+    hecho: boolean;
+    created_by: string;
+  } & Timestamps;
+
   message_templates: {
     id: string;
     tipo: "contrato" | "dm" | "whatsapp";
