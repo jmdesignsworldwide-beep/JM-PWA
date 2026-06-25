@@ -3,6 +3,7 @@ import { StaggerContainer } from "@/components/animations/motion";
 import { AppearanceSettings } from "@/components/settings/appearance-settings";
 import { NotificationSettings } from "@/components/settings/notification-settings";
 import { PushSubscribe } from "@/components/settings/push-subscribe";
+import { InstallCard } from "@/components/pwa/install-card";
 import { NOTIF_KEYS, type NotifPrefs } from "@/lib/notificaciones";
 import { UsuariosSettings } from "@/components/settings/usuarios-settings";
 import { VisibilitySettings } from "@/components/settings/visibility-settings";
@@ -53,6 +54,8 @@ export default async function ConfiguracionPage() {
         <AppearanceSettings />
 
         <NotificationSettings settings={buildNotifPrefs(settings)} />
+
+        <InstallCard />
 
         <PushSubscribe />
       </StaggerContainer>
