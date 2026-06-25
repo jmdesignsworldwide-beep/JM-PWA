@@ -13,10 +13,12 @@ import { currentLifecycleStep } from "@/lib/data/lifecycle";
 import { LifecycleBar } from "@/components/clientes/lifecycle-bar";
 import { ClientDetail } from "@/components/clientes/client-detail";
 import { WhatsappButton } from "@/components/clientes/whatsapp-button";
-import { ConvertButton } from "@/components/clientes/convert-button";
 import { PortalAccessButton } from "@/components/clientes/portal-access-button";
+import { EstadoSelect } from "@/components/clientes/estado-select";
+import { DeleteClientButton } from "@/components/clientes/delete-client-button";
 import { SocialLinks } from "@/components/ui/social-links";
 import { Badge } from "@/components/ui/badge";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function ClientePage({
   params,
@@ -27,13 +29,21 @@ export default async function ClientePage({
   const client = await getClientById(id);
   if (!client) notFound();
 
-  const [brands, stats, activity, files, projectsFull] = await Promise.all([
+  const supabase = await createClient();
+  const [{ data: { user } }, brands, stats, activity, files, projectsFull] = await Promise.all([
+    supabase.auth.getUser(),
     getBrands(),
     getClientStats(id),
     getClientActivity(id),
     getClientFiles(id),
     getClientProjectsFull(id),
   ]);
+
+  let isOwner = false;
+  if (user) {
+    const { data: me } = await supabase.from("users_profiles").select("rol").eq("id", user.id).maybeSingle();
+    isOwner = me?.rol === "owner";
+  }
 
   const step = currentLifecycleStep(client, stats);
 
@@ -64,10 +74,14 @@ export default async function ClientePage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <EstadoSelect clientId={client.id} esLead={client.es_lead} etapa={client.etapa_venta} />
           <SocialLinks instagram={client.instagram} facebook={client.facebook} />
           <WhatsappButton phone={client.whatsapp ?? client.telefono} text={`Hola ${client.nombre}!`} />
           <PortalAccessButton clientId={client.id} clientName={client.nombre} whatsapp={client.whatsapp ?? client.telefono} />
-          {client.es_lead && <ConvertButton clientId={client.id} />}
+          <DeleteClientButton
+            clientId={client.id} clientName={`${client.nombre} ${client.apellido ?? ""}`.trim()} isOwner={isOwner} esLead={client.es_lead}
+            impacto={{ pedidos: stats.orders.length, contratos: stats.contracts.length, facturas: stats.invoices.length, proyectos: stats.projects.length }}
+          />
         </div>
       </div>
 

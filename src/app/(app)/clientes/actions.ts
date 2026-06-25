@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { baseUsername, slugUsername } from "@/lib/username";
+import type { EtapaVenta } from "@/lib/ventas";
 
 /** Email de auth interno cuando el cliente no tiene correo real. */
 const PORTAL_EMAIL_DOMAIN = "portal.jmdesigns.app";
@@ -220,6 +221,43 @@ export async function convertToActive(id: string) {
     .eq("id", id);
   if (error) return { error: error.message };
   revalidatePath(`/clientes/${id}`);
+  revalidatePath("/clientes");
+  revalidatePath("/leads");
+  return { ok: true };
+}
+
+/**
+ * Cambia el estado de una persona sin recrearla: prospecto (con su etapa) o
+ * cliente activo. Lo puede hacer cualquier staff.
+ */
+export async function setClientEstado(id: string, estado: { es_lead: boolean; etapa_venta: EtapaVenta }) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("clients")
+    .update({ es_lead: estado.es_lead, etapa_venta: estado.etapa_venta })
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath(`/clientes/${id}`);
+  revalidatePath("/clientes");
+  revalidatePath("/leads");
+  return { ok: true };
+}
+
+/**
+ * Borra un cliente/prospecto. SOLO el owner. La cascada de la BD elimina sus
+ * registros relacionados (pedidos, contratos, facturas, proyectos) y el trigger
+ * de auditoría deja constancia en audit_log de cada borrado.
+ */
+export async function deleteClient(id: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+  const { data: me } = await supabase
+    .from("users_profiles").select("rol").eq("id", user.id).maybeSingle();
+  if (me?.rol !== "owner") return { error: "Solo el owner puede borrar clientes." };
+
+  const { error } = await supabase.from("clients").delete().eq("id", id);
+  if (error) return { error: error.message };
   revalidatePath("/clientes");
   revalidatePath("/leads");
   return { ok: true };
