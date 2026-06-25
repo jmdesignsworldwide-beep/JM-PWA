@@ -1,5 +1,5 @@
 /* JM Control Center — Service Worker (shell PWA + Web Push, Fase 5) */
-const CACHE = "jm-control-shell-v2";
+const CACHE = "jm-control-shell-v3";
 
 // --- Web Push (VAPID) ---
 self.addEventListener("push", (event) => {
@@ -52,35 +52,56 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// Solo cacheamos assets ESTÁTICos inmutables (llevan hash en el nombre o no
+// cambian). NUNCA cacheamos datos dinámicos (HTML/RSC/datos), porque eso dejaba
+// "datos atrapados" en un dispositivo: una navegación interna (RSC) servía la
+// copia vieja en vez de lo último de Supabase. Lo dinámico va network-first.
+function isStaticAsset(url) {
+  return (
+    url.pathname.startsWith("/_next/static/") ||
+    url.pathname.startsWith("/icons/") ||
+    url.pathname === "/manifest.webmanifest" ||
+    /\.(?:css|js|woff2?|ttf|otf|png|jpe?g|svg|webp|gif|ico)$/.test(url.pathname)
+  );
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
-  // Navegaciones: network-first con fallback a cache (offline básico).
-  if (request.mode === "navigate") {
+  const url = new URL(request.url);
+
+  // Assets estáticos: cache-first (rápido, inmutables).
+  if (url.origin === self.location.origin && isStaticAsset(url)) {
     event.respondWith(
-      fetch(request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(request, copy));
-          return res;
-        })
-        .catch(() => caches.match(request).then((r) => r || caches.match("/"))),
+      caches.match(request).then(
+        (cached) =>
+          cached ||
+          fetch(request).then((res) => {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(request, copy));
+            return res;
+          }),
+      ),
     );
     return;
   }
 
-  // Otros GET: stale-while-revalidate.
+  // Todo lo dinámico (navegaciones, RSC, datos): NETWORK-FIRST. Estando online
+  // siempre se ve lo último; la cache es solo respaldo offline para navegaciones.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((res) => {
+    fetch(request)
+      .then((res) => {
+        if (request.mode === "navigate") {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put(request, copy));
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
-    }),
+        }
+        return res;
+      })
+      .catch(() =>
+        caches
+          .match(request)
+          .then((r) => r || (request.mode === "navigate" ? caches.match("/") : Response.error())),
+      ),
   );
 });

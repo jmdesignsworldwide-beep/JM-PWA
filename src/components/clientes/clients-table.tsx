@@ -5,11 +5,12 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Search, Users, UserCheck, Target } from "lucide-react";
 import type { Client } from "@/lib/data/clients";
-import { ETAPA_LABEL, INDUSTRIAS } from "@/lib/ventas";
+import { INDUSTRIAS } from "@/lib/ventas";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { NewLeadDialog } from "@/components/leads/new-lead-dialog";
 import { SocialLinks } from "@/components/ui/social-links";
+import { EstadoSelect } from "@/components/clientes/estado-select";
 import { containerVariants, itemVariants } from "@/components/animations/motion";
 import { CountUp } from "@/components/animations/count-up";
 
@@ -192,11 +193,7 @@ export function ClientsTable({
                     </Link>
                   </td>
                   <td className="px-4 py-3">
-                    {c.es_lead ? (
-                      <Badge dot="var(--warning)">Prospecto · {ETAPA_LABEL[c.etapa_venta]}</Badge>
-                    ) : (
-                      <Badge dot="var(--success)">Cliente activo</Badge>
-                    )}
+                    <EstadoSelect clientId={c.id} esLead={c.es_lead} etapa={c.etapa_venta} />
                   </td>
                   <td className="px-4 py-3 capitalize text-muted-foreground">{c.categoria_servicio ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.industria ?? "—"}</td>
