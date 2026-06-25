@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 type Inf = { id: string; nombre: string; correo: string | null };
 
-export function EmailCampaignDialog({ influencers }: { influencers: Inf[] }) {
+export function EmailCampaignDialog({ influencers, trigger }: { influencers: Inf[]; trigger?: React.ReactNode }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const conCorreo = influencers.filter((i) => i.correo);
@@ -44,7 +44,9 @@ export function EmailCampaignDialog({ influencers }: { influencers: Inf[] }) {
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)}><Mail className="size-4" /> Campaña por correo</Button>
+      {trigger
+        ? <span onClick={() => setOpen(true)}>{trigger}</span>
+        : <Button variant="outline" onClick={() => setOpen(true)}><Mail className="size-4" /> Campaña por correo</Button>}
       <Dialog open={open} onClose={() => setOpen(false)} title="Campaña por correo" description="Usa {nombre} para personalizar." className="max-w-2xl">
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-1.5"><Label>Asunto</Label><Input name="asunto" required /></div>

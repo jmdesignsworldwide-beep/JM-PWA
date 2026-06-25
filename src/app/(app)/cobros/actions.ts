@@ -25,6 +25,7 @@ export type NewEventInput = {
   moneda?: "DOP" | "USD" | null;
   client_id?: string | null;
   project_id?: string | null;
+  influencer_id?: string | null;
   meeting_url?: string | null;
   ubicacion?: string | null;
   descripcion?: string | null;

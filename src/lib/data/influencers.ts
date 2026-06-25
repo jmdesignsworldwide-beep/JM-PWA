@@ -10,6 +10,12 @@ export async function getInfluencers(): Promise<Influencer[]> {
   return (data ?? []) as Influencer[];
 }
 
+export async function getInfluencerById(id: string): Promise<Influencer | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("influencers").select("*").eq("id", id).maybeSingle();
+  return (data as Influencer) ?? null;
+}
+
 export async function getDMTemplates(): Promise<DMTemplate[]> {
   const supabase = await createClient();
   const { data } = await supabase.from("message_templates").select("*").eq("tipo", "dm").order("nombre");

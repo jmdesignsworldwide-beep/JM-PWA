@@ -375,6 +375,7 @@ export interface Tables {
     fecha: string;
     client_id: string | null;
     project_id: string | null;
+    influencer_id: string | null;
     color: string | null;
     brand_id: string | null;
     auto_generado: boolean;
