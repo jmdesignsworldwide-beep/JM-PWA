@@ -64,6 +64,21 @@ export async function getEventsRange(from: string, to: string): Promise<AgendaEv
   return attachClients(supabase, (data ?? []) as AgendaEvent[]);
 }
 
+/** Próximos eventos (de hoy en adelante, no completados) ordenados por fecha. */
+export async function getProximosEventos(limit = 7): Promise<AgendaEvent[]> {
+  const supabase = await createClient();
+  const hoy = rdToday();
+  const { data } = await supabase
+    .from("calendar_events")
+    .select(COLS)
+    .eq("completado", false)
+    .gte("fecha", hoy)
+    .order("fecha", { ascending: true })
+    .order("hora", { ascending: true, nullsFirst: true })
+    .limit(limit);
+  return attachClients(supabase, (data ?? []) as AgendaEvent[]);
+}
+
 /** Briefing "HOY". */
 export async function getHoy() {
   const supabase = await createClient();

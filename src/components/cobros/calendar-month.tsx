@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { AgendaEvent } from "@/lib/data/agenda";
@@ -7,6 +8,7 @@ import { EVENT_TIPOS } from "@/lib/eventos";
 import { money } from "@/lib/format";
 import { rdToday } from "@/lib/fecha";
 import { cn } from "@/lib/utils";
+import { EventDetail } from "./event-detail";
 
 const DOW = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
@@ -21,11 +23,18 @@ export function CalendarMonth({
   month,
   events,
   basePath,
+  openEventId,
 }: {
   month: string; // YYYY-MM
   events: AgendaEvent[];
   basePath: string;
+  openEventId?: string;
 }) {
+  // Deep-link: ?ev=<id> abre el detalle de ese evento al cargar (init lazy).
+  const [selected, setSelected] = useState<AgendaEvent | null>(
+    () => (openEventId ? events.find((e) => e.id === openEventId) ?? null : null),
+  );
+
   const [y, m] = month.split("-").map(Number);
   const first = new Date(Date.UTC(y, m - 1, 1));
   const startOffset = (first.getUTCDay() + 6) % 7; // lunes = 0
@@ -46,6 +55,7 @@ export function CalendarMonth({
   }
 
   return (
+    <>
     <div className="rounded-xl border border-border bg-card">
       <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
         <h2 className="font-semibold capitalize">{MESES[m - 1]} {y}</h2>
@@ -96,9 +106,11 @@ export function CalendarMonth({
                         {label}
                       </span>
                     );
-                    return e.client_id ? (
-                      <Link key={e.id} href={`/clientes/${e.client_id}`}>{chip}</Link>
-                    ) : <div key={e.id}>{chip}</div>;
+                    return (
+                      <button key={e.id} type="button" onClick={() => setSelected(e)} className="block w-full cursor-pointer text-left">
+                        {chip}
+                      </button>
+                    );
                   })}
                   {(byDay.get(iso)?.length ?? 0) > 3 && (
                     <span className="block text-[10px] text-muted-foreground">+{(byDay.get(iso)!.length - 3)} más</span>
@@ -110,5 +122,7 @@ export function CalendarMonth({
         ))}
       </div>
     </div>
+    {selected && <EventDetail e={selected} onClose={() => setSelected(null)} />}
+    </>
   );
 }
