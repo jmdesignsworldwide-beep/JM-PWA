@@ -19,25 +19,27 @@ export function Topbar({
   alerts: { count: number; items: AgendaEvent[] };
 }) {
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/70 px-4 backdrop-blur-xl">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="lg:hidden"
-        onClick={onMenuClick}
-        aria-label="Abrir menú"
-      >
-        <Menu />
-      </Button>
+    <header className="sticky top-0 z-30 border-b border-border bg-background/70 pt-safe backdrop-blur-xl">
+      <div className="flex h-16 items-center gap-3 px-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden"
+          onClick={onMenuClick}
+          aria-label="Abrir menú"
+        >
+          <Menu />
+        </Button>
 
-      {/* Buscador global */}
-      <GlobalSearch />
+        {/* Buscador global */}
+        <GlobalSearch />
 
-      <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-        <BrandSelector />
-        <ThemeToggle />
-        <NotificationsBell count={alerts.count} items={alerts.items} />
-        <UserMenu email={email} />
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+          <BrandSelector />
+          <ThemeToggle />
+          <NotificationsBell count={alerts.count} items={alerts.items} />
+          <UserMenu email={email} />
+        </div>
       </div>
     </header>
   );
