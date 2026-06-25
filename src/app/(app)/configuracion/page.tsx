@@ -1,8 +1,9 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { StaggerContainer } from "@/components/animations/motion";
 import { AppearanceSettings } from "@/components/settings/appearance-settings";
-import { ReminderSettings } from "@/components/settings/reminder-settings";
+import { NotificationSettings } from "@/components/settings/notification-settings";
 import { PushSubscribe } from "@/components/settings/push-subscribe";
+import { NOTIF_KEYS, type NotifPrefs } from "@/lib/notificaciones";
 import { UsuariosSettings } from "@/components/settings/usuarios-settings";
 import { VisibilitySettings } from "@/components/settings/visibility-settings";
 import { BrandsSettings } from "@/components/settings/brands-settings";
@@ -23,7 +24,7 @@ export default async function ConfiguracionPage() {
     { data: categories },
     { data: templates },
   ] = await Promise.all([
-    supabase.from("app_settings").select("resumen_hora, dias_aviso_entrega, dias_aviso_cobro, modulos_ocultos").eq("id", "global").maybeSingle(),
+    supabase.from("app_settings").select("*").eq("id", "global").maybeSingle(),
     supabase.from("users_profiles").select("id, nombre, correo, username").eq("rol", "owner").order("created_at"),
     supabase.from("brands").select("id, nombre, activo, rnc, telefono, direccion, logo_url").order("created_at"),
     supabase.from("categories").select("id, nombre, tipo").order("nombre"),
@@ -51,12 +52,22 @@ export default async function ConfiguracionPage() {
 
         <AppearanceSettings />
 
-        <ReminderSettings
-          settings={settings ?? { resumen_hora: "07:00", dias_aviso_entrega: 1, dias_aviso_cobro: 1 }}
-        />
+        <NotificationSettings settings={buildNotifPrefs(settings)} />
 
         <PushSubscribe />
       </StaggerContainer>
     </>
   );
+}
+
+/** Arma las preferencias de notificación con defaults (todo ON) si faltan. */
+function buildNotifPrefs(settings: Record<string, unknown> | null): NotifPrefs {
+  const s = (settings ?? {}) as Record<string, unknown>;
+  const prefs = {
+    resumen_hora: (s.resumen_hora as string) ?? "07:00",
+    dias_aviso_entrega: (s.dias_aviso_entrega as number) ?? 1,
+    dias_aviso_cobro: (s.dias_aviso_cobro as number) ?? 1,
+  } as NotifPrefs;
+  for (const k of NOTIF_KEYS) prefs[k] = (s[k] as boolean) ?? true;
+  return prefs;
 }
