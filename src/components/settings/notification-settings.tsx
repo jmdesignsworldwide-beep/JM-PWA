@@ -64,6 +64,7 @@ export function NotificationSettings({ settings }: { settings: Settings }) {
         <div className="space-y-1.5">
           <Label>Hora del resumen diario</Label>
           <Input type="time" value={s.resumen_hora} onChange={(e) => set("resumen_hora", e.target.value)} />
+          <p className="text-[11px] text-muted-foreground">Sale cada mañana. Con el plan actual, ~7 a.m.; una hora exacta requiere Vercel Pro.</p>
         </div>
         <div className="space-y-1.5">
           <Label>Avisar entregas (días antes)</Label>
