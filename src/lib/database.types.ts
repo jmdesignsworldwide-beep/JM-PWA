@@ -490,6 +490,19 @@ export interface Tables {
     created_by: string | null;
   } & Timestamps;
 
+  order_payments: {
+    id: string;
+    order_id: string;
+    client_id: string;
+    monto: number;
+    moneda: Moneda;
+    fecha: string;
+    metodo: string | null;
+    tipo: "inicial" | "entrega" | "abono";
+    nota: string | null;
+    created_by: string | null;
+  } & Timestamps;
+
   audit_log: {
     id: string;
     accion: string;

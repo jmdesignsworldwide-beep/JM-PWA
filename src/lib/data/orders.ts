@@ -6,6 +6,7 @@ export type OrderItem = Row<"order_print_items">;
 export type OrderNote = Row<"order_notes">;
 export type Contract = Row<"contracts">;
 export type Invoice = Row<"invoices">;
+export type OrderPayment = Row<"order_payments">;
 
 /** Pedido con todo lo conectado: cliente, items, hilo, contrato y factura. */
 export async function getOrderFull(id: string) {
@@ -18,7 +19,7 @@ export async function getOrderFull(id: string) {
     .maybeSingle();
   if (!order) return null;
 
-  const [client, items, notes, contractRes, brand] = await Promise.all([
+  const [client, items, notes, contractRes, brand, paymentsRes] = await Promise.all([
     supabase.from("clients").select("*").eq("id", order.client_id).maybeSingle(),
     supabase.from("order_print_items").select("*").eq("order_id", id).order("created_at"),
     supabase.from("order_notes").select("*").eq("order_id", id).order("created_at", { ascending: true }),
@@ -26,6 +27,7 @@ export async function getOrderFull(id: string) {
     order.brand_id
       ? supabase.from("brands").select("nombre").eq("id", order.brand_id).maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase.from("order_payments").select("*").eq("order_id", id).order("fecha", { ascending: false }),
   ]);
 
   const contract = (contractRes.data?.[0] as Contract | undefined) ?? null;
@@ -48,6 +50,7 @@ export async function getOrderFull(id: string) {
     contract,
     invoice,
     brandName: brand.data?.nombre ?? null,
+    payments: (paymentsRes.data ?? []) as OrderPayment[],
   };
 }
 

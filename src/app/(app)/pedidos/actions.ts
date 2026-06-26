@@ -198,3 +198,90 @@ export async function setContractStatus(
   revalidatePath(`/pedidos/${orderId}`);
   return { ok: true };
 }
+
+/**
+ * Sube un contrato firmado FUERA del sistema (PDF) y lo adjunta al pedido.
+ * Si ya hay contrato para el pedido, le pega el PDF y lo marca firmado;
+ * si no, crea uno nuevo ya firmado. Al quedar firmado, el trigger de la BD
+ * genera la factura, el proyecto y las fechas (igual que el flujo interno).
+ */
+export async function uploadExternalContract(orderId: string, fileUrl: string) {
+  const supabase = await createClient();
+  if (!fileUrl) return { error: "Falta el archivo del contrato." };
+
+  const { data: order } = await supabase.from("orders").select("client_id, brand_id").eq("id", orderId).maybeSingle();
+  if (!order) return { error: "Pedido no encontrado" };
+
+  const { data: existing } = await supabase
+    .from("contracts").select("id").eq("order_id", orderId).order("created_at", { ascending: false }).limit(1);
+
+  if (existing && existing.length) {
+    const { error } = await supabase
+      .from("contracts")
+      .update({ pdf_url: fileUrl, estado: "aprobado_firmado" })
+      .eq("id", existing[0].id);
+    if (error) return { error: error.message };
+  } else {
+    const { error } = await supabase.from("contracts").insert({
+      order_id: orderId,
+      client_id: order.client_id,
+      brand_id: order.brand_id,
+      estado: "aprobado_firmado",
+      pdf_url: fileUrl,
+      contenido: "Contrato firmado fuera del sistema (PDF adjunto).",
+    });
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath(`/pedidos/${orderId}`);
+  revalidatePath(`/clientes/${order.client_id}`);
+  return { ok: true };
+}
+
+// ── Pagos / abonos del cliente (control de saldo) ───────────────────────────
+
+export type PaymentInput = {
+  order_id: string;
+  monto: number;
+  moneda: "DOP" | "USD";
+  fecha: string;
+  tipo: "inicial" | "entrega" | "abono";
+  metodo?: string | null;
+  nota?: string | null;
+};
+
+/** Registra un pago/abono contra un pedido. El saldo se recalcula solo. */
+export async function addOrderPayment(input: PaymentInput) {
+  const supabase = await createClient();
+  if (!input.monto || input.monto <= 0) return { error: "Monto inválido." };
+
+  const { data: order } = await supabase
+    .from("orders").select("client_id").eq("id", input.order_id).maybeSingle();
+  if (!order) return { error: "Pedido no encontrado" };
+
+  const { error } = await supabase.from("order_payments").insert({
+    order_id: input.order_id,
+    client_id: order.client_id,
+    monto: input.monto,
+    moneda: input.moneda,
+    fecha: input.fecha,
+    tipo: input.tipo,
+    metodo: input.metodo?.trim() || null,
+    nota: input.nota?.trim() || null,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/pedidos/${input.order_id}`);
+  revalidatePath(`/clientes/${order.client_id}`);
+  return { ok: true };
+}
+
+/** Borra un pago/abono (corrige un error de captura). */
+export async function deleteOrderPayment(id: string, orderId: string, clientId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("order_payments").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath(`/pedidos/${orderId}`);
+  revalidatePath(`/clientes/${clientId}`);
+  return { ok: true };
+}

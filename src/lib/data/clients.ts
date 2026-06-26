@@ -48,16 +48,15 @@ export async function getBrands() {
 export async function getClientStats(clientId: string) {
   const supabase = await createClient();
   const [orders, contracts, invoices, projects, payments] = await Promise.all([
-    supabase.from("orders").select("id, estado, total, moneda, fecha").eq("client_id", clientId),
+    supabase.from("orders").select("id, estado, total, moneda, fecha").eq("client_id", clientId).order("created_at", { ascending: false }),
     supabase.from("contracts").select("id, estado, fecha_aprobacion").eq("client_id", clientId),
     supabase.from("invoices").select("id, estado_pago, total, moneda, fecha").eq("client_id", clientId),
     supabase.from("projects").select("id, nombre, estado, fecha_entrega").eq("client_id", clientId),
-    supabase.from("project_payments").select("id, monto, moneda, fecha").in(
-      "project_id",
-      (
-        await supabase.from("projects").select("id").eq("client_id", clientId)
-      ).data?.map((p) => p.id) ?? ["00000000-0000-0000-0000-000000000000"],
-    ),
+    // Abonos del cliente (pagos contra sus pedidos): control de saldo.
+    supabase.from("order_payments")
+      .select("id, order_id, monto, moneda, fecha, tipo, metodo, nota")
+      .eq("client_id", clientId)
+      .order("fecha", { ascending: false }),
   ]);
   return {
     orders: orders.data ?? [],
