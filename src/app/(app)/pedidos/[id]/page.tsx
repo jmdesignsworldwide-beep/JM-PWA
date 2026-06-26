@@ -56,7 +56,9 @@ export default async function PedidoPage({
         brandName={data.brandName}
         contractDias={contractDias}
         payments={data.payments}
-        hasProject={data.hasProject}
+        project={data.project}
+        milestones={data.milestones}
+        updates={data.updates}
       />
     </div>
   );
