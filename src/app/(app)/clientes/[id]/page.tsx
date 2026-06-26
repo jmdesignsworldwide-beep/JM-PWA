@@ -7,7 +7,6 @@ import {
   getClientStats,
   getClientActivity,
   getClientFiles,
-  getClientProjectsFull,
 } from "@/lib/data/clients";
 import { getLifecycle } from "@/lib/data/lifecycle";
 import { LifecycleBar } from "@/components/clientes/lifecycle-bar";
@@ -80,11 +79,10 @@ export default async function ClientePage({
   }
 
   // ── CLIENTE ACTIVO: ficha completa con todo el flujo de dinero. ──
-  const [stats, activity, files, projectsFull] = await Promise.all([
+  const [stats, activity, files] = await Promise.all([
     getClientStats(id),
     getClientActivity(id),
     getClientFiles(id),
-    getClientProjectsFull(id),
   ]);
 
   const lifecycle = getLifecycle(client, stats);
@@ -126,7 +124,7 @@ export default async function ClientePage({
         <LifecycleBar current={lifecycle.current} steps={lifecycle.steps} />
       </div>
 
-      <ClientDetail client={client} brands={brands} stats={stats} activity={activity} files={files} projectsFull={projectsFull} />
+      <ClientDetail client={client} brands={brands} stats={stats} activity={activity} files={files} />
     </div>
   );
 }

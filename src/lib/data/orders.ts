@@ -53,11 +53,26 @@ export async function getOrderFull(id: string) {
     invoice = (data?.[0] as Invoice | undefined) ?? null;
   }
 
-  // ¿Ya existe un proyecto para este pedido? (para ofrecer "Crear proyecto").
-  const { count: projectCount } = await supabase
+  // El "trabajo" del pedido vive en su registro de proyecto (1:1 con el pedido).
+  // El owner gestiona el progreso desde el pedido; el cliente lo ve en su portal.
+  const { data: projRows } = await supabase
     .from("projects")
-    .select("id", { count: "exact", head: true })
-    .eq("order_id", id);
+    .select("*")
+    .eq("order_id", id)
+    .order("created_at", { ascending: true })
+    .limit(1);
+  const project = (projRows?.[0] as Row<"projects"> | undefined) ?? null;
+
+  let milestones: Row<"project_milestones">[] = [];
+  let updates: Row<"project_updates">[] = [];
+  if (project) {
+    const [ms, ups] = await Promise.all([
+      supabase.from("project_milestones").select("*").eq("project_id", project.id).order("orden", { ascending: true }),
+      supabase.from("project_updates").select("*").eq("project_id", project.id).order("created_at", { ascending: false }),
+    ]);
+    milestones = (ms.data ?? []) as Row<"project_milestones">[];
+    updates = (ups.data ?? []) as Row<"project_updates">[];
+  }
 
   return {
     order: order as Order,
@@ -68,7 +83,9 @@ export async function getOrderFull(id: string) {
     invoice,
     brandName: brand.data?.nombre ?? null,
     payments: (paymentsRes.data ?? []) as OrderPayment[],
-    hasProject: (projectCount ?? 0) > 0,
+    project,
+    milestones,
+    updates,
   };
 }
 

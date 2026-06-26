@@ -8,9 +8,7 @@ import type { Client } from "@/lib/data/clients";
 import { Button } from "@/components/ui/button";
 import { ClientEditForm } from "./client-edit-form";
 import { DocumentosManager } from "./documentos-manager";
-import { ProjectManager } from "./project-manager";
 import { PagosManager } from "@/components/pedidos/pagos-manager";
-import type { Row } from "@/lib/database.types";
 import { Badge } from "@/components/ui/badge";
 import { money, fechaCorta, fechaHora } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -32,7 +30,6 @@ const TABS = [
   "Pedidos",
   "Contratos",
   "Facturas",
-  "Proyectos",
   "Pagos",
   "Actividad",
 ] as const;
@@ -40,26 +37,18 @@ type Tab = (typeof TABS)[number];
 
 type Doc = { id: string; file_url: string | null; tipo: string | null; version: number; visible_cliente: boolean; created_at: string };
 
-type ProjectsFull = {
-  projects: { id: string; nombre: string | null; estado: string; fecha_inicio: string | null; fecha_entrega: string | null; precio_total: number; moneda: string }[];
-  milestones: Row<"project_milestones">[];
-  updates: Row<"project_updates">[];
-};
-
 export function ClientDetail({
   client,
   brands,
   stats,
   activity,
   files,
-  projectsFull,
 }: {
   client: Client;
   brands: Brand[];
   stats: Stats;
   activity: Activity;
   files: Doc[];
-  projectsFull: ProjectsFull;
 }) {
   const [tab, setTab] = useState<Tab>("Resumen");
 
@@ -67,7 +56,6 @@ export function ClientDetail({
     Pedidos: stats.orders.length,
     Contratos: stats.contracts.length,
     Facturas: stats.invoices.length,
-    Proyectos: stats.projects.length,
     Pagos: stats.payments.length,
   };
 
@@ -111,7 +99,7 @@ export function ClientDetail({
               </Link>
             </div>
             {stats.orders.length === 0 ? (
-              <EmptyPhase phase="" text="Aún no hay pedidos. Crea el primero — el contrato y la factura saldrán de él." />
+              <EmptyPhase phase="" text="Aún no hay pedidos. Crea el primero — cada pedido es el trabajo: lleva su factura, su progreso y sus pagos." />
             ) : (
               <ul className="space-y-2">
                 {stats.orders.map((o) => (
@@ -178,15 +166,6 @@ export function ClientDetail({
               right: money(i.total, i.moneda),
               sub: fechaCorta(i.fecha),
             }))}
-          />
-        )}
-
-        {tab === "Proyectos" && (
-          <ProjectManager
-            clientId={client.id}
-            projects={projectsFull.projects}
-            milestones={projectsFull.milestones}
-            updates={projectsFull.updates}
           />
         )}
 

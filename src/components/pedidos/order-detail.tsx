@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText, FileSignature, ReceiptText, Send, CheckCircle2, Copy,
   Download, MessageCircle, Loader2, Sparkles, MessageSquarePlus, Lock,
-  Receipt, FolderPlus, ChevronDown,
+  Receipt, ChevronDown,
 } from "lucide-react";
 import type { Order, OrderItem, OrderNote, Contract, Invoice, OrderPayment } from "@/lib/data/orders";
+import type { Row } from "@/lib/database.types";
 import {
   addOrderNote, duplicateOrder, generateContract,
   updateContractContent, setContractStatus,
@@ -21,7 +22,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { PagosManager } from "./pagos-manager";
 import { ExternalContractUpload } from "./external-contract-upload";
-import { Wallet } from "lucide-react";
+import { ProjectManager } from "@/components/clientes/project-manager";
+import { Wallet, ListChecks } from "lucide-react";
 
 type ClientLite = {
   id: string; nombre: string; apellido: string | null;
@@ -40,10 +42,13 @@ type Props = {
   /** Días desde que se envió el contrato (calculado en el servidor). */
   contractDias: number;
   payments: OrderPayment[];
-  hasProject: boolean;
+  /** Seguimiento del trabajo (proyecto 1:1 con el pedido) y su línea de tiempo. */
+  project: Row<"projects"> | null;
+  milestones: Row<"project_milestones">[];
+  updates: Row<"project_updates">[];
 };
 
-export function OrderDetail({ order, client, notes, contract, invoice, contractDias, payments, hasProject }: Props) {
+export function OrderDetail({ order, client, notes, contract, invoice, contractDias, payments, project, milestones, updates }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [justSigned, setJustSigned] = useState(false);
@@ -116,10 +121,10 @@ export function OrderDetail({ order, client, notes, contract, invoice, contractD
           onGenerate={(esFiscal) => act(() => generateInvoiceFromOrder(order.id, esFiscal))}
         />
 
-        {/* Proyecto — se puede crear sin contrato */}
-        <ProjectSection
-          hasProject={hasProject} pending={pending}
-          onCreate={() => act(() => createProjectFromOrder(order.id))}
+        {/* Progreso del trabajo — el pedido ES el proyecto. El cliente lo ve en su portal. */}
+        <ProgressSection
+          order={order} project={project} milestones={milestones} updates={updates}
+          pending={pending} onStart={() => act(() => createProjectFromOrder(order.id))}
         />
 
         {/* Contrato — OPCIONAL: solo cuando el trato lo amerita */}
@@ -366,27 +371,50 @@ function InvoiceSection({ invoice, nombre, waPhone, pending, onGenerate }: {
   );
 }
 
-function ProjectSection({ hasProject, pending, onCreate }: {
-  hasProject: boolean; pending: boolean; onCreate: () => void;
+function ProgressSection({ order, project, milestones, updates, pending, onStart }: {
+  order: Order; project: Row<"projects"> | null;
+  milestones: Row<"project_milestones">[]; updates: Row<"project_updates">[];
+  pending: boolean; onStart: () => void;
 }) {
-  if (hasProject) {
+  // Sin trabajo iniciado todavía: un solo paso para empezar a registrar avance.
+  if (!project) {
     return (
-      <section className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm">
-        <FolderPlus className="size-4 text-success" />
-        <span className="font-medium">Proyecto creado</span>
-        <span className="text-muted-foreground">— gestiona su línea de tiempo en la ficha del cliente.</span>
+      <section className="rounded-xl border border-dashed border-border bg-card/50 p-6 text-center">
+        <ListChecks className="mx-auto size-8 text-electric" />
+        <h3 className="mt-2 font-medium">Seguimiento del trabajo</h3>
+        <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+          Este pedido <strong>es</strong> el trabajo. Inicia su seguimiento para marcar etapas y avances —
+          el cliente los verá en su portal en una línea de tiempo premium.
+        </p>
+        <Button variant="gradient" className="mt-4" onClick={onStart} disabled={pending}>
+          {pending ? <Loader2 className="size-4 animate-spin" /> : <ListChecks className="size-4" />} Iniciar seguimiento
+        </Button>
       </section>
     );
   }
+
+  // Con trabajo: estado + línea de tiempo + feed (lo mismo que ve el cliente).
   return (
-    <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-border bg-card/50 px-4 py-3">
-      <div className="flex items-center gap-2 text-sm">
-        <FolderPlus className="size-4 text-electric" />
-        <span className="text-muted-foreground">¿Vas a trabajar este pedido? Crea el proyecto — no necesita contrato.</span>
+    <section className="space-y-3">
+      <div className="flex items-center gap-2 px-1">
+        <ListChecks className="size-4 text-electric" />
+        <h3 className="font-semibold">Progreso del trabajo</h3>
+        <span className="text-xs text-muted-foreground">— lo que el cliente ve en su portal</span>
       </div>
-      <Button variant="outline" size="sm" onClick={onCreate} disabled={pending}>
-        {pending ? <Loader2 className="size-4 animate-spin" /> : <FolderPlus className="size-4" />} Crear proyecto
-      </Button>
+      <ProjectManager
+        clientId={order.client_id}
+        projects={[{
+          id: project.id,
+          nombre: project.nombre ?? `Pedido · ${fechaCorta(order.fecha)}`,
+          estado: project.estado,
+          fecha_inicio: project.fecha_inicio,
+          fecha_entrega: project.fecha_entrega,
+          precio_total: project.precio_total,
+          moneda: project.moneda,
+        }]}
+        milestones={milestones}
+        updates={updates}
+      />
     </section>
   );
 }
