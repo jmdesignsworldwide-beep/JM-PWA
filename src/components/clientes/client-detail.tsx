@@ -230,7 +230,7 @@ function Section({
   phase: string;
   rows: { id: string; left: string; right: string; sub: string }[];
 }) {
-  if (empty) return <EmptyPhase phase={phase} text="Aún no hay nada aquí. Se llena solo con el flujo (pedido → contrato → factura)." />;
+  if (empty) return <EmptyPhase phase={phase} text="Aún no hay nada aquí. Se llena con el flujo del pedido (factura directa o, si quieres, contrato)." />;
   return (
     <ul className="space-y-2">
       {rows.map((r) => (

@@ -2,14 +2,14 @@
 
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
-import { CICLO_VIDA } from "@/lib/ventas";
+import { CICLO_VIDA, type CicloPaso } from "@/lib/ventas";
 import { cn } from "@/lib/utils";
 
 /** Barra visual del ciclo de vida con el paso actual resaltado y animado. */
-export function LifecycleBar({ current }: { current: number }) {
+export function LifecycleBar({ current, steps = [...CICLO_VIDA] }: { current: number; steps?: CicloPaso[] }) {
   return (
     <div className="flex w-full items-center overflow-x-auto py-2">
-      {CICLO_VIDA.map((paso, i) => {
+      {steps.map((paso, i) => {
         const done = i < current;
         const active = i === current;
         return (
@@ -39,7 +39,7 @@ export function LifecycleBar({ current }: { current: number }) {
                 {paso}
               </span>
             </div>
-            {i < CICLO_VIDA.length - 1 && (
+            {i < steps.length - 1 && (
               <div className="mx-1 h-0.5 flex-1 rounded-full bg-secondary">
                 <motion.div
                   initial={{ scaleX: 0 }}

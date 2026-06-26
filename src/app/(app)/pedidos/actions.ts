@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { money, fechaCorta } from "@/lib/format";
+import { rdToday } from "@/lib/fecha";
 
 export type OrderItemInput = {
   producto?: string | null;
@@ -236,6 +237,94 @@ export async function uploadExternalContract(orderId: string, fileUrl: string) {
   revalidatePath(`/pedidos/${orderId}`);
   revalidatePath(`/clientes/${order.client_id}`);
   return { ok: true };
+}
+
+/**
+ * Genera una FACTURA o RECIBO directamente desde el pedido, SIN contrato.
+ * `esFiscal=true` → factura fiscal (NCF pendiente del módulo). `false` → recibo
+ * simple para cobros rápidos. Activa al cliente (deja de ser prospecto).
+ * Idempotente: si el pedido ya tiene factura/recibo, la devuelve.
+ */
+export async function generateInvoiceFromOrder(orderId: string, esFiscal: boolean) {
+  const supabase = await createClient();
+  const { data: order } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle();
+  if (!order) return { error: "Pedido no encontrado" };
+
+  const { data: existing } = await supabase
+    .from("invoices").select("id").eq("order_id", orderId).order("created_at", { ascending: false }).limit(1);
+  if (existing && existing.length) return { id: existing[0].id, yaExiste: true };
+
+  const { data: client } = await supabase
+    .from("clients").select("factura_fiscal, rnc, es_lead").eq("id", order.client_id).maybeSingle();
+
+  const { data: invoice, error } = await supabase
+    .from("invoices")
+    .insert({
+      order_id: orderId,
+      contract_id: null,
+      client_id: order.client_id,
+      es_fiscal: esFiscal,
+      rnc: esFiscal ? client?.rnc ?? null : null,
+      items_json: (order.detalle_json ?? []) as never,
+      subtotal: order.subtotal ?? order.total ?? 0,
+      itbis: order.itbis ?? 0,
+      total: order.total ?? 0,
+      moneda: order.moneda,
+      estado_pago: "pendiente",
+      brand_id: order.brand_id,
+    })
+    .select("id")
+    .single();
+  if (error) return { error: error.message };
+
+  // Quien factura ya es cliente, no prospecto.
+  if (client?.es_lead) await supabase.from("clients").update({ es_lead: false }).eq("id", order.client_id);
+
+  revalidatePath(`/pedidos/${orderId}`);
+  revalidatePath(`/clientes/${order.client_id}`);
+  return { id: invoice.id };
+}
+
+/**
+ * Crea un PROYECTO directamente desde el pedido, SIN necesidad de contrato
+ * firmado. Idempotente: si el pedido ya tiene proyecto, lo devuelve.
+ */
+export async function createProjectFromOrder(orderId: string) {
+  const supabase = await createClient();
+  const { data: order } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle();
+  if (!order) return { error: "Pedido no encontrado" };
+
+  const { data: existing } = await supabase
+    .from("projects").select("id").eq("order_id", orderId).limit(1);
+  if (existing && existing.length) return { id: existing[0].id, yaExiste: true };
+
+  const { data: client } = await supabase
+    .from("clients").select("nombre, es_lead").eq("id", order.client_id).maybeSingle();
+
+  const entrega = order.fecha_entrega ?? null;
+  const { data: project, error } = await supabase
+    .from("projects")
+    .insert({
+      client_id: order.client_id,
+      order_id: orderId,
+      nombre: `Proyecto ${client?.nombre ?? "Cliente"}`,
+      tipo: order.rama ?? "designs",
+      precio_total: order.total ?? 0,
+      moneda: order.moneda,
+      fecha_inicio: rdToday(),
+      fecha_entrega: entrega,
+      estado: "en_progreso",
+      brand_id: order.brand_id,
+    } as never)
+    .select("id")
+    .single();
+  if (error) return { error: error.message };
+
+  if (client?.es_lead) await supabase.from("clients").update({ es_lead: false }).eq("id", order.client_id);
+
+  revalidatePath(`/pedidos/${orderId}`);
+  revalidatePath(`/clientes/${order.client_id}`);
+  return { id: project.id };
 }
 
 // ── Pagos / abonos del cliente (control de saldo) ───────────────────────────

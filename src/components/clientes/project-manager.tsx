@@ -37,7 +37,7 @@ export function ProjectManager({
   if (projects.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">
-        Aún no hay proyectos. Se crean solos cuando el cliente firma su contrato.
+        Aún no hay proyectos. Créalo desde el pedido (botón “Crear proyecto”) — con o sin contrato — o se crea solo al firmar uno.
         <br />Desde aquí controlarás su línea de tiempo y avisos del portal.
       </div>
     );

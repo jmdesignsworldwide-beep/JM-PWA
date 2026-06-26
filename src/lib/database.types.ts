@@ -144,6 +144,7 @@ export interface Tables {
   invoices: {
     id: string;
     contract_id: string | null;
+    order_id: string | null;
     client_id: string;
     es_fiscal: boolean;
     ncf: string | null;

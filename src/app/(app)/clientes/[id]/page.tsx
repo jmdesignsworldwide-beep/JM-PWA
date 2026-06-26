@@ -9,7 +9,7 @@ import {
   getClientFiles,
   getClientProjectsFull,
 } from "@/lib/data/clients";
-import { currentLifecycleStep } from "@/lib/data/lifecycle";
+import { getLifecycle } from "@/lib/data/lifecycle";
 import { LifecycleBar } from "@/components/clientes/lifecycle-bar";
 import { ClientDetail } from "@/components/clientes/client-detail";
 import { ProspectoDetail } from "@/components/clientes/prospecto-detail";
@@ -87,7 +87,7 @@ export default async function ClientePage({
     getClientProjectsFull(id),
   ]);
 
-  const step = currentLifecycleStep(client, stats);
+  const lifecycle = getLifecycle(client, stats);
 
   return (
     <div className="space-y-5">
@@ -123,7 +123,7 @@ export default async function ClientePage({
 
       {/* Barra de ciclo de vida */}
       <div className="rounded-xl border border-border bg-card p-5">
-        <LifecycleBar current={step} />
+        <LifecycleBar current={lifecycle.current} steps={lifecycle.steps} />
       </div>
 
       <ClientDetail client={client} brands={brands} stats={stats} activity={activity} files={files} projectsFull={projectsFull} />
