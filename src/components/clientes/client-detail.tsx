@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ClientEditForm } from "./client-edit-form";
 import { DocumentosManager } from "./documentos-manager";
 import { ProjectManager } from "./project-manager";
+import { PagosManager } from "@/components/pedidos/pagos-manager";
 import type { Row } from "@/lib/database.types";
 import { Badge } from "@/components/ui/badge";
 import { money, fechaCorta, fechaHora } from "@/lib/format";
@@ -21,7 +22,7 @@ type Stats = {
   contracts: { id: string; estado: string; fecha_aprobacion: string | null }[];
   invoices: { id: string; estado_pago: string; total: number; moneda: string; fecha: string }[];
   projects: { id: string; nombre: string | null; estado: string; fecha_entrega: string | null }[];
-  payments: { id: string; monto: number; moneda: string; fecha: string }[];
+  payments: { id: string; order_id: string; monto: number; moneda: string; fecha: string; tipo: string; metodo: string | null; nota: string | null }[];
 };
 
 type Activity = { id: string; accion: string; tabla: string; fecha: string }[];
@@ -33,7 +34,6 @@ const TABS = [
   "Facturas",
   "Proyectos",
   "Pagos",
-  "Documentos",
   "Actividad",
 ] as const;
 type Tab = (typeof TABS)[number];
@@ -69,7 +69,6 @@ export function ClientDetail({
     Facturas: stats.invoices.length,
     Proyectos: stats.projects.length,
     Pagos: stats.payments.length,
-    Documentos: files.length,
   };
 
   return (
@@ -138,22 +137,41 @@ export function ClientDetail({
         )}
 
         {tab === "Contratos" && (
-          <Section
-            empty={stats.contracts.length === 0}
-            phase="Fase 4"
-            rows={stats.contracts.map((c) => ({
-              id: c.id,
-              left: `Contrato · ${c.estado}`,
-              right: c.fecha_aprobacion ? "Firmado" : "—",
-              sub: fechaCorta(c.fecha_aprobacion),
-            }))}
-          />
+          <div className="space-y-6">
+            <div className="space-y-3">
+              {stats.contracts.length === 0 ? (
+                <EmptyPhase phase="" text="Aún no hay contratos. Se genera desde el pedido, o sube uno firmado por fuera en Documentos." />
+              ) : (
+                <ul className="space-y-2">
+                  {stats.contracts.map((c) => (
+                    <li key={c.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5 text-sm">
+                      <div>
+                        <p className="font-medium capitalize">Contrato · {c.estado}</p>
+                        <p className="text-xs text-muted-foreground">{fechaCorta(c.fecha_aprobacion)}</p>
+                      </div>
+                      <Badge>{c.fecha_aprobacion ? "Firmado" : "—"}</Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {/* Documentos viven junto al contrato (contratos firmados, briefs, etc.). */}
+            <div className="space-y-3 border-t border-border pt-5">
+              <h4 className="flex items-center gap-2 text-sm font-semibold">
+                <FileText className="size-4 text-electric" /> Documentos
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Contratos firmados, briefs, brand assets y entregables. Lo que marques como visible aparece en el portal del cliente.
+              </p>
+              <DocumentosManager clientId={client.id} docs={files} />
+            </div>
+          </div>
         )}
 
         {tab === "Facturas" && (
           <Section
             empty={stats.invoices.length === 0}
-            phase="Fase 4"
+            phase=""
             rows={stats.invoices.map((i) => ({
               id: i.id,
               left: `Factura · ${i.estado_pago}`,
@@ -173,20 +191,11 @@ export function ClientDetail({
         )}
 
         {tab === "Pagos" && (
-          <Section
-            empty={stats.payments.length === 0}
-            phase="Fase 5"
-            rows={stats.payments.map((p) => ({
-              id: p.id,
-              left: "Pago",
-              right: money(p.monto, p.moneda),
-              sub: fechaCorta(p.fecha),
-            }))}
+          <PagosManager
+            clientId={client.id}
+            orders={stats.orders}
+            payments={stats.payments}
           />
-        )}
-
-        {tab === "Documentos" && (
-          <DocumentosManager clientId={client.id} docs={files} />
         )}
 
         {tab === "Actividad" && (
@@ -221,7 +230,7 @@ function Section({
   phase: string;
   rows: { id: string; left: string; right: string; sub: string }[];
 }) {
-  if (empty) return <EmptyPhase phase={phase} text="Se llena automáticamente con el flujo de la fuente única." />;
+  if (empty) return <EmptyPhase phase={phase} text="Aún no hay nada aquí. Se llena solo con el flujo (pedido → contrato → factura)." />;
   return (
     <ul className="space-y-2">
       {rows.map((r) => (

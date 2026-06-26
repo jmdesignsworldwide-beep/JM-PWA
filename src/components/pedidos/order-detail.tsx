@@ -7,7 +7,7 @@ import {
   FileText, FileSignature, ReceiptText, Send, CheckCircle2, Copy,
   Download, MessageCircle, Loader2, Sparkles, MessageSquarePlus, Lock,
 } from "lucide-react";
-import type { Order, OrderItem, OrderNote, Contract, Invoice } from "@/lib/data/orders";
+import type { Order, OrderItem, OrderNote, Contract, Invoice, OrderPayment } from "@/lib/data/orders";
 import {
   addOrderNote, duplicateOrder, generateContract,
   updateContractContent, setContractStatus,
@@ -17,6 +17,9 @@ import { antiguedadColor } from "@/lib/pedidos";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { PagosManager } from "./pagos-manager";
+import { ExternalContractUpload } from "./external-contract-upload";
+import { Wallet } from "lucide-react";
 
 type ClientLite = {
   id: string; nombre: string; apellido: string | null;
@@ -34,9 +37,10 @@ type Props = {
   brandName: string | null;
   /** Días desde que se envió el contrato (calculado en el servidor). */
   contractDias: number;
+  payments: OrderPayment[];
 };
 
-export function OrderDetail({ order, client, notes, contract, invoice, contractDias }: Props) {
+export function OrderDetail({ order, client, notes, contract, invoice, contractDias, payments }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [justSigned, setJustSigned] = useState(false);
@@ -153,6 +157,21 @@ export function OrderDetail({ order, client, notes, contract, invoice, contractD
             </motion.section>
           )}
         </AnimatePresence>
+
+        {/* Pagos del pedido — control de saldo (Total / Pagado / Falta) */}
+        <section className="rounded-xl border border-border bg-card">
+          <Header icon={<Wallet className="size-4" />} title="Pagos" right={
+            <Badge dot="var(--success)">{payments.length} {payments.length === 1 ? "abono" : "abonos"}</Badge>
+          } />
+          <div className="p-4">
+            <PagosManager
+              clientId={order.client_id}
+              orders={[{ id: order.id, total: order.total, moneda: order.moneda, fecha: order.fecha, estado: order.estado }]}
+              payments={payments}
+              lockedOrderId={order.id}
+            />
+          </div>
+        </section>
       </div>
 
       {/* Columna lateral: hilo de conversación */}
@@ -185,6 +204,9 @@ function ContractSection({
           {pending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
           Generar contrato
         </Button>
+        <div className="mx-auto mt-5 max-w-md text-left">
+          <ExternalContractUpload orderId={order.id} />
+        </div>
       </section>
     );
   }
@@ -253,6 +275,8 @@ function ContractSection({
             </a>
           )}
         </div>
+
+        {!firmado && <ExternalContractUpload orderId={order.id} />}
       </div>
     </section>
   );
