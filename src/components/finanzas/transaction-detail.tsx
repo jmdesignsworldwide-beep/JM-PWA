@@ -35,6 +35,8 @@ export type Mov = {
   // income
   client_id?: string | null;
   comprobante_url?: string | null;
+  /** Ingreso automático ligado a un pago de cliente: no editable a mano. */
+  order_payment_id?: string | null;
 };
 
 export function TransactionDetail({
@@ -53,6 +55,8 @@ export function TransactionDetail({
   const isExpense = mov.kind === "expense";
   const color = isExpense ? "var(--destructive)" : "var(--success)";
   const fileRef = isExpense ? mov.factura_url : mov.comprobante_url;
+  // Ingreso automático desde un pago de cliente: se gestiona en el pedido, no aquí.
+  const autoPago = !isExpense && !!mov.order_payment_id;
 
   const [editing, setEditing] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -183,8 +187,13 @@ export function TransactionDetail({
 
           {error && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
-          {/* Acciones */}
-          {confirmDel ? (
+          {/* Acciones — bloqueadas si es un ingreso automático desde un pago */}
+          {autoPago ? (
+            <div className="rounded-lg border border-electric/30 bg-electric/10 p-3 text-sm text-muted-foreground">
+              <p className="flex items-center gap-1.5 font-medium text-electric"><Building2 className="size-4" /> Ingreso automático desde un pago de cliente</p>
+              <p className="mt-1">Se cuenta una sola vez. Para cambiarlo o borrarlo, edita el pago en el <strong>Pedido → Pagos</strong> (o en Cobros). Aquí no se edita para no duplicar dinero.</p>
+            </div>
+          ) : confirmDel ? (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3">
               <span className="text-sm text-destructive">¿Seguro que quieres borrarlo?</span>
               <div className="flex gap-2">

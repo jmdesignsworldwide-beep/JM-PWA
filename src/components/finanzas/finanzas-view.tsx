@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 type Opt = { id: string; nombre: string };
 type Bucket = { DOP: number; USD: number };
-type Income = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; brand_id: string | null; project_id: string | null; client_id: string | null; comprobante_url: string | null; es_personal: boolean };
+type Income = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; brand_id: string | null; project_id: string | null; client_id: string | null; comprobante_url: string | null; es_personal: boolean; order_payment_id: string | null };
 type Expense = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; brand_id: string | null; project_id: string | null; comercio: string | null; itbis: number | null; metodo_pago: string | null; factura_url: string | null; es_personal: boolean };
 type Margin = { id: string; nombre: string | null; precio_total: number; moneda: string; gastos: number; ganancia: number; margen: number };
 type Plan = { id: string; client_id: string; tipo: string | null; monto: number; moneda: string; frecuencia: string | null; proxima_factura: string | null; activo: boolean };
@@ -344,6 +344,7 @@ function MovRow({ m, brandMap, onClick }: { m: Mov; brandMap: Record<string, str
         <p className="flex items-center gap-1.5 truncate font-medium">
           {m.categoria ?? "—"}
           {m.es_personal ? <span className="rounded-full border border-border bg-secondary/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">Personal</span> : null}
+          {m.kind === "income" && m.order_payment_id ? <span className="rounded-full border border-electric/40 bg-electric/10 px-1.5 py-0.5 text-[10px] font-medium text-electric">Auto · Cobros</span> : null}
         </p>
         <p className="truncate text-xs text-muted-foreground">{sub ? `${sub} · ` : ""}{fechaCorta(m.fecha)}</p>
       </div>

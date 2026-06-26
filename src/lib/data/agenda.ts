@@ -153,6 +153,75 @@ export async function getPendientes(): Promise<AgendaEvent[]> {
   return attachClients(supabase, (data ?? []) as AgendaEvent[]);
 }
 
+export type PagoOrderLite = { id: string; total: number; moneda: string; fecha: string; estado: string };
+export type PagoLite = { id: string; order_id: string; monto: number; moneda: string; fecha: string; tipo: string; metodo: string | null; nota: string | null };
+export type SaldoCliente = {
+  id: string;
+  nombre: string;
+  orders: PagoOrderLite[];
+  payments: PagoLite[];
+  /** Por moneda: total contratado, pagado y saldo pendiente. */
+  porMoneda: { moneda: string; total: number; pagado: number; saldo: number }[];
+  saldoTotalDOP: number;
+};
+
+/**
+ * Saldos por cliente: lo que cada uno debe (pendiente), lo que ya pagó y el
+ * total contratado — todo desde los PEDIDOS y los PAGOS (fuente única). Se usa
+ * para que "Cobros y Entregas" muestre la deuda real, no solo el pronóstico.
+ */
+export async function getSaldosClientes(): Promise<SaldoCliente[]> {
+  const supabase = await createClient();
+  const [ordersRes, paymentsRes] = await Promise.all([
+    supabase.from("orders").select("id, client_id, total, moneda, fecha, estado"),
+    supabase.from("order_payments").select("id, order_id, client_id, monto, moneda, fecha, tipo, metodo, nota"),
+  ]);
+  const orders = (ordersRes.data ?? []) as (PagoOrderLite & { client_id: string })[];
+  const payments = (paymentsRes.data ?? []) as (PagoLite & { client_id: string })[];
+  if (orders.length === 0) return [];
+
+  const clientIds = [...new Set(orders.map((o) => o.client_id))];
+  const { data: cls } = await supabase.from("clients").select("id, nombre, apellido").in("id", clientIds);
+  const nameMap = new Map((cls ?? []).map((c) => [c.id, `${c.nombre} ${c.apellido ?? ""}`.trim()]));
+
+  const cur = (m: string | null) => (m === "USD" ? "USD" : "DOP");
+  const byClient = new Map<string, SaldoCliente>();
+  for (const o of orders) {
+    const c = byClient.get(o.client_id) ?? {
+      id: o.client_id, nombre: nameMap.get(o.client_id) ?? "Cliente",
+      orders: [], payments: [], porMoneda: [], saldoTotalDOP: 0,
+    };
+    c.orders.push({ id: o.id, total: Number(o.total) || 0, moneda: o.moneda, fecha: o.fecha, estado: o.estado });
+    byClient.set(o.client_id, c);
+  }
+  for (const p of payments) {
+    const c = byClient.get(p.client_id);
+    if (c) c.payments.push({ id: p.id, order_id: p.order_id, monto: Number(p.monto) || 0, moneda: p.moneda, fecha: p.fecha, tipo: p.tipo, metodo: p.metodo, nota: p.nota });
+  }
+
+  const result: SaldoCliente[] = [];
+  for (const c of byClient.values()) {
+    const map = new Map<string, { total: number; pagado: number }>();
+    for (const o of c.orders) {
+      const e = map.get(cur(o.moneda)) ?? { total: 0, pagado: 0 };
+      e.total += o.total; map.set(cur(o.moneda), e);
+    }
+    for (const p of c.payments) {
+      const e = map.get(cur(p.moneda)) ?? { total: 0, pagado: 0 };
+      e.pagado += p.monto; map.set(cur(p.moneda), e);
+    }
+    c.porMoneda = [...map.entries()].map(([moneda, v]) => ({ moneda, total: v.total, pagado: v.pagado, saldo: Math.max(0, v.total - v.pagado) }));
+    c.saldoTotalDOP = c.porMoneda.find((m) => m.moneda === "DOP")?.saldo ?? 0;
+    result.push(c);
+  }
+  // Quien más debe (en DOP) primero; luego por saldo USD.
+  return result.sort((a, b) => {
+    const sa = a.porMoneda.reduce((s, m) => s + m.saldo, 0);
+    const sb = b.porMoneda.reduce((s, m) => s + m.saldo, 0);
+    return sb - sa;
+  });
+}
+
 /** Resumen para la campana. */
 export async function getAlerts() {
   const { vencidos, cobrosHoy, entregasHoy, entregasManana, avisosHoy } = await getHoy();
