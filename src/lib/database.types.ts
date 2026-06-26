@@ -340,6 +340,8 @@ export interface Tables {
     comprobante_url: string | null;
     brand_id: string | null;
     es_personal: boolean;
+    /** Si viene de un pago de cliente (order_payments): ingreso automático, no editable a mano. */
+    order_payment_id: string | null;
     created_by: string | null;
   } & Timestamps;
 

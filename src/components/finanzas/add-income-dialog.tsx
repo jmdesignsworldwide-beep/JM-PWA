@@ -65,6 +65,9 @@ export function AddIncomeDialog({
       <Button variant="gradient" onClick={() => setOpen(true)}><Plus className="size-4" /> Registrar ingreso</Button>
       <Dialog open={open} onClose={() => setOpen(false)} title="Registrar ingreso">
         <form onSubmit={submit} className="space-y-4">
+          <p className="rounded-lg border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
+            Para <strong>pagos de clientes</strong> no uses esto: regístralos en el <strong>Pedido → Pagos</strong> o en Cobros y entran solos aquí (sin doble conteo). Esta ventana es para otros ingresos.
+          </p>
           <div className="grid grid-cols-2 gap-2">
             {([["negocio", false, Building2, "Negocio"], ["personal", true, User, "Personal"]] as const).map(([k, val, Icon, label]) => (
               <button key={k} type="button" onClick={() => setEsPersonal(val)}
