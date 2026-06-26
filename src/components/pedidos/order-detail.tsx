@@ -6,11 +6,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText, FileSignature, ReceiptText, Send, CheckCircle2, Copy,
   Download, MessageCircle, Loader2, Sparkles, MessageSquarePlus, Lock,
+  Receipt, FolderPlus, ChevronDown,
 } from "lucide-react";
 import type { Order, OrderItem, OrderNote, Contract, Invoice, OrderPayment } from "@/lib/data/orders";
 import {
   addOrderNote, duplicateOrder, generateContract,
   updateContractContent, setContractStatus,
+  generateInvoiceFromOrder, createProjectFromOrder,
 } from "@/app/(app)/pedidos/actions";
 import { money, fechaCorta, fechaHora } from "@/lib/format";
 import { antiguedadColor } from "@/lib/pedidos";
@@ -38,9 +40,10 @@ type Props = {
   /** Días desde que se envió el contrato (calculado en el servidor). */
   contractDias: number;
   payments: OrderPayment[];
+  hasProject: boolean;
 };
 
-export function OrderDetail({ order, client, notes, contract, invoice, contractDias, payments }: Props) {
+export function OrderDetail({ order, client, notes, contract, invoice, contractDias, payments, hasProject }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [justSigned, setJustSigned] = useState(false);
@@ -107,7 +110,19 @@ export function OrderDetail({ order, client, notes, contract, invoice, contractD
           </div>
         </section>
 
-        {/* Contrato */}
+        {/* Factura / Recibo — directo desde el pedido, sin contrato obligatorio */}
+        <InvoiceSection
+          invoice={invoice} nombre={nombre} waPhone={waPhone} pending={pending}
+          onGenerate={(esFiscal) => act(() => generateInvoiceFromOrder(order.id, esFiscal))}
+        />
+
+        {/* Proyecto — se puede crear sin contrato */}
+        <ProjectSection
+          hasProject={hasProject} pending={pending}
+          onCreate={() => act(() => createProjectFromOrder(order.id))}
+        />
+
+        {/* Contrato — OPCIONAL: solo cuando el trato lo amerita */}
         <ContractSection
           order={order} contract={contract} nombre={nombre} waPhone={waPhone}
           pending={pending} diasSinFirmar={contractDias}
@@ -117,46 +132,6 @@ export function OrderDetail({ order, client, notes, contract, invoice, contractD
           onSign={() => act(() => setContractStatus(contract!.id, "aprobado_firmado", order.id), () => setJustSigned(true))}
           justSigned={justSigned}
         />
-
-        {/* Factura (aparece sola al firmar) */}
-        <AnimatePresence>
-          {invoice && (
-            <motion.section
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl border border-border bg-card"
-            >
-              <Header icon={<ReceiptText className="size-4" />} title="Factura" right={
-                <Badge dot={invoice.estado_pago === "pagado" ? "var(--success)" : "var(--warning)"}>
-                  {invoice.estado_pago}
-                </Badge>
-              } />
-              <div className="p-4 text-sm">
-                <div className="ml-auto max-w-xs space-y-1">
-                  <Line label="Subtotal" value={money(invoice.subtotal, invoice.moneda)} />
-                  <Line label="ITBIS" value={money(invoice.itbis, invoice.moneda)} />
-                  <div className="flex items-center justify-between border-t border-border pt-1 font-semibold">
-                    <span>Total</span><span>{money(invoice.total, invoice.moneda)}</span>
-                  </div>
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <span>NCF: {invoice.ncf ?? "PENDIENTE (módulo fiscal)"}</span>
-                  {invoice.es_fiscal && <span>· RNC: {invoice.rnc ?? "—"}</span>}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <a href={`/api/pdf/invoice/${invoice.id}`} target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline" size="sm"><Download className="size-4" /> PDF factura</Button>
-                  </a>
-                  {waPhone && (
-                    <a target="_blank" rel="noopener noreferrer"
-                      href={`https://wa.me/${waPhone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${nombre}, te comparto tu factura por ${money(invoice.total, invoice.moneda)}.`)}`}>
-                      <Button variant="outline" size="sm" className="text-success"><MessageCircle className="size-4" /> Enviar</Button>
-                    </a>
-                  )}
-                </div>
-              </div>
-            </motion.section>
-          )}
-        </AnimatePresence>
 
         {/* Pagos del pedido — control de saldo (Total / Pagado / Falta) */}
         <section className="rounded-xl border border-border bg-card">
@@ -196,18 +171,25 @@ function ContractSection({
 
   if (!contract) {
     return (
-      <section className="rounded-xl border border-dashed border-border bg-card/50 p-6 text-center">
-        <FileSignature className="mx-auto size-8 text-electric" />
-        <h3 className="mt-2 font-medium">¿Y ahora? Genera el contrato</h3>
-        <p className="mt-1 text-sm text-muted-foreground">Se rellena solo con los datos del cliente y el detalle del pedido.</p>
-        <Button variant="gradient" className="mt-4" onClick={onGenerate} disabled={pending}>
-          {pending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-          Generar contrato
-        </Button>
-        <div className="mx-auto mt-5 max-w-md text-left">
-          <ExternalContractUpload orderId={order.id} />
+      <details className="group rounded-xl border border-dashed border-border bg-card/50">
+        <summary className="flex cursor-pointer list-none items-center gap-2 p-4 text-sm">
+          <FileSignature className="size-4 text-muted-foreground" />
+          <span className="font-medium">Contrato</span>
+          <Badge>Opcional</Badge>
+          <span className="hidden text-muted-foreground sm:inline">— agrégalo solo si el trato lo amerita.</span>
+          <ChevronDown className="ml-auto size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="space-y-3 border-t border-border p-4 text-center">
+          <p className="text-sm text-muted-foreground">Se rellena solo con los datos del cliente y el detalle del pedido. Para pedidos simples puedes saltarlo y emitir factura/recibo directo.</p>
+          <Button variant="gradient" onClick={onGenerate} disabled={pending}>
+            {pending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+            Generar contrato
+          </Button>
+          <div className="mx-auto max-w-md text-left">
+            <ExternalContractUpload orderId={order.id} />
+          </div>
         </div>
-      </section>
+      </details>
     );
   }
 
@@ -311,6 +293,100 @@ function ConversationThread({ orderId, notes, pending, onAdd }: {
           Añadir nota
         </Button>
       </div>
+    </section>
+  );
+}
+
+function InvoiceSection({ invoice, nombre, waPhone, pending, onGenerate }: {
+  invoice: Invoice | null; nombre: string; waPhone: string; pending: boolean;
+  onGenerate: (esFiscal: boolean) => void;
+}) {
+  // Sin factura/recibo todavía: generar directo desde el pedido (sin contrato).
+  if (!invoice) {
+    return (
+      <section className="rounded-xl border border-border bg-card">
+        <Header icon={<ReceiptText className="size-4" />} title="Factura / Recibo" right={
+          <Badge>Sin emitir</Badge>
+        } />
+        <div className="space-y-3 p-4">
+          <p className="text-sm text-muted-foreground">
+            Cobra ya — sin esperar contrato. Emite un <strong>recibo</strong> para cobros rápidos o una <strong>factura fiscal</strong> para lo formal.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="gradient" size="sm" onClick={() => onGenerate(false)} disabled={pending}>
+              {pending ? <Loader2 className="size-4 animate-spin" /> : <Receipt className="size-4" />} Generar recibo
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => onGenerate(true)} disabled={pending}>
+              <ReceiptText className="size-4" /> Generar factura fiscal
+            </Button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const esRecibo = !invoice.es_fiscal;
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+      className="rounded-xl border border-border bg-card"
+    >
+      <Header icon={<ReceiptText className="size-4" />} title={esRecibo ? "Recibo" : "Factura"} right={
+        <Badge dot={invoice.estado_pago === "pagado" ? "var(--success)" : "var(--warning)"}>
+          {invoice.estado_pago}
+        </Badge>
+      } />
+      <div className="p-4 text-sm">
+        <div className="ml-auto max-w-xs space-y-1">
+          <Line label="Subtotal" value={money(invoice.subtotal, invoice.moneda)} />
+          <Line label="ITBIS" value={money(invoice.itbis, invoice.moneda)} />
+          <div className="flex items-center justify-between border-t border-border pt-1 font-semibold">
+            <span>Total</span><span>{money(invoice.total, invoice.moneda)}</span>
+          </div>
+        </div>
+        {!esRecibo && (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span>NCF: {invoice.ncf ?? "PENDIENTE (módulo fiscal)"}</span>
+            <span>· RNC: {invoice.rnc ?? "—"}</span>
+          </div>
+        )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <a href={`/api/pdf/invoice/${invoice.id}`} target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" size="sm"><Download className="size-4" /> PDF {esRecibo ? "recibo" : "factura"}</Button>
+          </a>
+          {waPhone && (
+            <a target="_blank" rel="noopener noreferrer"
+              href={`https://wa.me/${waPhone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${nombre}, te comparto tu ${esRecibo ? "recibo" : "factura"} por ${money(invoice.total, invoice.moneda)}.`)}`}>
+              <Button variant="outline" size="sm" className="text-success"><MessageCircle className="size-4" /> Enviar</Button>
+            </a>
+          )}
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
+function ProjectSection({ hasProject, pending, onCreate }: {
+  hasProject: boolean; pending: boolean; onCreate: () => void;
+}) {
+  if (hasProject) {
+    return (
+      <section className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm">
+        <FolderPlus className="size-4 text-success" />
+        <span className="font-medium">Proyecto creado</span>
+        <span className="text-muted-foreground">— gestiona su línea de tiempo en la ficha del cliente.</span>
+      </section>
+    );
+  }
+  return (
+    <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-border bg-card/50 px-4 py-3">
+      <div className="flex items-center gap-2 text-sm">
+        <FolderPlus className="size-4 text-electric" />
+        <span className="text-muted-foreground">¿Vas a trabajar este pedido? Crea el proyecto — no necesita contrato.</span>
+      </div>
+      <Button variant="outline" size="sm" onClick={onCreate} disabled={pending}>
+        {pending ? <Loader2 className="size-4 animate-spin" /> : <FolderPlus className="size-4" />} Crear proyecto
+      </Button>
     </section>
   );
 }

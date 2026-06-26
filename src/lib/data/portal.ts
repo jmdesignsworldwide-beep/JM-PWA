@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { currentLifecycleStep } from "@/lib/data/lifecycle";
+import { getLifecycle } from "@/lib/data/lifecycle";
 import type { Row } from "@/lib/database.types";
 
 /**
@@ -37,21 +37,23 @@ export async function getPortalData(clientId: string) {
   const totalFacturado = inv.reduce((s, i) => s + Number(i.total), 0);
   const totalPagado = pay.reduce((s, p) => s + Number(p.monto), 0);
 
-  const step = client
-    ? currentLifecycleStep(client, {
+  const lifecycle = client
+    ? getLifecycle(client, {
         orders: [],
         contracts: (contracts.data ?? []) as { id: string }[],
         invoices: inv.map((i) => ({ estado_pago: i.estado_pago })),
         projects: ((projects.data ?? []) as Row<"projects">[]).map((p) => ({ estado: p.estado })),
       })
-    : 0;
+    : { steps: [], current: 0 };
+  const step = lifecycle.current;
 
   const ms = (milestones.data ?? []) as Row<"project_milestones">[];
   const completados = ms.filter((m) => m.completado).length;
   // Progreso "vivo": % de hitos completados; si no hay hitos, usa el ciclo de vida.
+  const maxStep = Math.max(1, lifecycle.steps.length - 1);
   const progreso = ms.length > 0
     ? Math.round((completados / ms.length) * 100)
-    : Math.round((step / 6) * 100);
+    : Math.round((step / maxStep) * 100);
 
   // Hito recién completado (últimas 48h) para celebrarlo en el portal.
   // Se calcula en el servidor para mantener el render del cliente puro.

@@ -31,8 +31,19 @@ export async function getOrderFull(id: string) {
   ]);
 
   const contract = (contractRes.data?.[0] as Contract | undefined) ?? null;
+
+  // Factura/recibo: directo por order_id (sin contrato) o vía contrato (legado).
   let invoice: Invoice | null = null;
-  if (contract) {
+  {
+    const { data } = await supabase
+      .from("invoices")
+      .select("*")
+      .eq("order_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    invoice = (data?.[0] as Invoice | undefined) ?? null;
+  }
+  if (!invoice && contract) {
     const { data } = await supabase
       .from("invoices")
       .select("*")
@@ -41,6 +52,12 @@ export async function getOrderFull(id: string) {
       .limit(1);
     invoice = (data?.[0] as Invoice | undefined) ?? null;
   }
+
+  // ¿Ya existe un proyecto para este pedido? (para ofrecer "Crear proyecto").
+  const { count: projectCount } = await supabase
+    .from("projects")
+    .select("id", { count: "exact", head: true })
+    .eq("order_id", id);
 
   return {
     order: order as Order,
@@ -51,6 +68,7 @@ export async function getOrderFull(id: string) {
     invoice,
     brandName: brand.data?.nombre ?? null,
     payments: (paymentsRes.data ?? []) as OrderPayment[],
+    hasProject: (projectCount ?? 0) > 0,
   };
 }
 
