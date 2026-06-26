@@ -48,7 +48,7 @@ export async function GET(
   return new NextResponse(Buffer.from(bytes), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="factura-${id.slice(0, 8)}.pdf"`,
+      "Content-Disposition": `inline; filename="${inv.es_fiscal ? "factura" : "recibo"}-${id.slice(0, 8)}.pdf"`,
     },
   });
 }
