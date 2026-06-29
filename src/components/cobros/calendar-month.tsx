@@ -169,7 +169,7 @@ export function CalendarMonth({
               key="panel"
               initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 320, damping: 34 }}
-              className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-2xl"
+              className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-2xl pt-safe pb-safe"
             >
               {/* Cabecera */}
               <div className="flex items-start justify-between gap-3 border-b border-border p-4">
