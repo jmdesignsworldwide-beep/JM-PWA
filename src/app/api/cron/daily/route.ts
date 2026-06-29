@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { money } from "@/lib/format";
 import { rdToday, addDays } from "@/lib/fecha";
+import { sendDigest } from "@/lib/digest";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,8 +12,6 @@ function rdHour(): number {
     timeZone: "America/Santo_Domingo", hour: "2-digit", hour12: false,
   }).format(new Date()));
 }
-
-type Ev = { titulo: string | null; tipo: string; fecha: string; monto: number | null; moneda: string | null; influencer_id: string | null };
 
 /**
  * Cron (Vercel): cada vez que corre, (1) genera facturas recurrentes y refresca
@@ -45,102 +43,28 @@ export async function GET(req: Request) {
   const { data: settings } = await admin.from("app_settings").select("*").eq("id", "global").maybeSingle();
   const p = (settings ?? {}) as Record<string, unknown>;
   const pref = (k: string) => (p[k] as boolean) ?? true;
-  const avisoEntrega = (p.dias_aviso_entrega as number) ?? 1;
-  const avisoCobro = (p.dias_aviso_cobro as number) ?? 1;
   const resumenHora = ((p.resumen_hora as string) ?? "07:00").slice(0, 2);
   const ultimoEnvio = (p.resumen_ultimo_envio as string | null) ?? null;
 
-  // ---- ¿Toca enviar el resumen ahora? (una vez al día, a/ tras la hora elegida) ----
+  // ¿Toca enviar el resumen? En plan FREE el cron corre 1 vez al día (en la
+  // mañana, según vercel.json), así que esa corrida ES el resumen matutino:
+  // basta con no haberlo enviado hoy. Si hubiera cron por hora (Pro), respeta
+  // además la hora elegida. Así nunca se "salta" el día en plan free.
   const yaEnviadoHoy = ultimoEnvio === hoy;
   const tocaPorHora = rdHour() >= Number(resumenHora);
-  const enviarResumen = !yaEnviadoHoy && tocaPorHora;
+  const hayCronHorario = process.env.CRON_HOURLY === "1";
+  const enviarResumen = !yaEnviadoHoy && (!hayCronHorario || tocaPorHora);
 
   if (enviarResumen) {
-    const ventana = Math.max(avisoEntrega, avisoCobro, 3);
-    const hasta = addDays(hoy, ventana);
-
-    // Eventos del calendario en la ventana (no completados).
-    const { data: evData } = await admin
-      .from("calendar_events")
-      .select("titulo, tipo, fecha, monto, moneda, influencer_id, completado")
-      .eq("completado", false)
-      .lte("fecha", hasta)
-      .order("fecha", { ascending: true });
-    const ev = (evData ?? []) as Ev[];
-    const enVentanaCobro = (e: Ev) => e.fecha <= addDays(hoy, avisoCobro);
-    const enVentanaEntrega = (e: Ev) => e.fecha <= addDays(hoy, avisoEntrega);
-
-    const eventos = ev.filter((e) => ["inicio", "acuerdo", "personal"].includes(e.tipo));
-    const cobros = ev.filter((e) => e.tipo === "cobro" && (e.fecha < hoy || enVentanaCobro(e)));
-    const entregas = ev.filter((e) => e.tipo === "entrega" && !e.influencer_id && (e.fecha < hoy || enVentanaEntrega(e)));
-    const influencers = ev.filter((e) => e.tipo === "entrega" && e.influencer_id && (e.fecha < hoy || enVentanaEntrega(e)));
-
-    // Tareas con fecha límite.
-    const { data: tareasData } = await admin
-      .from("tasks")
-      .select("descripcion, fecha_limite, estado")
-      .neq("estado", "hecha")
-      .not("fecha_limite", "is", null)
-      .lte("fecha_limite", addDays(hoy, avisoEntrega));
-    const tareas = ((tareasData ?? []) as { descripcion: string; fecha_limite: string }[])
-      .map((t) => `${t.descripcion} — ${t.fecha_limite}`);
-
-    const fmt = (e: Ev) => `${e.titulo ?? e.tipo} — ${e.fecha}${e.monto != null ? ` (${money(e.monto, e.moneda ?? "DOP")})` : ""}`;
-
-    const sections = [
-      { key: "eventos", titulo: "📅 Reuniones / eventos", corto: "Eventos", items: eventos.map(fmt) },
-      { key: "cobros", titulo: "💰 Pagos por cobrar", corto: "Cobros", items: cobros.map(fmt) },
-      { key: "entregas", titulo: "📦 Entregas pendientes", corto: "Entregas", items: entregas.map(fmt) },
-      { key: "tareas", titulo: "✅ Tareas con fecha límite", corto: "Tareas", items: tareas },
-      { key: "influencers", titulo: "🤝 Entregas a influencers", corto: "Influencers", items: influencers.map(fmt) },
-    ];
-
-    const emailSecs = sections.filter((s) => pref(`notif_${s.key}_email`) && s.items.length);
-    const pushSecs = sections.filter((s) => pref(`notif_${s.key}_push`) && s.items.length);
-
-    // ---- Correo (Resend) ----
-    const resendKey = process.env.RESEND_API_KEY;
-    if (pref("notif_resumen_email") && emailSecs.length && resendKey && !resendKey.startsWith("tu-")) {
-      try {
-        const { data: owner } = await admin
-          .from("users_profiles").select("correo").eq("rol", "owner").not("correo", "is", null).limit(1).maybeSingle();
-        const to = (owner as { correo: string | null } | null)?.correo || process.env.OWNER_EMAIL;
-        if (to) {
-          const body = `Tu resumen de hoy (${hoy}):\n\n` +
-            emailSecs.map((s) => `${s.titulo}\n` + s.items.map((i) => `  • ${i}`).join("\n")).join("\n\n");
-          const titulo = emailSecs.map((s) => `${s.corto} ${s.items.length}`).join(" · ");
-          const { Resend } = await import("resend");
-          const resend = new Resend(resendKey);
-          await resend.emails.send({
-            from: process.env.RESEND_FROM || "JM Control <onboarding@resend.dev>",
-            to, subject: `Resumen del día — ${titulo}`, text: body,
-          });
-          result.email = "enviado";
-        }
-      } catch (e) { result.email = `error: ${e instanceof Error ? e.message : "?"}`; }
-    }
-
-    // ---- Push (Web Push / VAPID) — SOLO a los dispositivos del owner ----
-    const vapidPub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    const vapidPriv = process.env.VAPID_PRIVATE_KEY;
-    if (pref("notif_resumen_push") && pushSecs.length && vapidPub && vapidPriv && !vapidPub.startsWith("tu-")) {
-      try {
-        const { data: owners } = await admin.from("users_profiles").select("id").eq("rol", "owner");
-        const ownerIds = (owners ?? []).map((o) => o.id);
-        const { data: subs } = ownerIds.length
-          ? await admin.from("push_subscriptions").select("subscription_json").in("user_id", ownerIds)
-          : { data: [] as { subscription_json: unknown }[] };
-        const webpush = (await import("web-push")).default;
-        webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:jm.designs.worldwide@gmail.com", vapidPub, vapidPriv);
-        const body = pushSecs.map((s) => `${s.corto}: ${s.items.length}`).join(" · ");
-        const payload = JSON.stringify({ title: "JM Control — Hoy", body, url: "/calendario" });
-        let ok = 0;
-        for (const s of subs ?? []) {
-          try { await webpush.sendNotification(s.subscription_json as never, payload); ok++; } catch { /* vencida */ }
-        }
-        result.push = `${ok}/${(subs ?? []).length}`;
-      } catch (e) { result.push = `error: ${e instanceof Error ? e.message : "?"}`; }
-    }
+    // Resumen del día (mismo contenido que el botón manual): agenda + cobros.
+    const envio = await sendDigest(admin, {
+      wantEmail: pref("notif_resumen_email"),
+      wantPush: pref("notif_resumen_push"),
+    });
+    result.email = envio.email.sent ? `enviado a ${envio.email.to}` : (envio.email.error ?? envio.email.skipped ?? "—");
+    result.push = `${envio.push.sent}/${envio.push.total}${envio.push.error ? ` (${envio.push.error})` : ""}`;
+    result.agenda = envio.data.agenda.length;
+    result.cobros = envio.data.cobros.length;
 
     // Marca que el resumen de hoy ya salió (evita duplicados con cron horario).
     await admin.from("app_settings").update({ resumen_ultimo_envio: hoy }).eq("id", "global");

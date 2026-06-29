@@ -214,6 +214,53 @@ export async function updateNotificationSettings(input: NotifPrefs) {
 }
 
 /**
+ * Envía AHORA el resumen real del día (agenda + cobros) por correo Y push, para
+ * confirmar que llega completo. Devuelve un diagnóstico detallado de cada canal.
+ */
+export async function sendDailyDigestNow() {
+  const auth = await requireOwner();
+  if ("error" in auth) return { error: auth.error };
+  const { admin } = auth;
+  const { sendDigest } = await import("@/lib/digest");
+  const r = await sendDigest(admin, { wantEmail: true, wantPush: true });
+  return {
+    ok: true,
+    agenda: r.data.agenda.length,
+    cobros: r.data.cobros.length,
+    vacio: r.data.isEmpty,
+    asunto: r.data.emailSubject,
+    email: r.email,
+    push: r.push,
+  };
+}
+
+/**
+ * Estado de las notificaciones para diagnóstico: hora del resumen, último
+ * envío, dispositivos push de este owner y qué llaves están configuradas en el
+ * servidor (sin exponer valores). Para responder "¿por qué no me llega?".
+ */
+export async function getNotifStatus() {
+  const auth = await requireOwner();
+  if ("error" in auth) return { error: auth.error };
+  const { admin, meId } = auth;
+  const { data: settings } = await admin.from("app_settings").select("resumen_hora, resumen_ultimo_envio").eq("id", "global").maybeSingle();
+  const { count } = await admin.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", meId);
+  const { data: me } = await admin.from("users_profiles").select("correo").eq("id", meId).maybeSingle();
+  const vapidPub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const resendKey = process.env.RESEND_API_KEY;
+  return {
+    ok: true,
+    resumenHora: (settings as { resumen_hora?: string } | null)?.resumen_hora ?? "07:00",
+    ultimoEnvio: (settings as { resumen_ultimo_envio?: string | null } | null)?.resumen_ultimo_envio ?? null,
+    pushDevices: count ?? 0,
+    ownerEmail: (me as { correo: string | null } | null)?.correo ?? null,
+    cronSecret: !!process.env.CRON_SECRET,
+    resendOk: !!resendKey && !resendKey.startsWith("tu-"),
+    vapidOk: !!vapidPub && !vapidPub.startsWith("tu-") && !!process.env.VAPID_PRIVATE_KEY,
+  };
+}
+
+/**
  * Envía una notificación de PRUEBA al owner por el canal elegido, para confirmar
  * que push (en este dispositivo) y/o correo realmente llegan.
  */
