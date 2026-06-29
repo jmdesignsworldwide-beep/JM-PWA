@@ -43,7 +43,10 @@ export default async function CalendarioPage({
         ))}
       </div>
 
-      <CalendarMonth month={month} events={events} basePath="/calendario" openEventId={ev} />
+      <CalendarMonth
+        month={month} events={events} basePath="/calendario" openEventId={ev}
+        clients={clientOpts} projects={projectOpts} influencers={influencerOpts}
+      />
     </>
   );
 }

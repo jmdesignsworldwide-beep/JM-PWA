@@ -31,7 +31,18 @@ const RECORDATORIOS = [
   { v: "1440", label: "1 día antes" },
 ];
 
-export function AddEventDialog({ clients = [], projects = [], influencers = [] }: { clients?: Client[]; projects?: Project[]; influencers?: Influencer[] }) {
+export function AddEventDialog({
+  clients = [], projects = [], influencers = [],
+  defaultDate, triggerLabel = "Nuevo evento", triggerVariant = "gradient", triggerSize = "default", triggerClassName,
+}: {
+  clients?: Client[]; projects?: Project[]; influencers?: Influencer[];
+  /** Fecha que trae puesta el formulario al abrir (ej. el día tocado en la grilla). */
+  defaultDate?: string;
+  triggerLabel?: string;
+  triggerVariant?: "gradient" | "outline" | "ghost";
+  triggerSize?: "default" | "sm";
+  triggerClassName?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -41,7 +52,7 @@ export function AddEventDialog({ clients = [], projects = [], influencers = [] }
   const [modo, setModo] = useState<"rapido" | "completo">("rapido");
   const [titulo, setTitulo] = useState("");
   const [tipo, setTipo] = useState<EvTipo>("personal");
-  const [fecha, setFecha] = useState(rdToday());
+  const [fecha, setFecha] = useState(defaultDate ?? rdToday());
   const [hora, setHora] = useState("");
   const [clientId, setClientId] = useState("");
   const [projectId, setProjectId] = useState("");
@@ -66,7 +77,7 @@ export function AddEventDialog({ clients = [], projects = [], influencers = [] }
   }, [client, fecha, hora, meetingUrl, ubicacion]);
 
   function reset() {
-    setModo("rapido"); setTitulo(""); setTipo("personal"); setFecha(rdToday()); setHora(""); setClientId(""); setProjectId(""); setInfluencerId("");
+    setModo("rapido"); setTitulo(""); setTipo("personal"); setFecha(defaultDate ?? rdToday()); setHora(""); setClientId(""); setProjectId(""); setInfluencerId("");
     setMeetingUrl(""); setUbicacion(""); setDescripcion(""); setRecordatorio(""); setMonto(""); setMoneda("DOP");
     setTelManual(""); setError(null); setDone(false);
   }
@@ -92,8 +103,8 @@ export function AddEventDialog({ clients = [], projects = [], influencers = [] }
 
   return (
     <>
-      <Button variant="gradient" onClick={() => { reset(); setOpen(true); }}>
-        <CalendarPlus className="size-4" /> Nuevo evento
+      <Button variant={triggerVariant} size={triggerSize} className={triggerClassName} onClick={() => { reset(); setOpen(true); }}>
+        <CalendarPlus className="size-4" /> {triggerLabel}
       </Button>
       <Dialog open={open} onClose={() => setOpen(false)} title="Nuevo evento" description="Ligado a tu cliente/proyecto. Compártelo por WhatsApp." className="max-w-2xl">
         <div className="space-y-4">
