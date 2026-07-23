@@ -14,8 +14,11 @@ import { PagosManager } from "@/components/pedidos/pagos-manager";
  * el total contratado — desde pedidos + pagos. Clic en un cliente abre el
  * registro de pago (mismo control que en el pedido), sin doble registro.
  */
-export function DeudasPanel({ saldos }: { saldos: SaldoCliente[] }) {
-  const [sel, setSel] = useState<SaldoCliente | null>(null);
+export function DeudasPanel({ saldos, openClientId }: { saldos: SaldoCliente[]; openClientId?: string }) {
+  // Deep-link desde la ficha del cliente (?cliente=<id>): abre su pago al cargar.
+  const [sel, setSel] = useState<SaldoCliente | null>(
+    () => (openClientId ? saldos.find((c) => c.id === openClientId) ?? null : null),
+  );
 
   const conSaldo = saldos.filter((c) => c.porMoneda.some((m) => m.saldo > 0));
   const saldados = saldos.filter((c) => !c.porMoneda.some((m) => m.saldo > 0));

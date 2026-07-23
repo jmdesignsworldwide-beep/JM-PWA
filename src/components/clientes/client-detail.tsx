@@ -59,8 +59,21 @@ export function ClientDetail({
     Pagos: stats.payments.length,
   };
 
+  // Registro rápido: aún le faltan datos. Aviso suave para completarlos.
+  const faltanDatos = !client.correo && !client.cedula && !client.apellido;
+
   return (
     <div className="rounded-xl border border-border bg-card">
+      {faltanDatos && tab !== "Resumen" && (
+        <button
+          onClick={() => setTab("Resumen")}
+          className="flex w-full items-center gap-2 border-b border-warning/30 bg-warning/10 px-4 py-2.5 text-left text-sm text-warning transition-colors hover:bg-warning/15"
+        >
+          <FileText className="size-4 shrink-0" />
+          <span className="font-medium">Completar datos</span>
+          <span className="text-warning/80">— este cliente se registró rápido. Toca para añadir el resto.</span>
+        </button>
+      )}
       {/* Tabs */}
       <div className="flex gap-1 overflow-x-auto border-b border-border px-2">
         {TABS.map((t) => (
@@ -174,6 +187,8 @@ export function ClientDetail({
             clientId={client.id}
             orders={stats.orders}
             payments={stats.payments}
+            readOnly
+            cobrosHref={`/cobros?cliente=${client.id}`}
           />
         )}
 
