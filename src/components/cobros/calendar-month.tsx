@@ -11,6 +11,7 @@ import { rdToday } from "@/lib/fecha";
 import { cn } from "@/lib/utils";
 import { EventDetail } from "./event-detail";
 import { AddEventDialog } from "./add-event-dialog";
+import { Sheet } from "@/components/ui/sheet";
 
 const DOW = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
@@ -154,23 +155,10 @@ export function CalendarMonth({
         </div>
       </div>
 
-      {/* Panel del día (hoja lateral) */}
+      {/* Panel del día (hoja lateral reutilizable con safe-area) */}
       <AnimatePresence>
         {dayOpen && (
-          <>
-            <motion.div
-              key="backdrop"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => setDayOpen(null)}
-              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-            />
-            <motion.aside
-              key="panel"
-              initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-              transition={{ type: "spring", stiffness: 320, damping: 34 }}
-              className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-2xl pt-safe pb-safe"
-            >
+          <Sheet side="right" onClose={() => setDayOpen(null)}>
               {/* Cabecera */}
               <div className="flex items-start justify-between gap-3 border-b border-border p-4">
                 <div>
@@ -246,8 +234,7 @@ export function CalendarMonth({
                   </motion.ul>
                 )}
               </div>
-            </motion.aside>
-          </>
+          </Sheet>
         )}
       </AnimatePresence>
 
