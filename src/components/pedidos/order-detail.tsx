@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { PagosManager } from "./pagos-manager";
 import { ExternalContractUpload } from "./external-contract-upload";
+import { OrderTasks } from "./order-tasks";
 import { ProjectManager } from "@/components/clientes/project-manager";
 import { Wallet, ListChecks } from "lucide-react";
 
@@ -46,9 +47,11 @@ type Props = {
   project: Row<"projects"> | null;
   milestones: Row<"project_milestones">[];
   updates: Row<"project_updates">[];
+  tasks: { id: string; descripcion: string; estado: string; monto: number; moneda: string; fecha_limite: string | null; team_member_id: string | null; miembroNombre: string | null }[];
+  teamMembers: { id: string; nombre: string }[];
 };
 
-export function OrderDetail({ order, client, notes, contract, invoice, contractDias, payments, project, milestones, updates }: Props) {
+export function OrderDetail({ order, client, notes, contract, invoice, contractDias, payments, project, milestones, updates, tasks, teamMembers }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [justSigned, setJustSigned] = useState(false);
@@ -126,6 +129,9 @@ export function OrderDetail({ order, client, notes, contract, invoice, contractD
           order={order} project={project} milestones={milestones} updates={updates}
           pending={pending} onStart={() => act(() => createProjectFromOrder(order.id))}
         />
+
+        {/* Tareas del trabajo — el trabajo a repartir, con su pago */}
+        <OrderTasks orderId={order.id} tasks={tasks} members={teamMembers} />
 
         {/* Contrato — OPCIONAL: solo cuando el trato lo amerita */}
         <ContractSection

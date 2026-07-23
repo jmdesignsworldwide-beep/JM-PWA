@@ -7,6 +7,10 @@ export type OrderNote = Row<"order_notes">;
 export type Contract = Row<"contracts">;
 export type Invoice = Row<"invoices">;
 export type OrderPayment = Row<"order_payments">;
+export type OrderTask = {
+  id: string; descripcion: string; estado: string; monto: number; moneda: string;
+  fecha_limite: string | null; team_member_id: string | null;
+};
 
 /** Pedido con todo lo conectado: cliente, items, hilo, contrato y factura. */
 export async function getOrderFull(id: string) {
@@ -74,6 +78,21 @@ export async function getOrderFull(id: string) {
     updates = (ups.data ?? []) as Row<"project_updates">[];
   }
 
+  // Tareas del pedido (trabajo asignable al equipo, con su pago).
+  const { data: taskRows } = await supabase
+    .from("tasks")
+    .select("id, descripcion, estado, monto, moneda, fecha_limite, team_member_id")
+    .eq("order_id", id)
+    .order("created_at", { ascending: true });
+  const tasks = (taskRows ?? []) as OrderTask[];
+  const memberIds = [...new Set(tasks.map((t) => t.team_member_id).filter(Boolean))] as string[];
+  const memberMap = new Map<string, string>();
+  if (memberIds.length) {
+    const { data: mem } = await supabase.from("team_members").select("id, nombre").in("id", memberIds);
+    for (const m of (mem ?? []) as { id: string; nombre: string }[]) memberMap.set(m.id, m.nombre);
+  }
+  const tasksFull = tasks.map((t) => ({ ...t, miembroNombre: t.team_member_id ? memberMap.get(t.team_member_id) ?? null : null }));
+
   return {
     order: order as Order,
     client: client.data,
@@ -86,6 +105,7 @@ export async function getOrderFull(id: string) {
     project,
     milestones,
     updates,
+    tasks: tasksFull,
   };
 }
 

@@ -30,7 +30,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Cobros y Entregas", href: "/cobros", icon: CalendarClock },
   { label: "Finanzas", href: "/finanzas", icon: Wallet },
   { label: "Influencers", href: "/influencers", icon: Megaphone },
-  { label: "Equipo / Tareas", href: "/equipo", icon: UsersRound },
+  { label: "Equipo", href: "/equipo", icon: UsersRound },
   { label: "Calendario", href: "/calendario", icon: Calendar },
   { label: "Historial / Auditoría", href: "/historial", icon: ShieldCheck },
   { label: "Configuración", href: "/configuracion", icon: Settings },
