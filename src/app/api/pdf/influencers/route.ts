@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { EMPRESA } from "@/lib/empresa";
 import { createClient } from "@/lib/supabase/server";
 import { getInfluencers } from "@/lib/data/influencers";
 import { buildInfluencersPdf } from "@/lib/pdf-report";
@@ -13,7 +14,7 @@ export async function GET() {
 
   const infs = await getInfluencers();
   const bytes = await buildInfluencersPdf({
-    brand: "JM Designs Worldwide",
+    brand: EMPRESA.nombre,
     filas: infs.map((i) => ({
       nombre: i.nombre,
       handle: igHandle(i.ig_url) ?? "",

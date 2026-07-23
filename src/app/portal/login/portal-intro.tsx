@@ -1,5 +1,6 @@
 "use client";
 
+import { EMPRESA } from "@/lib/empresa";
 import { motion } from "framer-motion";
 import { Logo } from "@/components/brand/logo";
 import { BlurInText } from "@/components/animations/blur-in-text";
@@ -20,14 +21,14 @@ export function PortalIntro({ children }: { children: React.ReactNode }) {
             <Logo size={120} variant="white" lockup className="mb-2 drop-shadow-[0_8px_24px_rgba(79,140,255,0.45)]" />
             <BlurInText as="h1" text="Tu espacio de proyecto" className="text-2xl font-semibold tracking-tight" />
             <p className="mt-1 text-sm text-muted-foreground">
-              Bienvenido a tu portal de cliente de JM Designs Worldwide.
+              Bienvenido a tu portal de cliente de {EMPRESA.nombre}.
             </p>
           </div>
           {children}
         </Spotlight>
       </ShimmerBorder>
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        Acceso exclusivo para clientes de JM Designs Worldwide
+        Acceso exclusivo para clientes de {EMPRESA.nombre}
       </p>
     </motion.div>
   );

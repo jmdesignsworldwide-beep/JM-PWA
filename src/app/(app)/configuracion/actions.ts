@@ -1,5 +1,6 @@
 "use server";
 
+import { EMPRESA } from "@/lib/empresa";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -301,7 +302,7 @@ export async function sendTestNotification(channel: "push" | "email") {
   if (list.length === 0) return { error: "No hay dispositivos con push activado. Activa push en este teléfono primero." };
   try {
     const webpush = (await import("web-push")).default;
-    webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:jm.designs.worldwide@gmail.com", vapidPub, vapidPriv);
+    webpush.setVapidDetails(process.env.VAPID_SUBJECT || `mailto:${EMPRESA.email}`, vapidPub, vapidPriv);
     const payload = JSON.stringify({ title: "✅ Prueba — JM Control", body: "¡Push funciona! Así te llegarán tus avisos.", url: "/configuracion" });
     let ok = 0;
     for (const s of list) {

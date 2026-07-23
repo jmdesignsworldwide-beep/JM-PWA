@@ -1,5 +1,6 @@
 "use client";
 
+import { EMPRESA } from "@/lib/empresa";
 import { useState, useTransition } from "react";
 import { KeyRound, Loader2, Copy, Check, MessageCircle } from "lucide-react";
 import { grantTeamAccess } from "@/app/(app)/equipo/actions";
@@ -23,7 +24,7 @@ export function TeamAccessButton({ memberId, whatsapp }: { memberId: string; wha
   }
 
   const mensaje = creds
-    ? `Hola 👋 Te creé tu acceso al sistema de JM Designs para ver tus tareas y pagos.\nEntra aquí: ${typeof window !== "undefined" ? window.location.origin : ""}/login\nUsuario: ${creds.email}\nContraseña temporal: ${creds.password}`
+    ? `Hola 👋 Te creé tu acceso al sistema de ${EMPRESA.nombre} para ver tus tareas y pagos.\nEntra aquí: ${typeof window !== "undefined" ? window.location.origin : ""}/login\nUsuario: ${creds.email}\nContraseña temporal: ${creds.password}`
     : "";
 
   return (

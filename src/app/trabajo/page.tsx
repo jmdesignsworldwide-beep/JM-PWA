@@ -1,3 +1,4 @@
+import { EMPRESA } from "@/lib/empresa";
 import { redirect } from "next/navigation";
 import { getMyProfile } from "@/lib/data/profile";
 import { getMemberFull } from "@/lib/data/equipo";
@@ -13,7 +14,7 @@ export default async function TrabajoPage() {
   if (!profile.team_member_id) {
     return (
       <div className="flex min-h-dvh items-center justify-center p-6 text-center text-muted-foreground">
-        Tu cuenta aún no está ligada a un perfil de equipo. Contacta a JM Designs.
+        Tu cuenta aún no está ligada a un perfil de equipo. Contacta a {EMPRESA.nombre}.
       </div>
     );
   }

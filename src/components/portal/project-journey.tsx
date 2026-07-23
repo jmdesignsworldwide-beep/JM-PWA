@@ -1,5 +1,6 @@
 "use client";
 
+import { EMPRESA } from "@/lib/empresa";
 import { motion, useReducedMotion } from "framer-motion";
 import { Check, Sparkles, Loader2, PartyPopper } from "lucide-react";
 import type { Row } from "@/lib/database.types";
@@ -34,7 +35,7 @@ export function ProjectJourney({
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {allDone
-              ? "¡Todo listo! Tu proyecto está completo. Gracias por confiar en JM Designs. 💜"
+              ? `¡Todo listo! Tu proyecto está completo. Gracias por confiar en ${EMPRESA.nombre}. 💜`
               : "Así avanza tu proyecto, paso a paso. Te mantenemos al tanto en todo momento."}
           </p>
           {celebrateId && !allDone && (

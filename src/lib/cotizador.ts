@@ -1,4 +1,4 @@
-/** Banco de módulos y catálogos para el Cotizador (Rama Software / JM Designs). */
+/** Banco de módulos y catálogos para el Cotizador (Rama Software / JM Nexus Designs). */
 
 export const TIPOS_SOLUCION_COT = [
   "Sitio web",

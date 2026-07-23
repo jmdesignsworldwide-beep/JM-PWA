@@ -1,3 +1,4 @@
+import { EMPRESA } from "@/lib/empresa";
 import {
   LayoutDashboard,
   Target,
@@ -39,7 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
 /** Marcas multi-marca según master spec. */
 export const BRANDS = [
   { id: "all", label: "Todas las marcas" },
-  { id: "jm-designs", label: "JM Designs" },
+  { id: "jm-designs", label: EMPRESA.nombre },
   { id: "kitjoy", label: "KitJoy Studio" },
   { id: "jm-distribution", label: "JM Distribution" },
 ];

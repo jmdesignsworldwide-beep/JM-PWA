@@ -5,21 +5,35 @@
  * aquí y se actualiza en todos los PDFs a la vez. Sin placeholders regados.
  */
 export const EMPRESA = {
-  nombre: "JM Designs Worldwide",
+  nombre: "JM Nexus Designs",
   tagline: "Diseño · Software · Distribución",
   // WhatsApp del equipo JM (formato internacional, solo dígitos).
-  whatsapp: "18097072997",
-  email: "jm.designs.worldwide@gmail.com",
+  whatsapp: "18494421919",
+  email: "jm.nexus.designs@gmail.com",
+  // Instagram (handle sin @).
+  instagram: "jm.nexus.designs",
   // Logo real (PNG) para documentos. Versión blanca = sobre fondos oscuros;
   // negra = sobre fondos claros. Rutas relativas a /public.
   logoClaro: "brand/logo-mark-white.png",
   logoOscuro: "brand/logo-mark-black.png",
 };
 
-/** WhatsApp en formato legible: "18097072997" -> "+1 809 707 2997". */
+/** WhatsApp en formato legible: "18494421919" -> "+1 849 442 1919". */
 export function whatsappBonito(digits: string = EMPRESA.whatsapp): string {
   const d = (digits ?? "").replace(/\D/g, "");
   if (d.length === 11) return `+${d[0]} ${d.slice(1, 4)} ${d.slice(4, 7)} ${d.slice(7)}`;
   if (d.length === 10) return `+1 ${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`;
   return `+${d}`;
+}
+
+/** Instagram en formato @handle. */
+export function instagramArroba(handle: string = EMPRESA.instagram): string {
+  const h = (handle ?? "").replace(/^@+/, "").trim();
+  return h ? `@${h}` : "";
+}
+
+/** URL pública del Instagram. */
+export function instagramUrl(handle: string = EMPRESA.instagram): string {
+  const h = (handle ?? "").replace(/^@+/, "").trim();
+  return `https://instagram.com/${h}`;
 }

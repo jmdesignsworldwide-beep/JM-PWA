@@ -2,7 +2,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
 import { money, fechaCorta } from "@/lib/format";
-import { EMPRESA, whatsappBonito } from "@/lib/empresa";
+import { EMPRESA, whatsappBonito, instagramArroba } from "@/lib/empresa";
 
 const A4: [number, number] = [595.28, 841.89];
 const MARGIN = 50;
@@ -126,7 +126,7 @@ function header(ctx: Ctx, brand: string, docTitle: string, dateStr?: string | nu
 function footer(ctx: Ctx) {
   const y = 40;
   ctx.page.drawRectangle({ x: MARGIN, y: y + 18, width: CONTENT_W, height: 1.4, color: ACCENT });
-  const parts = [EMPRESA.nombre, `WhatsApp ${whatsappBonito()}`, EMPRESA.email].filter(Boolean);
+  const parts = [EMPRESA.nombre, `WhatsApp ${whatsappBonito()}`, EMPRESA.email, instagramArroba()].filter(Boolean);
   const line = clean(parts.join("    ·    "));
   const w = ctx.font.widthOfTextAtSize(line, 8.5);
   ctx.page.drawText(line, { x: A4[0] / 2 - w / 2, y, size: 8.5, font: ctx.font, color: MUTED });
@@ -360,7 +360,7 @@ export async function buildCollabPdf(data: {
   }
   ctx.y -= 8;
 
-  sectionLabel(ctx, "Mi aporte (JM Designs)");
+  sectionLabel(ctx, `Mi aporte (${EMPRESA.nombre})`);
   text(ctx, `${data.doyTipo ?? "Proyecto"}${data.doyValor != null ? `  -  valor estimado ${money(data.doyValor, data.doyMoneda)}` : ""}`, 10);
   if (data.doyDesc) text(ctx, data.doyDesc, 9, { color: MUTED });
   if (data.doyEntrega) text(ctx, `Fecha de entrega: ${fechaCorta(data.doyEntrega)}`, 9, { color: MUTED });

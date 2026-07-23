@@ -1,3 +1,4 @@
+import { EMPRESA } from "@/lib/empresa";
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -26,10 +27,10 @@ export async function notifyClient(opts: {
         const { Resend } = await import("resend");
         const resend = new Resend(resendKey);
         await resend.emails.send({
-          from: process.env.RESEND_FROM || "JM Designs <onboarding@resend.dev>",
+          from: process.env.RESEND_FROM || `${EMPRESA.nombre} <onboarding@resend.dev>`,
           to: cli.correo,
           subject: opts.title,
-          text: `Hola ${cli.nombre ?? ""} 👋\n\n${opts.body}\n\nEntra a tu portal para ver el avance: ${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/portal\n\n— JM Designs Worldwide`,
+          text: `Hola ${cli.nombre ?? ""} 👋\n\n${opts.body}\n\nEntra a tu portal para ver el avance: ${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/portal\n\n— ${EMPRESA.nombre}`,
         });
         result.email = true;
       }
@@ -52,7 +53,7 @@ export async function notifyClient(opts: {
         if (subs?.length) {
           const webpush = (await import("web-push")).default;
           webpush.setVapidDetails(
-            process.env.VAPID_SUBJECT || "mailto:jm.designs.worldwide@gmail.com",
+            process.env.VAPID_SUBJECT || `mailto:${EMPRESA.email}`,
             vapidPub, vapidPriv,
           );
           const payload = JSON.stringify({ title: opts.title, body: opts.body, url: opts.url ?? "/portal" });

@@ -1,5 +1,6 @@
 "use client";
 
+import { EMPRESA } from "@/lib/empresa";
 import { motion } from "framer-motion";
 import { Logo } from "@/components/brand/logo";
 import { BlurInText } from "@/components/animations/blur-in-text";
@@ -50,7 +51,7 @@ export function LoginIntro({ children }: { children: React.ReactNode }) {
       </ShimmerBorder>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        JM Designs Worldwide · Acceso privado
+        {EMPRESA.nombre} · Acceso privado
       </p>
     </motion.div>
   );

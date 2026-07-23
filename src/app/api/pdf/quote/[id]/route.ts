@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { EMPRESA } from "@/lib/empresa";
 import { createClient } from "@/lib/supabase/server";
 import { buildQuotePdf } from "@/lib/pdf";
 import { MODULO_LABEL } from "@/lib/cotizador";
@@ -31,7 +32,7 @@ export async function GET(
   }
 
   const bytes = await buildQuotePdf({
-    brand: brand?.nombre ?? "JM Designs Worldwide",
+    brand: brand?.nombre ?? EMPRESA.nombre,
     cliente: cliente ? `${cliente.nombre} ${cliente.apellido ?? ""}`.trim() : "Cliente",
     rama: q.rama ?? "designs",
     tipo: q.tipo_solucion,
