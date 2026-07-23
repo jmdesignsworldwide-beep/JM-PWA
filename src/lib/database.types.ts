@@ -320,6 +320,18 @@ export interface Tables {
     created_by: string | null;
   } & Timestamps;
 
+  collaborations: {
+    id: string;
+    influencer_id: string;
+    brand_id: string | null;
+    estado: "acordado" | "activo" | "completado";
+    doy_tipo: string | null;
+    doy_desc: string | null;
+    promos: Json;
+    notas: string | null;
+    created_by: string | null;
+  } & Timestamps;
+
   email_campaigns: {
     id: string;
     asunto: string | null;

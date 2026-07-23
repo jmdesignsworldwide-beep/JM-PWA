@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getInfluencerById } from "@/lib/data/influencers";
+import { getInfluencerById, getCollaborationsByInfluencer } from "@/lib/data/influencers";
 import { getBrands } from "@/lib/data/clients";
 import { InfluencerDetail } from "@/components/influencers/influencer-detail";
 
@@ -9,6 +9,7 @@ export default async function InfluencerPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const [influencer, brands] = await Promise.all([getInfluencerById(id), getBrands()]);
   if (!influencer) notFound();
+  const collaborations = await getCollaborationsByInfluencer(id);
 
-  return <InfluencerDetail influencer={influencer} brands={brands} />;
+  return <InfluencerDetail influencer={influencer} brands={brands} collaborations={collaborations} />;
 }

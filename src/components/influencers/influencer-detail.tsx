@@ -1,33 +1,35 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Pencil, Trash2, Download, Loader2, Gift, Megaphone, AtSign, Users, CalendarClock } from "lucide-react";
-import type { Influencer } from "@/lib/data/influencers";
-import { INFLUENCER_ESTADOS, INFLUENCER_ESTADO_LABEL, ESTADO_TRATO_LABEL, igHandle, type InfluencerEstado, type Plataforma, type Promo } from "@/lib/influencers";
+import { ArrowLeft, Pencil, Trash2, Download, Loader2, Gift, Megaphone, AtSign, Users, Plus, MoreHorizontal, Handshake } from "lucide-react";
+import type { Influencer, Collaboration } from "@/lib/data/influencers";
+import { INFLUENCER_ESTADOS, INFLUENCER_ESTADO_LABEL, COLAB_ESTADOS, COLAB_ESTADO_LABEL, COLAB_ESTADO_COLOR, igHandle, type InfluencerEstado, type ColabEstado, type Plataforma } from "@/lib/influencers";
 import { updateInfluencerStage, deleteInfluencer } from "@/app/(app)/influencers/actions";
+import { updateCollaborationEstado, deleteCollaboration } from "@/app/(app)/influencers/collab-actions";
 import { NewInfluencerDialog } from "./new-influencer-dialog";
-import { money, fechaCorta } from "@/lib/format";
+import { CollaborationDialog } from "./collaboration-dialog";
+import { fechaCorta } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { SocialLinks } from "@/components/ui/social-links";
 
 type Brand = { id: string; nombre: string };
+type PromoSimple = { tipo: string; cantidad: number; plataforma: string };
 
 function waNumber(i: Influencer): string | null {
   return (i.tiene_whatsapp ? i.whatsapp : i.empresa_whatsapp) ?? null;
 }
 
-export function InfluencerDetail({ influencer, brands }: { influencer: Influencer; brands: Brand[] }) {
+export function InfluencerDetail({ influencer, brands, collaborations }: { influencer: Influencer; brands: Brand[]; collaborations: Collaboration[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [delOpen, setDelOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const plataformas = (Array.isArray(influencer.plataformas) ? influencer.plataformas : []) as unknown as Plataforma[];
-  const promos = (Array.isArray(influencer.promos) ? influencer.promos : []) as unknown as Promo[];
   const brandNombre = influencer.brand_id ? brands.find((b) => b.id === influencer.brand_id)?.nombre : null;
 
   function setEstado(estado: InfluencerEstado) {
@@ -69,7 +71,7 @@ export function InfluencerDetail({ influencer, brands }: { influencer: Influence
         </div>
       </div>
 
-      {/* Estado del pipeline */}
+      {/* Estado del pipeline (outreach) */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3">
         <span className="text-sm text-muted-foreground">Estado:</span>
         {INFLUENCER_ESTADOS.map((e) => (
@@ -107,55 +109,37 @@ export function InfluencerDetail({ influencer, brands }: { influencer: Influence
             <Campo label="Marca" value={brandNombre} />
           </dl>
         </Card>
-
-        {/* Mi aporte */}
-        <Card icon={<Gift className="size-4 text-electric" />} title="Mi aporte">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-            <Campo label="Qué construyo" value={influencer.doy_tipo} />
-            <Campo label="Valor" value={influencer.doy_valor != null ? money(influencer.doy_valor, influencer.doy_moneda) : null} />
-            <Campo label="Fecha de entrega" value={influencer.doy_fecha_entrega ? fechaCorta(influencer.doy_fecha_entrega) : null} />
-            <Campo label="Descripción" value={influencer.doy_desc} full />
-          </dl>
-          {influencer.doy_fecha_entrega && (
-            <p className="mt-2 flex items-center gap-1.5 text-xs text-electric"><CalendarClock className="size-3.5" /> Entrega agendada en el Calendario.</p>
-          )}
-        </Card>
-
-        {/* Aporte del influencer */}
-        <Card icon={<Megaphone className="size-4 text-brand-purple" />} title="Aporte del influencer">
-          {promos.length === 0 ? <Empty text="Sin promociones acordadas." /> : (
-            <ul className="space-y-2">
-              {promos.map((p, i) => (
-                <li key={i} className="rounded-lg border border-border bg-background/40 px-3 py-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{p.cantidad}× {p.tipo}</span>
-                    {p.valor > 0 && <span className="text-muted-foreground">{money(p.valor, p.moneda)}</span>}
-                  </div>
-                  <p className="text-xs text-muted-foreground">{[p.plataforma, p.fecha ? fechaCorta(p.fecha) : null].filter(Boolean).join(" · ")}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
       </div>
 
-      {/* Estado del trato + fechas + notas */}
+      {/* Colaboraciones — un influencer puede tener varias */}
       <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-          <span><span className="text-muted-foreground">Estado del trato:</span> <strong>{ESTADO_TRATO_LABEL[influencer.estado_trato as keyof typeof ESTADO_TRATO_LABEL] ?? influencer.estado_trato}</strong></span>
-          {influencer.fecha_escrito && <span className="text-muted-foreground">Escrito: {fechaCorta(influencer.fecha_escrito)}</span>}
-          {influencer.fecha_respondio && <span className="text-muted-foreground">Respondió: {fechaCorta(influencer.fecha_respondio)}</span>}
-          {influencer.fecha_acuerdo && <span className="text-muted-foreground">Acuerdo: {fechaCorta(influencer.fecha_acuerdo)}</span>}
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="flex items-center gap-2 font-semibold"><Handshake className="size-4 text-electric" /> Colaboraciones {collaborations.length > 0 && <span className="text-sm font-normal text-muted-foreground">({collaborations.length})</span>}</h3>
+          <CollaborationDialog influencerId={influencer.id} brands={brands} trigger={<Button variant="gradient" size="sm"><Plus className="size-4" /> Nueva colaboración</Button>} />
         </div>
-        {influencer.notas && <p className="mt-3 whitespace-pre-wrap border-t border-border pt-3 text-sm text-muted-foreground">{influencer.notas}</p>}
+        {collaborations.length === 0 ? (
+          <Empty text="Aún no hay colaboraciones. Crea la primera con el botón de arriba." />
+        ) : (
+          <ul className="space-y-3">
+            {collaborations.map((c) => (
+              <CollabRow key={c.id} collab={c} influencerId={influencer.id} brands={brands} brandName={c.brand_id ? brands.find((b) => b.id === c.brand_id)?.nombre ?? null : null} />
+            ))}
+          </ul>
+        )}
       </div>
+
+      {influencer.notas && (
+        <div className="rounded-xl border border-border bg-card p-5">
+          <p className="whitespace-pre-wrap text-sm text-muted-foreground">{influencer.notas}</p>
+        </div>
+      )}
 
       {error && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
       {/* Confirmar borrado */}
-      <Dialog open={delOpen} onClose={() => setDelOpen(false)} title="Borrar colaboración" className="max-w-md">
+      <Dialog open={delOpen} onClose={() => setDelOpen(false)} title="Borrar influencer" className="max-w-md">
         <div className="space-y-4">
-          <p className="text-sm">Vas a borrar a <strong>{influencer.nombre}</strong> y su colaboración. Esta acción <strong>no se puede deshacer</strong>. Si tenía una entrega agendada, también se quita del calendario.</p>
+          <p className="text-sm">Vas a borrar a <strong>{influencer.nombre}</strong> y <strong>todas sus colaboraciones</strong>. Esta acción <strong>no se puede deshacer</strong>.</p>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setDelOpen(false)}>Cancelar</Button>
             <Button type="button" variant="outline" className="text-destructive hover:bg-destructive/10" onClick={borrar} disabled={pending}>
@@ -168,6 +152,100 @@ export function InfluencerDetail({ influencer, brands }: { influencer: Influence
   );
 }
 
+function CollabRow({ collab, influencerId, brands, brandName }: { collab: Collaboration; influencerId: string; brands: Brand[]; brandName: string | null }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onDoc(e: MouseEvent) { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [menuOpen]);
+
+  const estado = collab.estado as ColabEstado;
+  const promos = (Array.isArray(collab.promos) ? collab.promos : []) as unknown as PromoSimple[];
+
+  function cambiarEstado(e: ColabEstado) {
+    setMenuOpen(false);
+    startTransition(async () => { await updateCollaborationEstado(collab.id, influencerId, e); router.refresh(); });
+  }
+  function borrar() {
+    startTransition(async () => { await deleteCollaboration(collab.id, influencerId); router.refresh(); });
+  }
+
+  const menuItem = "flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors hover:bg-accent";
+
+  return (
+    <li className="rounded-xl border border-border bg-background/40 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-white" style={{ background: COLAB_ESTADO_COLOR[estado] ?? "var(--muted-foreground)" }}>
+              {COLAB_ESTADO_LABEL[estado] ?? estado}
+            </span>
+            {brandName && <Badge dot="var(--electric)">{brandName}</Badge>}
+            <span className="text-xs text-muted-foreground">{fechaCorta(collab.created_at)}</span>
+          </div>
+        </div>
+        <div className="relative shrink-0" ref={menuRef}>
+          <Button variant="ghost" size="icon" onClick={() => setMenuOpen((v) => !v)} disabled={pending} aria-label="Opciones"><MoreHorizontal className="size-4" /></Button>
+          {menuOpen && (
+            <div className="absolute right-0 z-50 mt-1 w-52 rounded-xl border border-border bg-card p-1.5 shadow-xl">
+              <p className="px-2.5 pb-1 pt-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">Cambiar estado</p>
+              {COLAB_ESTADOS.map((s) => (
+                <button key={s.id} className={menuItem} onClick={() => cambiarEstado(s.id)}>
+                  <span className="size-2.5 rounded-full" style={{ background: s.color }} /> {s.label}
+                  {estado === s.id && <span className="ml-auto text-xs text-muted-foreground">actual</span>}
+                </button>
+              ))}
+              <div className="my-1 border-t border-border" />
+              <CollaborationDialog influencerId={influencerId} brands={brands} collab={collab}
+                trigger={<button className={menuItem} onClick={() => setMenuOpen(false)}><Pencil className="size-4 text-muted-foreground" /> Editar</button>} />
+              <button className={`${menuItem} text-destructive`} onClick={() => { setMenuOpen(false); setConfirmDel(true); }}><Trash2 className="size-4" /> Borrar</button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Mi aporte */}
+      {(collab.doy_tipo || collab.doy_desc) && (
+        <div className="mt-3 flex items-start gap-2 text-sm">
+          <Gift className="mt-0.5 size-4 shrink-0 text-electric" />
+          <div><span className="font-medium">{collab.doy_tipo ?? "Mi aporte"}</span>{collab.doy_desc && <p className="text-xs text-muted-foreground">{collab.doy_desc}</p>}</div>
+        </div>
+      )}
+
+      {/* Aporte del influencer */}
+      {promos.length > 0 && (
+        <div className="mt-2 flex items-start gap-2 text-sm">
+          <Megaphone className="mt-0.5 size-4 shrink-0 text-brand-purple" />
+          <div className="flex flex-wrap gap-1.5">
+            {promos.map((p, i) => (
+              <span key={i} className="rounded-md border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground">{p.cantidad}× {p.tipo} · {p.plataforma}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {collab.notas && <p className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">{collab.notas}</p>}
+
+      {confirmDel && (
+        <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-2.5">
+          <span className="text-sm text-destructive">¿Borrar esta colaboración?</span>
+          <div className="flex gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmDel(false)}>Cancelar</Button>
+            <Button type="button" variant="outline" size="sm" className="text-destructive" onClick={borrar} disabled={pending}>{pending && <Loader2 className="size-4 animate-spin" />} Sí, borrar</Button>
+          </div>
+        </div>
+      )}
+    </li>
+  );
+}
+
 function Card({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -176,10 +254,10 @@ function Card({ icon, title, children }: { icon: React.ReactNode; title: string;
     </div>
   );
 }
-function Campo({ label, value, full }: { label: string; value: string | null | undefined; full?: boolean }) {
+function Campo({ label, value }: { label: string; value: string | null | undefined }) {
   if (!value) return null;
   return (
-    <div className={full ? "col-span-2" : ""}>
+    <div>
       <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
       <dd className="mt-0.5 break-words font-medium">{value}</dd>
     </div>

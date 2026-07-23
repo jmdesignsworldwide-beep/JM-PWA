@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, MoreHorizontal, BarChart3, FileSpreadsheet, FileText, Mail, MessageSquareText, ChevronRight } from "lucide-react";
-import type { Influencer } from "@/lib/data/influencers";
-import { INFLUENCER_ESTADOS, INFLUENCER_ESTADO_LABEL, igHandle, type InfluencerEstado } from "@/lib/influencers";
+import type { Influencer, InfluencerRow } from "@/lib/data/influencers";
+import { INFLUENCER_ESTADOS, INFLUENCER_ESTADO_LABEL, COLAB_ESTADO_LABEL, COLAB_ESTADO_COLOR, igHandle, type InfluencerEstado, type ColabEstado } from "@/lib/influencers";
 import { NewInfluencerDialog } from "./new-influencer-dialog";
 import { EmailCampaignDialog } from "./email-campaign-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,7 @@ type Rate = { agencia: string; escritos: number; respondieron: number; tasa: num
 type Tpl = { id: string; nombre: string; contenido: string | null }[];
 
 export function InfluencersView({ influencers, brands, responseRate, dmTemplates }: {
-  influencers: Influencer[]; brands: Brand[]; responseRate: Rate; dmTemplates: Tpl;
+  influencers: InfluencerRow[]; brands: Brand[]; responseRate: Rate; dmTemplates: Tpl;
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -138,7 +138,7 @@ export function InfluencersView({ influencers, brands, responseRate, dmTemplates
           <thead className="bg-secondary/40 text-left text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-4 py-3">Nombre</th><th className="px-4 py-3">IG</th><th className="px-4 py-3">Estado</th>
-              <th className="px-4 py-3">Manager</th><th className="px-4 py-3">Contacto</th><th className="px-4 py-3" />
+              <th className="px-4 py-3">Colaboración</th><th className="px-4 py-3">Manager</th><th className="px-4 py-3">Contacto</th><th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
@@ -148,12 +148,20 @@ export function InfluencersView({ influencers, brands, responseRate, dmTemplates
                 <td className="px-4 py-3 font-medium">{i.nombre}</td>
                 <td className="px-4 py-3 text-muted-foreground">{igHandle(i.ig_url) ?? "—"}</td>
                 <td className="px-4 py-3"><Badge>{INFLUENCER_ESTADO_LABEL[i.estado as InfluencerEstado] ?? i.estado}</Badge></td>
+                <td className="px-4 py-3">
+                  {i.ultimoEstado ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className="size-2 rounded-full" style={{ background: COLAB_ESTADO_COLOR[i.ultimoEstado as ColabEstado] ?? "var(--muted-foreground)" }} />
+                      {COLAB_ESTADO_LABEL[i.ultimoEstado as ColabEstado] ?? i.ultimoEstado}{i.colabCount > 1 ? ` · ${i.colabCount}` : ""}
+                    </span>
+                  ) : <span className="text-xs text-muted-foreground">—</span>}
+                </td>
                 <td className="px-4 py-3 text-muted-foreground">{i.tiene_manager ? (i.empresa ?? "Sí") : "Independiente"}</td>
                 <td className="px-4 py-3"><SocialLinks instagram={i.ig_url} facebook={i.facebook_url} whatsapp={waNumber(i)} waText={`Hola ${i.nombre}!`} size="sm" /></td>
                 <td className="px-4 py-3 text-right"><ChevronRight className="ml-auto size-4 text-muted-foreground" /></td>
               </tr>
             ))}
-            {filtered.length === 0 && <tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">Sin influencers.</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">Sin influencers.</td></tr>}
           </tbody>
         </table>
       </div>

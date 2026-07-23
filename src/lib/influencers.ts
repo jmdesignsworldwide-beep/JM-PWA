@@ -28,6 +28,23 @@ export const ESTADO_TRATO_LABEL: Record<EstadoTrato, string> = Object.fromEntrie
   ESTADOS_TRATO.map((e) => [e.id, e.label]),
 ) as Record<EstadoTrato, string>;
 
+/**
+ * Estado de una COLABORACIÓN (tabla collaborations). Set simplificado con color
+ * para el menú ⋯: Acordado → Activo → Completado.
+ */
+export type ColabEstado = "acordado" | "activo" | "completado";
+export const COLAB_ESTADOS: { id: ColabEstado; label: string; color: string }[] = [
+  { id: "acordado", label: "Acordado", color: "var(--electric)" },
+  { id: "activo", label: "Activo", color: "var(--brand-purple)" },
+  { id: "completado", label: "Completado", color: "var(--success)" },
+];
+export const COLAB_ESTADO_LABEL: Record<ColabEstado, string> = Object.fromEntries(
+  COLAB_ESTADOS.map((e) => [e.id, e.label]),
+) as Record<ColabEstado, string>;
+export const COLAB_ESTADO_COLOR: Record<ColabEstado, string> = Object.fromEntries(
+  COLAB_ESTADOS.map((e) => [e.id, e.color]),
+) as Record<ColabEstado, string>;
+
 /** Redes soportadas en una colaboración. */
 export const REDES = ["Instagram", "TikTok", "YouTube", "Facebook", "X / Twitter", "Otra"] as const;
 /** Tipos de promoción que el influencer entrega. */
