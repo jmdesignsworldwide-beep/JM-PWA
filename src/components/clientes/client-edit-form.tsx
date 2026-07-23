@@ -25,9 +25,18 @@ export function ClientEditForm({
 }) {
   const router = useRouter();
   const [fiscal, setFiscal] = useState(client.factura_fiscal);
+  // Fuente + redes controladas: la red se muestra según la fuente, pero el dato
+  // guardado NUNCA se borra (se envía desde el estado aunque el campo se oculte).
+  const [fuente, setFuente] = useState(client.fuente ?? "");
+  const [instagram, setInstagram] = useState(client.instagram ?? "");
+  const [facebook, setFacebook] = useState(client.facebook ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  const fuenteEs = (n: string) => fuente.toLowerCase().includes(n);
+  const showIg = fuenteEs("instagram") || instagram.trim() !== "";
+  const showFb = fuenteEs("facebook") || facebook.trim() !== "";
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -38,11 +47,6 @@ export function ClientEditForm({
       const v = (fd.get(k) as string)?.trim();
       return v ? v : null;
     };
-    const num = (k: string) => {
-      const v = (fd.get(k) as string)?.trim();
-      const n = v ? Number(v) : NaN;
-      return Number.isFinite(n) ? n : null;
-    };
     const input: ClientUpdate = {
       nombre: (fd.get("nombre") as string).trim(),
       apellido: get("apellido"),
@@ -52,16 +56,14 @@ export function ClientEditForm({
       telefono: get("telefono"),
       whatsapp: get("whatsapp"),
       correo: get("correo"),
-      instagram: get("instagram"),
-      facebook: get("facebook"),
+      instagram: instagram.trim() || null,
+      facebook: facebook.trim() || null,
       direccion: get("direccion"),
       info_nota: get("info_nota"),
       categoria_servicio: (get("categoria_servicio") as ClientUpdate["categoria_servicio"]) ?? null,
       industria: get("industria"),
       lo_que_quiere: get("lo_que_quiere"),
-      fuente: get("fuente"),
-      valor_estimado: num("valor_estimado"),
-      valor_estimado_moneda: (get("valor_estimado_moneda") as "DOP" | "USD") ?? "DOP",
+      fuente: fuente.trim() || null,
       brand_id: get("brand_id"),
     };
 
@@ -86,8 +88,6 @@ export function ClientEditForm({
         <Field label="Teléfono"><Input name="telefono" type="tel" defaultValue={client.telefono ?? ""} /></Field>
         <Field label="WhatsApp"><Input name="whatsapp" type="tel" defaultValue={client.whatsapp ?? ""} /></Field>
         <Field label="Correo"><Input name="correo" type="email" defaultValue={client.correo ?? ""} /></Field>
-        <Field label="Instagram"><Input name="instagram" defaultValue={client.instagram ?? ""} placeholder="@usuario o link" /></Field>
-        <Field label="Facebook"><Input name="facebook" defaultValue={client.facebook ?? ""} placeholder="usuario o link" /></Field>
         <Field label="Categoría de servicio">
           <Combobox name="categoria_servicio" options={CATEGORIA_OPTIONS} defaultValue={client.categoria_servicio ?? ""} placeholder="Elegir categoría" />
         </Field>
@@ -95,25 +95,14 @@ export function ClientEditForm({
           <Combobox name="industria" options={INDUSTRIA_OPTIONS} defaultValue={client.industria ?? ""} placeholder="Buscar industria…" />
         </Field>
         <Field label="Fuente">
-          <Combobox name="fuente" options={FUENTE_OPTIONS} defaultValue={client.fuente ?? ""} placeholder="Elegir fuente" />
+          <Combobox options={FUENTE_OPTIONS} value={fuente} onChange={setFuente} placeholder="Elegir fuente" />
         </Field>
-        <Field label="Valor estimado (opcional)">
-          <div className="flex gap-2">
-            <Input
-              name="valor_estimado"
-              type="number"
-              step="0.01"
-              min="0"
-              inputMode="decimal"
-              defaultValue={client.valor_estimado ?? ""}
-              placeholder="0.00"
-            />
-            <Select name="valor_estimado_moneda" defaultValue={client.valor_estimado_moneda ?? "DOP"} className="w-24">
-              <option value="DOP">DOP</option>
-              <option value="USD">USD</option>
-            </Select>
-          </div>
-        </Field>
+        {showIg && (
+          <Field label="Instagram"><Input value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="@usuario o link" /></Field>
+        )}
+        {showFb && (
+          <Field label="Facebook"><Input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="usuario o link" /></Field>
+        )}
         <Field label="Marca">
           <Select name="brand_id" defaultValue={client.brand_id ?? ""}>
             <option value="">— Seleccionar —</option>

@@ -4,7 +4,6 @@ import { Target, MessageSquare, Sparkles } from "lucide-react";
 import type { Client } from "@/lib/data/clients";
 import { ClientEditForm } from "./client-edit-form";
 import { ETAPA_LABEL } from "@/lib/ventas";
-import { money } from "@/lib/format";
 
 type Brand = { id: string; nombre: string };
 
@@ -32,14 +31,9 @@ export function ProspectoDetail({ client, brands }: { client: Client; brands: Br
         </div>
       </div>
 
-      {/* Resumen rápido: etapa, valor estimado, lo que quiere */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {/* Resumen rápido: etapa, fuente */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <ResumenCard icon={<Sparkles className="size-4" />} label="Etapa de venta" value={ETAPA_LABEL[client.etapa_venta]} />
-        <ResumenCard
-          icon={<Target className="size-4" />}
-          label="Valor estimado"
-          value={client.valor_estimado != null ? money(client.valor_estimado, client.valor_estimado_moneda) : "—"}
-        />
         <ResumenCard icon={<MessageSquare className="size-4" />} label="Fuente" value={client.fuente ?? "—"} />
       </div>
 

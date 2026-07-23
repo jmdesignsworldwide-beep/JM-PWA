@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Wallet, Plus, Loader2, Trash2, CheckCircle2, HandCoins, Banknote,
@@ -42,11 +43,17 @@ export function PagosManager({
   orders,
   payments,
   lockedOrderId,
+  readOnly = false,
+  cobrosHref,
 }: {
   clientId: string;
   orders: PagoOrder[];
   payments: Pago[];
   lockedOrderId?: string;
+  /** Solo lectura (ficha del cliente): muestra saldo + historial, sin registrar. */
+  readOnly?: boolean;
+  /** Si se pasa, un botón lleva a Cobros con este cliente para registrar el pago. */
+  cobrosHref?: string;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -154,8 +161,17 @@ export function PagosManager({
         </div>
       )}
 
+      {/* Solo lectura: botón para registrar el pago en Cobros (no dentro de la ficha) */}
+      {readOnly && cobrosHref && resumen.length > 0 && (
+        <Link href={cobrosHref}>
+          <Button variant="outline" size="sm" className="w-full justify-center">
+            <Wallet className="size-4" /> Registrar pago en Cobros
+          </Button>
+        </Link>
+      )}
+
       {/* Registrar pago */}
-      {!noOrders && (
+      {!readOnly && !noOrders && (
         <div className="rounded-xl border border-border bg-background/40 p-4">
           <h4 className="flex items-center gap-2 text-sm font-semibold">
             <Wallet className="size-4 text-electric" /> Registrar pago
@@ -272,13 +288,15 @@ export function PagosManager({
                   </p>
                 </div>
                 <Badge dot="var(--success)">Pagado</Badge>
-                <button
-                  title="Borrar pago"
-                  onClick={() => borrar(p.id, p.order_id)}
-                  className="text-muted-foreground transition-colors hover:text-destructive"
-                >
-                  <Trash2 className="size-4" />
-                </button>
+                {!readOnly && (
+                  <button
+                    title="Borrar pago"
+                    onClick={() => borrar(p.id, p.order_id)}
+                    className="text-muted-foreground transition-colors hover:text-destructive"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                )}
               </li>
             ))}
           </ul>

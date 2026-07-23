@@ -14,9 +14,9 @@ export const metadata = { title: "Cobros y Entregas" };
 export default async function CobrosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ m?: string }>;
+  searchParams: Promise<{ m?: string; cliente?: string }>;
 }) {
-  const { m } = await searchParams;
+  const { m, cliente } = await searchParams;
   const month = m && /^\d{4}-\d{2}$/.test(m) ? m : rdToday().slice(0, 7);
   const first = `${month}-01`;
 
@@ -43,7 +43,7 @@ export default async function CobrosPage({
         <StaggerItem>
           <h2 className="mb-3 flex items-center gap-2 font-semibold"><Wallet className="size-4 text-electric" /> Saldos por cliente</h2>
           <p className="mb-3 text-sm text-muted-foreground">Lo que cada cliente debe y lo que ya pagó. Clic para registrar un pago (entra solo a Finanzas).</p>
-          <DeudasPanel saldos={saldos} />
+          <DeudasPanel saldos={saldos} openClientId={cliente} />
         </StaggerItem>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
