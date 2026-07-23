@@ -493,6 +493,20 @@ export interface Tables {
     created_by: string | null;
   } & Timestamps;
 
+  catalog_items: {
+    id: string;
+    brand_id: string | null;
+    nombre: string;
+    categoria: string | null;
+    precio_base: number;
+    moneda: Moneda;
+    unidad: string | null;
+    descripcion: string | null;
+    activo: boolean;
+    orden: number;
+    created_by: string | null;
+  } & Timestamps;
+
   order_payments: {
     id: string;
     order_id: string;

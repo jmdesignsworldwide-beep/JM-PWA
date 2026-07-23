@@ -2,8 +2,9 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Loader2, Package, Code2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Tag } from "lucide-react";
 import { createOrder, type NewOrderInput, type OrderItemInput } from "@/app/(app)/pedidos/actions";
+import { createLead } from "@/app/(app)/leads/actions";
 import { PRINT_CATEGORIAS, TIPOS_SOLUCION, ITBIS_RATE, planPresets, diasHasta } from "@/lib/pedidos";
 import { INDUSTRIA_OPTIONS } from "@/lib/ventas";
 import { Combobox } from "@/components/ui/combobox";
@@ -47,20 +48,51 @@ function itemSubtotal(it: Item) {
 }
 
 type Client = { id: string; nombre: string; factura_fiscal: boolean; brand_id: string | null };
+type ClientLite = { id: string; nombre: string };
+type BrandLite = { id: string; nombre: string };
+type CatLite = { id: string; nombre: string; precio_base: number; categoria: string | null; unidad: string | null };
 
-export function NewOrderForm({ client }: { client: Client }) {
+export function NewOrderForm({
+  client,
+  clients = [],
+  brands = [],
+  catalog = {},
+}: {
+  client?: Client | null;
+  clients?: ClientLite[];
+  brands?: BrandLite[];
+  catalog?: Record<string, CatLite[]>;
+}) {
   const router = useRouter();
-  const [rama, setRama] = useState<Rama>("designs");
+  // Pedido primero: se elige (o crea) el cliente y la marca dentro de este form.
+  const [clientId, setClientId] = useState(client?.id ?? "");
+  const [brandId, setBrandId] = useState(client?.brand_id ?? brands[0]?.id ?? "");
+  const rama: Rama = useMemo(
+    () => (brands.find((b) => b.id === brandId)?.nombre.toLowerCase().includes("distribution") ? "distribution" : "designs"),
+    [brandId, brands],
+  );
   const [moneda, setMoneda] = useState<"DOP" | "USD">("DOP");
   const [industria, setIndustria] = useState("");
   const [tipoSolucion, setTipoSolucion] = useState("");
   const [items, setItems] = useState<Item[]>([emptyItem()]);
   const [descuento, setDescuento] = useState(0);
-  const [aplicaItbis, setAplicaItbis] = useState(client.factura_fiscal);
+  const [aplicaItbis, setAplicaItbis] = useState(client?.factura_fiscal ?? false);
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [planId, setPlanId] = useState("completo");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const catItems = catalog[brandId] ?? [];
+
+  /** Añade un ítem al pedido desde el catálogo (prefill editable). */
+  function addFromCatalog(c: CatLite) {
+    setItems((prev) => {
+      const base = { ...emptyItem(), producto: c.nombre, precio_unitario: Number(c.precio_base) || 0, categoria: c.categoria ?? PRINT_CATEGORIAS[0] };
+      // Si el único ítem está vacío, lo reemplaza; si no, añade.
+      if (prev.length === 1 && !prev[0].producto.trim()) return [base];
+      return [...prev, base];
+    });
+  }
 
   const subtotal = useMemo(
     () => items.reduce((s, it) => s + itemSubtotal(it), 0),
@@ -77,6 +109,8 @@ export function NewOrderForm({ client }: { client: Client }) {
 
   function submit() {
     setError(null);
+    if (!clientId) { setError("Elige o crea un cliente para el pedido."); return; }
+    if (!brandId) { setError("Elige la marca del pedido."); return; }
     const valid = items.filter((it) => it.producto.trim() && itemSubtotal(it) >= 0);
     if (valid.length === 0) {
       setError("Agrega al menos un ítem con descripción.");
@@ -96,7 +130,7 @@ export function NewOrderForm({ client }: { client: Client }) {
     }));
 
     const input: NewOrderInput = {
-      client_id: client.id,
+      client_id: clientId,
       rama,
       moneda,
       industria: rama === "designs" ? industria || null : null,
@@ -110,7 +144,7 @@ export function NewOrderForm({ client }: { client: Client }) {
       total,
       fecha_entrega: fechaEntrega || null,
       plan_pago: plan.plan,
-      brand_id: client.brand_id,
+      brand_id: brandId,
     };
 
     startTransition(async () => {
@@ -125,23 +159,71 @@ export function NewOrderForm({ client }: { client: Client }) {
 
   return (
     <div className="space-y-5">
-      {/* Rama */}
-      <div className="grid grid-cols-2 gap-3">
-        <RamaCard
-          active={rama === "designs"}
-          onClick={() => setRama("designs")}
-          icon={<Code2 className="size-5" />}
-          title="JM Designs"
-          desc="Web · app · sistema a la medida"
+      {/* Cliente: elegir o crear (sin salir del pedido) */}
+      <div className="space-y-1.5">
+        <Label>Cliente</Label>
+        <Combobox
+          options={clients.map((c) => ({ value: c.id, label: c.nombre }))}
+          value={clientId}
+          onChange={setClientId}
+          placeholder="Buscar o crear cliente…"
+          createLabel="Crear cliente"
+          onCreate={async (label) => {
+            setError(null);
+            const r = await createLead({ nombre: label, fuente: "Pedido" });
+            if ("id" in r && r.id) return { value: r.id, label };
+            setError(("error" in r && r.error) || "No se pudo crear el cliente.");
+            return null;
+          }}
         />
-        <RamaCard
-          active={rama === "distribution"}
-          onClick={() => setRama("distribution")}
-          icon={<Package className="size-5" />}
-          title="JM Distribution"
-          desc="Imprenta · personalizables"
-        />
+        <p className="text-xs text-muted-foreground">Si no existe, escríbelo y créalo aquí mismo — no pierdes lo que llevas lleno.</p>
       </div>
+
+      {/* Marca: define qué catálogo aparece */}
+      {brands.length > 0 && (
+        <div className="space-y-1.5">
+          <Label>Marca / empresa</Label>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {brands.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => setBrandId(b.id)}
+                className={cn(
+                  "rounded-xl border p-3 text-left text-sm font-medium transition-all",
+                  brandId === b.id
+                    ? "border-electric/60 bg-accent/40 ring-2 ring-[color-mix(in_srgb,var(--electric)_25%,transparent)]"
+                    : "border-border hover:bg-accent/30",
+                )}
+              >
+                {b.nombre}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Catálogo de la marca: toca para añadir al pedido */}
+      {catItems.length > 0 && (
+        <div className="space-y-2 rounded-xl border border-border bg-card/40 p-3">
+          <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <Tag className="size-3.5" /> Catálogo — toca para añadir
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {catItems.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => addFromCatalog(c)}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:border-electric/50 hover:bg-accent/40"
+              >
+                <Plus className="size-3.5 text-electric" /> {c.nombre}
+                {Number(c.precio_base) > 0 && <span className="text-xs text-muted-foreground">· {money(Number(c.precio_base), moneda)}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Designs: industria + tipo */}
       {rama === "designs" && (
@@ -305,26 +387,6 @@ export function NewOrderForm({ client }: { client: Client }) {
         </Button>
       </div>
     </div>
-  );
-}
-
-function RamaCard({ active, onClick, icon, title, desc }: {
-  active: boolean; onClick: () => void; icon: React.ReactNode; title: string; desc: string;
-}) {
-  return (
-    <button onClick={onClick}
-      className={cn(
-        "flex items-center gap-3 rounded-xl border p-4 text-left transition-all",
-        active ? "border-electric/60 bg-accent/40 ring-2 ring-[color-mix(in_srgb,var(--electric)_25%,transparent)]" : "border-border hover:bg-accent/30",
-      )}>
-      <div className={cn("flex size-10 items-center justify-center rounded-lg", active ? "bg-electric text-white" : "bg-secondary text-muted-foreground")}>
-        {icon}
-      </div>
-      <div>
-        <p className="font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{desc}</p>
-      </div>
-    </button>
   );
 }
 
