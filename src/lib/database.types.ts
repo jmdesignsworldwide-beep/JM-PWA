@@ -402,6 +402,10 @@ export interface Tables {
     ubicacion: string | null;
     descripcion: string | null;
     recordatorio_min: number | null;
+    recurrence: "semanal" | "quincenal" | "mensual" | "anual" | null;
+    recurrence_until: string | null;
+    recurrence_parent_id: string | null;
+    recurrence_skip: boolean;
     created_by: string | null;
   } & Timestamps;
 
