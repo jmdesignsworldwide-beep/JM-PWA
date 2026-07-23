@@ -2,18 +2,45 @@ import { createClient } from "@/lib/supabase/server";
 import type { Row } from "@/lib/database.types";
 
 export type Influencer = Row<"influencers">;
+export type Collaboration = Row<"collaborations">;
 export type DMTemplate = Row<"message_templates">;
 
-export async function getInfluencers(): Promise<Influencer[]> {
+/** Influencer + resumen de sus colaboraciones (para la lista). */
+export type InfluencerRow = Influencer & { colabCount: number; ultimoEstado: string | null };
+
+export async function getInfluencers(): Promise<InfluencerRow[]> {
   const supabase = await createClient();
-  const { data } = await supabase.from("influencers").select("*").order("created_at", { ascending: false });
-  return (data ?? []) as Influencer[];
+  const [{ data: infs }, { data: colabs }] = await Promise.all([
+    supabase.from("influencers").select("*").order("created_at", { ascending: false }),
+    supabase.from("collaborations").select("influencer_id, estado, created_at").order("created_at", { ascending: false }),
+  ]);
+  const byInf = new Map<string, { count: number; ultimo: string | null }>();
+  for (const c of (colabs ?? []) as { influencer_id: string; estado: string }[]) {
+    const cur = byInf.get(c.influencer_id) ?? { count: 0, ultimo: null };
+    // Las colaboraciones vienen ordenadas por fecha desc: la primera vista es la última.
+    byInf.set(c.influencer_id, { count: cur.count + 1, ultimo: cur.ultimo ?? c.estado });
+  }
+  return ((infs ?? []) as Influencer[]).map((i) => {
+    const r = byInf.get(i.id);
+    return { ...i, colabCount: r?.count ?? 0, ultimoEstado: r?.ultimo ?? null };
+  });
 }
 
 export async function getInfluencerById(id: string): Promise<Influencer | null> {
   const supabase = await createClient();
   const { data } = await supabase.from("influencers").select("*").eq("id", id).maybeSingle();
   return (data as Influencer) ?? null;
+}
+
+/** Colaboraciones de un influencer (las más recientes primero). */
+export async function getCollaborationsByInfluencer(influencerId: string): Promise<Collaboration[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("collaborations")
+    .select("*")
+    .eq("influencer_id", influencerId)
+    .order("created_at", { ascending: false });
+  return (data ?? []) as Collaboration[];
 }
 
 export async function getDMTemplates(): Promise<DMTemplate[]> {
