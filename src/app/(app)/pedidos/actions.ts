@@ -20,6 +20,74 @@ export type OrderItemInput = {
 
 export type PlanPagoItem = { label: string; porcentaje: number; offset_dias: number };
 
+/**
+ * Marca que identifica el evento de entrega generado AQUÍ (pedido sin contrato),
+ * para distinguirlo del que crea el trigger de la BD al firmar un contrato
+ * (fn_contract_signed). Así nunca se duplican en el calendario.
+ */
+const AUTO_ENTREGA_MARK = "auto-entrega-pedido";
+
+/**
+ * Lleva la fecha de entrega de un pedido SIN contrato al calendario (el flujo
+ * flexible: no todo pedido pasa por contrato). Idempotente: borra su evento
+ * previo y crea uno fresco. Si el pedido YA tiene un contrato firmado, no hace
+ * nada: en ese caso el evento lo maneja el trigger de la BD (para no duplicar).
+ */
+async function syncOrderDeliveryEvent(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  orderId: string,
+) {
+  const { data: order } = await supabase
+    .from("orders").select("client_id, brand_id, fecha_entrega").eq("id", orderId).maybeSingle();
+  if (!order) return;
+
+  const { data: projRows } = await supabase
+    .from("projects").select("id, nombre, fecha_entrega").eq("order_id", orderId).limit(1);
+  const project = projRows?.[0];
+  if (!project) return; // La entrega en el calendario se ancla al proyecto.
+
+  // Borra el evento auto de entrega creado por este flujo (marcado).
+  await supabase.from("calendar_events").delete()
+    .eq("project_id", project.id).eq("tipo", "entrega").eq("auto_generado", true)
+    .eq("descripcion", AUTO_ENTREGA_MARK);
+
+  // Si ya hay contrato firmado, el trigger de la BD es el dueño del evento.
+  const { data: firmado } = await supabase
+    .from("contracts").select("id").eq("order_id", orderId).eq("estado", "aprobado_firmado").limit(1);
+  if (firmado && firmado.length) return;
+
+  const fecha = project.fecha_entrega ?? order.fecha_entrega ?? null;
+  if (!fecha) return;
+
+  await supabase.from("calendar_events").insert({
+    titulo: `Entrega: ${project.nombre ?? "Proyecto"}`,
+    tipo: "entrega",
+    fecha,
+    client_id: order.client_id,
+    project_id: project.id,
+    brand_id: order.brand_id,
+    auto_generado: true,
+    descripcion: AUTO_ENTREGA_MARK,
+  } as never);
+}
+
+/**
+ * Cuando un pedido pasa a tener contrato firmado, el trigger de la BD crea su
+ * propio evento de entrega; quitamos el nuestro (marcado) para no duplicar.
+ */
+async function clearOrderDeliveryEvent(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  orderId: string,
+) {
+  const { data: projRows } = await supabase
+    .from("projects").select("id").eq("order_id", orderId).limit(1);
+  const project = projRows?.[0];
+  if (!project) return;
+  await supabase.from("calendar_events").delete()
+    .eq("project_id", project.id).eq("tipo", "entrega").eq("auto_generado", true)
+    .eq("descripcion", AUTO_ENTREGA_MARK);
+}
+
 export type NewOrderInput = {
   client_id: string;
   rama: "designs" | "distribution";
@@ -196,7 +264,10 @@ export async function setContractStatus(
   const supabase = await createClient();
   const { error } = await supabase.from("contracts").update({ estado }).eq("id", contractId);
   if (error) return { error: error.message };
+  // Al firmar, el trigger de la BD crea la entrega; quitamos la nuestra si existía.
+  if (estado === "aprobado_firmado") await clearOrderDeliveryEvent(supabase, orderId);
   revalidatePath(`/pedidos/${orderId}`);
+  revalidatePath("/calendario");
   return { ok: true };
 }
 
@@ -234,8 +305,12 @@ export async function uploadExternalContract(orderId: string, fileUrl: string) {
     if (error) return { error: error.message };
   }
 
+  // Contrato firmado: el trigger de la BD maneja la entrega; quitamos la nuestra.
+  await clearOrderDeliveryEvent(supabase, orderId);
+
   revalidatePath(`/pedidos/${orderId}`);
   revalidatePath(`/clientes/${order.client_id}`);
+  revalidatePath("/calendario");
   return { ok: true };
 }
 
@@ -322,8 +397,13 @@ export async function createProjectFromOrder(orderId: string) {
 
   if (client?.es_lead) await supabase.from("clients").update({ es_lead: false }).eq("id", order.client_id);
 
+  // Flujo flexible: aunque el pedido no tenga contrato, su fecha de entrega
+  // aparece sola en el calendario.
+  await syncOrderDeliveryEvent(supabase, orderId);
+
   revalidatePath(`/pedidos/${orderId}`);
   revalidatePath(`/clientes/${order.client_id}`);
+  revalidatePath("/calendario");
   return { id: project.id };
 }
 

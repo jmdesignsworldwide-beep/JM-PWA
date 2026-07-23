@@ -80,6 +80,20 @@ export async function signContractPortal(contractId: string, firma: string) {
       brand_id: updated.brand_id,
       auto_generado: true,
     });
+
+    // Al firmar, el trigger crea la entrega del proyecto; si el pedido ya tenía
+    // una entrega generada por el flujo sin-contrato, la quitamos para no duplicar.
+    const { data: contract } = await admin.from("contracts").select("order_id").eq("id", updated.id).maybeSingle();
+    const orderId = (contract as { order_id: string | null } | null)?.order_id ?? null;
+    if (orderId) {
+      const { data: projRows } = await admin.from("projects").select("id").eq("order_id", orderId).limit(1);
+      const projectId = projRows?.[0]?.id;
+      if (projectId) {
+        await admin.from("calendar_events").delete()
+          .eq("project_id", projectId).eq("tipo", "entrega").eq("auto_generado", true)
+          .eq("descripcion", "auto-entrega-pedido");
+      }
+    }
   } catch {
     /* el aviso es best-effort; la firma ya quedó */
   }
