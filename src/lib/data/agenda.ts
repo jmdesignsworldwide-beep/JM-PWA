@@ -154,7 +154,7 @@ export async function getPendientes(): Promise<AgendaEvent[]> {
 }
 
 export type PagoOrderLite = { id: string; total: number; moneda: string; fecha: string; estado: string };
-export type PagoLite = { id: string; order_id: string; monto: number; moneda: string; fecha: string; tipo: string; metodo: string | null; nota: string | null };
+export type PagoLite = { id: string; order_id: string; monto: number; moneda: string; fecha: string; tipo: string; metodo: string | null; nota: string | null; comprobante_url: string | null };
 export type SaldoCliente = {
   id: string;
   nombre: string;
@@ -174,7 +174,7 @@ export async function getSaldosClientes(): Promise<SaldoCliente[]> {
   const supabase = await createClient();
   const [ordersRes, paymentsRes] = await Promise.all([
     supabase.from("orders").select("id, client_id, total, moneda, fecha, estado"),
-    supabase.from("order_payments").select("id, order_id, client_id, monto, moneda, fecha, tipo, metodo, nota"),
+    supabase.from("order_payments").select("id, order_id, client_id, monto, moneda, fecha, tipo, metodo, nota, comprobante_url"),
   ]);
   const orders = (ordersRes.data ?? []) as (PagoOrderLite & { client_id: string })[];
   const payments = (paymentsRes.data ?? []) as (PagoLite & { client_id: string })[];
@@ -196,7 +196,7 @@ export async function getSaldosClientes(): Promise<SaldoCliente[]> {
   }
   for (const p of payments) {
     const c = byClient.get(p.client_id);
-    if (c) c.payments.push({ id: p.id, order_id: p.order_id, monto: Number(p.monto) || 0, moneda: p.moneda, fecha: p.fecha, tipo: p.tipo, metodo: p.metodo, nota: p.nota });
+    if (c) c.payments.push({ id: p.id, order_id: p.order_id, monto: Number(p.monto) || 0, moneda: p.moneda, fecha: p.fecha, tipo: p.tipo, metodo: p.metodo, nota: p.nota, comprobante_url: p.comprobante_url });
   }
 
   const result: SaldoCliente[] = [];

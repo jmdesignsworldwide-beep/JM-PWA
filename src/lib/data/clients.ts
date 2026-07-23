@@ -54,7 +54,7 @@ export async function getClientStats(clientId: string) {
     supabase.from("projects").select("id, nombre, estado, fecha_entrega").eq("client_id", clientId),
     // Abonos del cliente (pagos contra sus pedidos): control de saldo.
     supabase.from("order_payments")
-      .select("id, order_id, monto, moneda, fecha, tipo, metodo, nota")
+      .select("id, order_id, monto, moneda, fecha, tipo, metodo, nota, comprobante_url")
       .eq("client_id", clientId)
       .order("fecha", { ascending: false }),
   ]);

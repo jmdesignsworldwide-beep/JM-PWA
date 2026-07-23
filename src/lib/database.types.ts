@@ -517,6 +517,7 @@ export interface Tables {
     metodo: string | null;
     tipo: "inicial" | "entrega" | "abono";
     nota: string | null;
+    comprobante_url: string | null;
     created_by: string | null;
   } & Timestamps;
 
