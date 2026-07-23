@@ -3,15 +3,13 @@ import { FileText } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { NewOrderButton } from "@/components/pedidos/new-order-button";
 import { getRecentOrders } from "@/lib/data/orders";
-import { getClients } from "@/lib/data/clients";
 import { Badge } from "@/components/ui/badge";
 import { money, fechaCorta } from "@/lib/format";
 
 export const metadata = { title: "Pedidos / Contratos / Facturas" };
 
 export default async function PedidosPage() {
-  const [orders, clients] = await Promise.all([getRecentOrders(), getClients()]);
-  const clientOpts = clients.map((c) => ({ id: c.id, nombre: `${c.nombre} ${c.apellido ?? ""}`.trim() }));
+  const orders = await getRecentOrders();
 
   return (
     <>
@@ -19,12 +17,12 @@ export default async function PedidosPage() {
         title="Pedidos / Contratos / Facturas"
         subtitle="El flujo conectado. Crea un pedido y de ahí salen contrato y factura."
       >
-        <NewOrderButton clients={clientOpts} />
+        <NewOrderButton />
       </PageHeader>
 
       {orders.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center text-sm text-muted-foreground">
-          Aún no hay pedidos. Entra a la ficha de un cliente → pestaña <strong>Pedidos</strong> → <strong>Nuevo pedido</strong>.
+          Aún no hay pedidos. Toca <strong>+ Nuevo pedido</strong> arriba: eliges el cliente y la marca ahí mismo.
         </div>
       ) : (
         <>
