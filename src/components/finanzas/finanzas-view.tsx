@@ -10,6 +10,7 @@ import { AddExpenseDialog } from "./add-expense-dialog";
 import { RecurringManager } from "./recurring-manager";
 import { TransactionDetail, type Mov } from "./transaction-detail";
 import { ProjectMarginDetail } from "./project-margin-detail";
+import { ConsumoResumen } from "./consumo-resumen";
 import type { ProjectMargin } from "@/lib/data/finanzas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ type Scope = "todo" | "negocio" | "personal";
 
 export function FinanzasView({
   margins, incomes, expenses, plans, mrr,
-  categoriasIngreso, categoriasGasto, clients, projects, brands, clientMap, registradoHoy,
+  categoriasIngreso, categoriasGasto, categoriasGastoPersonal = [], clients, projects, brands, clientMap, registradoHoy,
 }: {
   margins: Margin[];
   incomes: Income[];
@@ -37,6 +38,7 @@ export function FinanzasView({
   mrr: number;
   categoriasIngreso: string[];
   categoriasGasto: string[];
+  categoriasGastoPersonal?: string[];
   clients: Opt[];
   projects: Opt[];
   brands: Opt[];
@@ -139,7 +141,7 @@ export function FinanzasView({
         </div>
         <div className="ml-auto flex flex-wrap gap-2">
           <a href="/api/pdf/finance" target="_blank" rel="noopener noreferrer"><Button variant="outline" size="sm"><Download className="size-4" /> PDF</Button></a>
-          <AddExpenseDialog categorias={categoriasGasto} projects={projects} brands={brands} />
+          <AddExpenseDialog categorias={categoriasGasto} categoriasPersonal={categoriasGastoPersonal} projects={projects} brands={brands} />
           <AddIncomeDialog categorias={categoriasIngreso} clients={clients} projects={projects} brands={brands} />
         </div>
       </div>
@@ -257,6 +259,9 @@ export function FinanzasView({
                 )}
               </div>
             )}
+
+            {/* En Personal, en vez de margen por proyecto: tu consumo (neutral) */}
+            {scope === "personal" && <ConsumoResumen expenses={expenses} />}
           </div>
         </div>
       )}
@@ -289,7 +294,7 @@ export function FinanzasView({
       {detail && (
         <TransactionDetail
           mov={detail} onClose={() => setDetail(null)}
-          categoriasIngreso={categoriasIngreso} categoriasGasto={categoriasGasto}
+          categoriasIngreso={categoriasIngreso} categoriasGasto={categoriasGasto} categoriasGastoPersonal={categoriasGastoPersonal}
           projects={projects} brands={brands} clients={clients} brandMap={brandMap}
         />
       )}

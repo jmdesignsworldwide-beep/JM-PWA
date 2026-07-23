@@ -434,6 +434,7 @@ export interface Tables {
     id: string;
     nombre: string;
     tipo: "ingreso" | "gasto";
+    es_personal: boolean;
     created_by: string | null;
   } & Timestamps;
 

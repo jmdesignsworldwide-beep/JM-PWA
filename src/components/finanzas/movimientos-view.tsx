@@ -21,11 +21,11 @@ type Tipo = "todo" | "ingreso" | "gasto";
  * filtrado arriba. Cada fila abre su detalle y comprobante.
  */
 export function MovimientosView({
-  incomes, expenses, clients, brands, projects = [], categoriasIngreso, categoriasGasto,
+  incomes, expenses, clients, brands, projects = [], categoriasIngreso, categoriasGasto, categoriasGastoPersonal = [],
   initialTipo = "todo",
 }: {
   incomes: Income[]; expenses: Expense[]; clients: Opt[]; brands: Opt[]; projects?: Opt[];
-  categoriasIngreso: string[]; categoriasGasto: string[]; initialTipo?: Tipo;
+  categoriasIngreso: string[]; categoriasGasto: string[]; categoriasGastoPersonal?: string[]; initialTipo?: Tipo;
 }) {
   const [q, setQ] = useState("");
   const [tipo, setTipo] = useState<Tipo>(initialTipo);
@@ -195,7 +195,7 @@ export function MovimientosView({
       {detail && (
         <TransactionDetail
           mov={detail} onClose={() => setDetail(null)}
-          categoriasIngreso={categoriasIngreso} categoriasGasto={categoriasGasto}
+          categoriasIngreso={categoriasIngreso} categoriasGasto={categoriasGasto} categoriasGastoPersonal={categoriasGastoPersonal}
           projects={projects} brands={brands} clients={clients} brandMap={brandMap}
         />
       )}

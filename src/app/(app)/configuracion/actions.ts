@@ -154,9 +154,9 @@ export async function updateBrand(id: string, input: {
 }
 
 // ---------- Categorías ----------
-export async function createCategory(nombre: string, tipo: "ingreso" | "gasto") {
+export async function createCategory(nombre: string, tipo: "ingreso" | "gasto", esPersonal = false) {
   const supabase = await createClient();
-  const { error } = await supabase.from("categories").insert({ nombre: nombre.trim(), tipo });
+  const { error } = await supabase.from("categories").insert({ nombre: nombre.trim(), tipo, es_personal: esPersonal });
   if (error) return { error: error.message };
   revalidatePath("/configuracion");
   return { ok: true };

@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Receipt, Camera, ImageUp, Sparkles, X, Building2, User } from "lucide-react";
+import { Loader2, Receipt, Camera, ImageUp, Sparkles, X, Building2, User, RotateCcw, Plus, ListChecks } from "lucide-react";
 import { addExpense } from "@/app/(app)/finanzas/actions";
 import { uploadFile } from "@/lib/upload";
 import { rdToday } from "@/lib/fecha";
@@ -16,6 +16,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
 
 type Opt = { id: string; nombre: string };
+type Linea = { descripcion: string | null; monto: number | null };
 
 type Form = {
   monto: string; moneda: "DOP" | "USD"; fecha: string; categoria: string;
@@ -30,9 +31,9 @@ const vacio = (): Form => ({
 });
 
 export function AddExpenseDialog({
-  categorias, projects, brands, trigger,
+  categorias, categoriasPersonal = [], projects, brands, trigger,
 }: {
-  categorias: string[]; projects: Opt[]; brands: Opt[]; trigger?: React.ReactNode;
+  categorias: string[]; categoriasPersonal?: string[]; projects: Opt[]; brands: Opt[]; trigger?: React.ReactNode;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -50,8 +51,15 @@ export function AddExpenseDialog({
   const [scanMsg, setScanMsg] = useState<string | null>(null);
   // Categoría sugerida por la IA que no está en la lista existente.
   const [extraCat, setExtraCat] = useState<string | null>(null);
+  // Renglones leídos del recibo (para confirmar) y cuántas partes se escanearon.
+  const [lineas, setLineas] = useState<Linea[]>([]);
+  const [partes, setPartes] = useState(0);
   const camRef = useRef<HTMLInputElement>(null);
   const galRef = useRef<HTMLInputElement>(null);
+  const parteRef = useRef<HTMLInputElement>(null);
+
+  // Lista de categorías según el ámbito elegido (negocio o personal).
+  const catBase = form.es_personal && categoriasPersonal.length ? categoriasPersonal : categorias;
 
   function reset() {
     setForm(vacio());
@@ -60,47 +68,63 @@ export function AddExpenseDialog({
     setPreview(null);
     setScanMsg(null);
     setExtraCat(null);
+    setLineas([]);
+    setPartes(0);
     setError(null);
   }
 
   function close() { setOpen(false); }
 
-  async function onPick(picked: File | null) {
+  /**
+   * Escanea una foto de recibo. `parte=true` significa "otra parte del mismo
+   * recibo": acumula renglones y solo rellena campos vacíos (nunca pisa lo que
+   * ya se leyó/escribiste, ni suma el total solo — eso lo confirmas tú).
+   */
+  async function scan(picked: File | null, parte = false) {
     if (!picked) return;
     setError(null);
-    setFile(picked);
-    if (preview) URL.revokeObjectURL(preview);
-    setPreview(URL.createObjectURL(picked));
-    // Escaneo IA: extrae lo legible y pre-llena (sin pisar lo que ya escribiste).
+    if (!parte) {
+      setFile(picked);
+      if (preview) URL.revokeObjectURL(preview);
+      setPreview(URL.createObjectURL(picked));
+      setLineas([]);
+      setPartes(1);
+    } else {
+      setPartes((n) => n + 1);
+    }
     setScanning(true);
     setScanMsg(null);
     try {
       const fd = new FormData();
       fd.append("imagen", picked);
-      fd.append("categorias", JSON.stringify(categorias));
+      fd.append("categorias", JSON.stringify(catBase));
       const res = await fetch("/api/ai/receipt", { method: "POST", body: fd });
       const json = await res.json();
       if (!json.ok) { setScanMsg(json.reason ?? "No se pudo leer el recibo. Llénalo a mano."); return; }
       const d = json.data;
+      const nuevas: Linea[] = Array.isArray(d.lineas) ? d.lineas : [];
+      setLineas((prev) => [...prev, ...nuevas]);
       setForm((f) => {
         const cat = d.categoria ?? f.categoria;
-        if (d.categoria && !categorias.includes(d.categoria)) setExtraCat(d.categoria);
+        if (d.categoria && !catBase.includes(d.categoria)) setExtraCat(d.categoria);
+        // En modo "parte" solo se rellenan campos aún vacíos; nunca se pisa.
+        const fill = (actual: string, leido: string | null) => parte ? (actual || (leido ?? "")) : (leido ?? actual);
         return {
           ...f,
-          monto: d.monto != null ? String(d.monto) : f.monto,
-          moneda: d.moneda ?? f.moneda,
-          fecha: d.fecha ?? f.fecha,
-          categoria: cat || f.categoria,
-          comercio: d.comercio ?? f.comercio,
-          itbis: d.itbis != null ? String(d.itbis) : f.itbis,
-          metodo_pago: d.metodo_pago ?? f.metodo_pago,
+          monto: parte ? (f.monto || (d.monto != null ? String(d.monto) : "")) : (d.monto != null ? String(d.monto) : f.monto),
+          moneda: parte ? f.moneda : (d.moneda ?? f.moneda),
+          fecha: fill(f.fecha, d.fecha),
+          categoria: fill(f.categoria, cat) || f.categoria,
+          comercio: fill(f.comercio, d.comercio),
+          itbis: parte ? (f.itbis || (d.itbis != null ? String(d.itbis) : "")) : (d.itbis != null ? String(d.itbis) : f.itbis),
+          metodo_pago: fill(f.metodo_pago, d.metodo_pago),
         };
       });
       const leidos = [d.monto != null, d.fecha, d.comercio].filter(Boolean).length;
       setScanMsg(
-        leidos === 0
+        leidos === 0 && nuevas.length === 0
           ? "No se leyó nada claro. Revisa la foto o llénalo a mano."
-          : `Recibo leído (confianza ${d.confianza}). Revisa los datos antes de guardar.`,
+          : `${parte ? "Parte añadida" : "Recibo leído"} (confianza ${d.confianza}). Revisa los datos antes de guardar.`,
       );
     } catch {
       setScanMsg("No se pudo leer el recibo. Llénalo a mano.");
@@ -114,6 +138,8 @@ export function AddExpenseDialog({
     if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
     setScanMsg(null);
+    setLineas([]);
+    setPartes(0);
   }
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -151,8 +177,14 @@ export function AddExpenseDialog({
     });
   }
 
-  const catOptions = extraCat ? [extraCat, ...categorias] : categorias;
+  const catOptions = [...new Set([
+    ...(extraCat ? [extraCat] : []),
+    ...(form.categoria && !catBase.includes(form.categoria) ? [form.categoria] : []),
+    ...catBase,
+  ])];
   const busy = pending || uploading;
+  // Suma de los renglones leídos (referencia; el total lo confirmas tú, no la IA).
+  const sumaLineas = lineas.reduce((s, l) => s + (l.monto ?? 0), 0);
 
   return (
     <>
@@ -160,11 +192,13 @@ export function AddExpenseDialog({
         {trigger ?? <Button variant="outline"><Receipt className="size-4" /> Registrar gasto</Button>}
       </span>
       <Dialog open={open} onClose={close} title="Registrar gasto" description="Escanea el recibo o llénalo a mano. Etiqueta a un proyecto para ver tu margen real.">
-        {/* Inputs ocultos: cámara (captura directa) y galería. */}
+        {/* Inputs ocultos: cámara (captura directa), galería y "otra parte". */}
         <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden"
-          onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
+          onChange={(e) => { scan(e.target.files?.[0] ?? null); e.target.value = ""; }} />
         <input ref={galRef} type="file" accept="image/*" className="hidden"
-          onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
+          onChange={(e) => { scan(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+        <input ref={parteRef} type="file" accept="image/*" className="hidden"
+          onChange={(e) => { scan(e.target.files?.[0] ?? null, true); e.target.value = ""; }} />
 
         <form onSubmit={submit} className="space-y-4">
           {/* Escáner de recibo */}
@@ -185,17 +219,49 @@ export function AddExpenseDialog({
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={preview} alt="Recibo" className="size-16 rounded-lg border border-border object-cover" />
-                <div className="min-w-0 flex-1 text-sm">
-                  {scanning ? (
-                    <span className="flex items-center gap-2 text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Leyendo recibo…</span>
-                  ) : (
-                    <span className="text-muted-foreground">{scanMsg ?? "Recibo adjunto."}</span>
-                  )}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={preview} alt="Recibo" className="size-16 rounded-lg border border-border object-cover" />
+                  <div className="min-w-0 flex-1 text-sm">
+                    {scanning ? (
+                      <span className="flex items-center gap-2 text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Leyendo recibo…</span>
+                    ) : (
+                      <span className="text-muted-foreground">{scanMsg ?? "Recibo adjunto."}{partes > 1 ? ` · ${partes} partes` : ""}</span>
+                    )}
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" onClick={quitarFoto} aria-label="Quitar foto"><X className="size-4" /></Button>
                 </div>
-                <Button type="button" variant="ghost" size="icon" onClick={quitarFoto} aria-label="Quitar foto"><X className="size-4" /></Button>
+
+                {/* Repetir el escaneo o añadir otra parte del mismo recibo */}
+                {!scanning && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => galRef.current?.click()}>
+                      <RotateCcw className="size-3.5" /> Repetir escaneo
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => parteRef.current?.click()}>
+                      <Plus className="size-3.5" /> Escanear otra parte
+                    </Button>
+                  </div>
+                )}
+
+                {/* Renglones leídos: para confirmar, no se suman solos */}
+                {lineas.length > 0 && (
+                  <div className="rounded-lg border border-border bg-card/60 p-2.5">
+                    <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><ListChecks className="size-3.5" /> {lineas.length} renglón{lineas.length === 1 ? "" : "es"} leído{lineas.length === 1 ? "" : "s"}</p>
+                    <ul className="max-h-32 space-y-0.5 overflow-y-auto text-xs">
+                      {lineas.map((l, i) => (
+                        <li key={i} className="flex justify-between gap-2 border-b border-border/50 py-0.5 last:border-0">
+                          <span className="min-w-0 truncate text-muted-foreground">{l.descripcion}</span>
+                          <span className="shrink-0 tabular-nums">{l.monto != null ? l.monto.toLocaleString("es-DO", { minimumFractionDigits: 2 }) : "—"}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {sumaLineas > 0 && (
+                      <p className="mt-1.5 text-[11px] text-muted-foreground">Suma de renglones: {sumaLineas.toLocaleString("es-DO", { minimumFractionDigits: 2 })} · el total lo confirmas tú arriba.</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
