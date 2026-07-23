@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { money } from "@/lib/format";
 import { EVENT_TIPOS } from "@/lib/eventos";
+import { expandEvents } from "@/lib/data/agenda";
 
 /**
  * Resumen MATUTINO del día (fuente única): todo lo que hay en el calendario ESE
@@ -39,14 +40,21 @@ function diffDias(desde: string, hasta: string): number {
 
 /** Arma el resumen del día a partir de los datos reales. */
 export async function buildTodayDigest(admin: Admin, hoy: string): Promise<DigestData> {
-  // Eventos de HOY (cualquier tipo) + cobros VENCIDOS (de días anteriores), no completados.
-  const { data: evData } = await admin
-    .from("calendar_events")
-    .select("id, titulo, tipo, fecha, hora, monto, moneda, client_id, influencer_id, completado")
-    .eq("completado", false)
-    .lte("fecha", hoy)
-    .order("hora", { ascending: true, nullsFirst: false });
-  const all = (evData ?? []) as Ev[];
+  // HOY (incluye ocurrencias recurrentes) + cobros/entregas VENCIDOS concretos,
+  // no completados. Usa la MISMA expansión que el calendario para no perder
+  // ninguna repetición.
+  const [hoyEv, overdueRaw] = await Promise.all([
+    expandEvents(admin, hoy, hoy),
+    admin
+      .from("calendar_events")
+      .select("id, titulo, tipo, fecha, hora, monto, moneda, client_id, influencer_id, completado")
+      .is("recurrence", null).eq("recurrence_skip", false)
+      .eq("completado", false).lt("fecha", hoy).in("tipo", ["cobro", "entrega"]),
+  ]);
+  const all = [
+    ...((overdueRaw.data ?? []) as (Ev & { completado: boolean })[]),
+    ...hoyEv,
+  ].filter((e) => !e.completado) as Ev[];
 
   // Nombres de cliente para mostrar "a quién".
   const clientIds = [...new Set(all.map((e) => e.client_id).filter(Boolean))] as string[];

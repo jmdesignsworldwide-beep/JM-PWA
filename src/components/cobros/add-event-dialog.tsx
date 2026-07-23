@@ -2,10 +2,11 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarPlus, Loader2, MessageCircle, Video, MapPin, Zap, ListChecks } from "lucide-react";
+import { CalendarPlus, Loader2, MessageCircle, Video, MapPin, Zap, ListChecks, Repeat } from "lucide-react";
 import { addEvent, createQuickProject } from "@/app/(app)/cobros/actions";
 import { createLead } from "@/app/(app)/leads/actions";
 import { EVENT_TIPO_LIST } from "@/lib/eventos";
+import { FREQ_LIST, FREQ_LABEL, type Freq } from "@/lib/recurrence";
 import { rdToday } from "@/lib/fecha";
 import { fechaCorta } from "@/lib/format";
 import { Dialog } from "@/components/ui/dialog";
@@ -16,6 +17,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 type EvTipo = "inicio" | "entrega" | "cobro" | "acuerdo" | "personal";
@@ -64,6 +66,9 @@ export function AddEventDialog({
   const [monto, setMonto] = useState("");
   const [moneda, setMoneda] = useState<"DOP" | "USD">("DOP");
   const [telManual, setTelManual] = useState("");
+  const [repetir, setRepetir] = useState(false);
+  const [freq, setFreq] = useState<Freq>("mensual");
+  const [hasta, setHasta] = useState("");
 
   const client = clients.find((c) => c.id === clientId) ?? null;
   const waNum = (telManual || client?.whatsapp || client?.telefono || "").replace(/\D/g, "");
@@ -79,7 +84,7 @@ export function AddEventDialog({
   function reset() {
     setModo("rapido"); setTitulo(""); setTipo("personal"); setFecha(defaultDate ?? rdToday()); setHora(""); setClientId(""); setProjectId(""); setInfluencerId("");
     setMeetingUrl(""); setUbicacion(""); setDescripcion(""); setRecordatorio(""); setMonto(""); setMoneda("DOP");
-    setTelManual(""); setError(null); setDone(false);
+    setTelManual(""); setRepetir(false); setFreq("mensual"); setHasta(""); setError(null); setDone(false);
   }
 
   function submit() {
@@ -94,6 +99,8 @@ export function AddEventDialog({
         recordatorio_min: recordatorio ? Number(recordatorio) : null,
         monto: tipo === "cobro" && monto ? Number(monto) : null,
         moneda: tipo === "cobro" && monto ? moneda : null,
+        recurrence: repetir ? freq : null,
+        recurrence_until: repetir && hasta ? hasta : null,
       });
       if (res?.error) { setError(res.error); return; }
       setDone(true);
@@ -147,6 +154,24 @@ export function AddEventDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5"><Label>Fecha</Label><DatePicker value={fecha} onChange={setFecha} /></div>
             <div className="space-y-1.5"><Label>Hora {modo === "rapido" && <span className="text-muted-foreground">(opcional)</span>}</Label><Input type="time" value={hora} onChange={(e) => setHora(e.target.value)} /></div>
+          </div>
+
+          {/* Repetir: se guarda como patrón (no crea una fila por repetición) */}
+          <div className="rounded-lg border border-border p-3">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <Switch checked={repetir} onCheckedChange={setRepetir} /> <Repeat className="size-4 text-electric" /> Repetir
+            </label>
+            {repetir && (
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5"><Label>Cada cuánto</Label>
+                  <Select value={freq} onChange={(e) => setFreq(e.target.value as Freq)}>
+                    {FREQ_LIST.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                  </Select>
+                </div>
+                <div className="space-y-1.5"><Label>Hasta (opcional)</Label><DatePicker value={hasta} onChange={setHasta} /></div>
+                <p className="col-span-full text-xs text-muted-foreground">Se repetirá {FREQ_LABEL[freq].toLowerCase()} desde el {fechaCorta(fecha)}{hasta ? ` hasta el ${fechaCorta(hasta)}` : ", sin fecha de fin"}.</p>
+              </div>
+            )}
           </div>
 
           {modo === "completo" && <>

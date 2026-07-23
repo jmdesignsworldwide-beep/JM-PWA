@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { rdToday, addDays, endOfWeek, endOfMonth } from "@/lib/fecha";
+import { datesInRange, occurrenceId, type Freq } from "@/lib/recurrence";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type EventTipo = "inicio" | "entrega" | "cobro" | "acuerdo" | "personal";
@@ -21,6 +22,12 @@ export type AgendaEvent = {
   meeting_url: string | null;
   ubicacion: string | null;
   descripcion: string | null;
+  recurrence: Freq | null;
+  recurrence_until: string | null;
+  recurrence_parent_id: string | null;
+  recurrence_skip: boolean;
+  /** true si es una ocurrencia GENERADA de una serie (no una fila propia). */
+  esOcurrencia?: boolean;
   cliente?: { nombre: string; apellido: string | null; whatsapp: string | null; telefono: string | null } | null;
   influencer?: { nombre: string } | null;
 };
@@ -50,49 +57,100 @@ async function attachClients(
   }));
 }
 
-const COLS = "id, titulo, tipo, fecha, client_id, project_id, influencer_id, monto, moneda, completado, brand_id, auto_generado, hora, meeting_url, ubicacion, descripcion";
+const COLS = "id, titulo, tipo, fecha, client_id, project_id, influencer_id, monto, moneda, completado, brand_id, auto_generado, hora, meeting_url, ubicacion, descripcion, recurrence, recurrence_until, recurrence_parent_id, recurrence_skip";
 
-/** Eventos en un rango de fechas [from, to]. */
+const childKey = (parent: string, fecha: string) => `${parent}|${fecha}`;
+
+/**
+ * Filas CONCRETAS en [from, to]: eventos únicos + excepciones "override" de una
+ * serie (una ocurrencia editada). NO incluye maestras ni excepciones "skip".
+ */
+async function concreteRows(supabase: SupabaseClient, from: string, to: string): Promise<AgendaEvent[]> {
+  const { data } = await supabase
+    .from("calendar_events").select(COLS)
+    .is("recurrence", null)
+    .eq("recurrence_skip", false)
+    .gte("fecha", from).lte("fecha", to);
+  return (data ?? []) as AgendaEvent[];
+}
+
+/**
+ * Ocurrencias GENERADAS (virtuales) de las series en [from, to], saltando las
+ * fechas que ya tienen una excepción (override o skip). Sin materializar filas.
+ */
+async function generatedOccurrences(supabase: SupabaseClient, from: string, to: string): Promise<AgendaEvent[]> {
+  const { data: mastersRaw } = await supabase
+    .from("calendar_events").select(COLS)
+    .not("recurrence", "is", null)
+    .lte("fecha", to);
+  const masters = ((mastersRaw ?? []) as AgendaEvent[]).filter((m) => !m.recurrence_until || m.recurrence_until >= from);
+  if (masters.length === 0) return [];
+
+  // Excepciones (cualquier hija) de esas series dentro del rango: bloquean generación.
+  const { data: exRaw } = await supabase
+    .from("calendar_events").select("recurrence_parent_id, fecha")
+    .in("recurrence_parent_id", masters.map((m) => m.id))
+    .gte("fecha", from).lte("fecha", to);
+  const blocked = new Set(((exRaw ?? []) as { recurrence_parent_id: string; fecha: string }[]).map((c) => childKey(c.recurrence_parent_id, c.fecha)));
+
+  const out: AgendaEvent[] = [];
+  for (const m of masters) {
+    for (const fecha of datesInRange(m.fecha, m.recurrence as Freq, m.recurrence_until, from, to)) {
+      if (blocked.has(childKey(m.id, fecha))) continue;
+      out.push({ ...m, id: occurrenceId(m.id, fecha), fecha, completado: false, recurrence_parent_id: m.id, esOcurrencia: true });
+    }
+  }
+  return out;
+}
+
+/**
+ * Todo lo que ocurre en [from, to]: concretas + ocurrencias generadas.
+ * Exportada para que el digest (cron, admin client) reutilice la MISMA
+ * expansión y las ocurrencias entren en el resumen diario igual que un evento.
+ */
+export async function expandEvents(supabase: SupabaseClient, from: string, to: string): Promise<AgendaEvent[]> {
+  return expandRange(supabase, from, to);
+}
+async function expandRange(supabase: SupabaseClient, from: string, to: string): Promise<AgendaEvent[]> {
+  const [concrete, generated] = await Promise.all([
+    concreteRows(supabase, from, to),
+    generatedOccurrences(supabase, from, to),
+  ]);
+  return [...concrete, ...generated].sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
+/** Eventos en un rango de fechas [from, to] (incluye ocurrencias recurrentes). */
 export async function getEventsRange(from: string, to: string): Promise<AgendaEvent[]> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("calendar_events")
-    .select(COLS)
-    .gte("fecha", from)
-    .lte("fecha", to)
-    .order("fecha", { ascending: true });
-  return attachClients(supabase, (data ?? []) as AgendaEvent[]);
+  return attachClients(supabase, await expandRange(supabase, from, to));
 }
 
 /** Próximos eventos (de hoy en adelante, no completados) ordenados por fecha. */
 export async function getProximosEventos(limit = 7): Promise<AgendaEvent[]> {
   const supabase = await createClient();
   const hoy = rdToday();
-  const { data } = await supabase
-    .from("calendar_events")
-    .select(COLS)
-    .eq("completado", false)
-    .gte("fecha", hoy)
-    .order("fecha", { ascending: true })
-    .order("hora", { ascending: true, nullsFirst: true })
-    .limit(limit);
-  return attachClients(supabase, (data ?? []) as AgendaEvent[]);
+  const ev = (await expandRange(supabase, hoy, addDays(hoy, 120)))
+    .filter((e) => !e.completado)
+    .sort((a, b) => a.fecha.localeCompare(b.fecha) || (a.hora ?? "").localeCompare(b.hora ?? ""))
+    .slice(0, limit);
+  return attachClients(supabase, ev);
 }
 
-/** Briefing "HOY". */
+/** Briefing "HOY" — incluye las ocurrencias recurrentes de hoy/mañana. */
 export async function getHoy() {
   const supabase = await createClient();
   const hoy = rdToday();
   const manana = addDays(hoy, 1);
 
-  const { data } = await supabase
-    .from("calendar_events")
-    .select(COLS)
-    .eq("completado", false)
-    .lte("fecha", manana)
-    .order("fecha", { ascending: true });
-
-  const ev = await attachClients(supabase, (data ?? []) as AgendaEvent[]);
+  const [vencRaw, hoyMan] = await Promise.all([
+    concreteRows(supabase, "2000-01-01", addDays(hoy, -1)),
+    expandRange(supabase, hoy, manana),
+  ]);
+  const relevantes = [
+    ...vencRaw.filter((e) => e.tipo === "cobro" || e.tipo === "entrega"),
+    ...hoyMan,
+  ].filter((e) => !e.completado);
+  const ev = await attachClients(supabase, relevantes);
   return {
     hoy,
     vencidos: ev.filter((e) => e.fecha < hoy && (e.tipo === "cobro" || e.tipo === "entrega")),
@@ -143,14 +201,14 @@ export async function getCashflow() {
 export async function getPendientes(): Promise<AgendaEvent[]> {
   const supabase = await createClient();
   const hoy = rdToday();
-  const { data } = await supabase
-    .from("calendar_events")
-    .select(COLS)
-    .eq("completado", false)
-    .in("tipo", ["cobro", "entrega"])
-    .lte("fecha", addDays(hoy, 60))
-    .order("fecha", { ascending: true });
-  return attachClients(supabase, (data ?? []) as AgendaEvent[]);
+  const [concrete, generated] = await Promise.all([
+    concreteRows(supabase, "2000-01-01", addDays(hoy, 60)),   // incluye vencidos concretos
+    generatedOccurrences(supabase, hoy, addDays(hoy, 60)),     // recurrentes futuras (sin inundar el pasado)
+  ]);
+  const ev = [...concrete, ...generated]
+    .filter((e) => !e.completado && (e.tipo === "cobro" || e.tipo === "entrega"))
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  return attachClients(supabase, ev);
 }
 
 export type PagoOrderLite = { id: string; total: number; moneda: string; fecha: string; estado: string };
