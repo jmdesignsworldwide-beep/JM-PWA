@@ -3,17 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { LayoutDashboard, Target, Users, CalendarClock, Menu, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, FileText, Calendar, ListTodo, Menu, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Item = { label: string; href: string; icon: LucideIcon };
 
-/** Accesos principales (pulgar). El resto del menú vive tras "Más". */
+/**
+ * Accesos principales (pulgar): Inicio · Pedido · Calendario · Pendientes.
+ * "Pedido" abre la lista de pedidos (con "+ Nuevo pedido" arriba). El resto del
+ * menú (Prospectos, Clientes, Cobros, Finanzas, etc.) vive tras "Más".
+ */
 const PRIMARY: Item[] = [
   { label: "Inicio", href: "/", icon: LayoutDashboard },
-  { label: "Prospectos", href: "/leads", icon: Target },
-  { label: "Clientes", href: "/clientes", icon: Users },
-  { label: "Cobros", href: "/cobros", icon: CalendarClock },
+  { label: "Pedido", href: "/pedidos", icon: FileText },
+  { label: "Calendario", href: "/calendario", icon: Calendar },
+  { label: "Pendientes", href: "/pendientes", icon: ListTodo },
 ];
 
 function isActive(pathname: string, href: string) {
