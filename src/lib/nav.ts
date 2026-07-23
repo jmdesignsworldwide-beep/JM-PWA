@@ -12,6 +12,7 @@ import {
   Settings,
   UsersRound,
   ListTodo,
+  ServerCog,
   type LucideIcon,
 } from "lucide-react";
 
@@ -19,12 +20,14 @@ export type NavItem = {
   label: string;
   href: string;
   icon: LucideIcon;
+  /** Solo visible/accesible para el owner. */
+  ownerOnly?: boolean;
 };
 
 /** Ítems del sidebar — orden y nombres según 00-MASTER-SPEC.md. */
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Mis pendientes", href: "/pendientes", icon: ListTodo },
+  { label: "Mis pendientes", href: "/pendientes", icon: ListTodo, ownerOnly: true },
   { label: "Prospectos / Ventas", href: "/leads", icon: Target },
   { label: "Clientes y Proyectos", href: "/clientes", icon: Users },
   { label: "Pedidos / Contratos / Facturas", href: "/pedidos", icon: FileText },
@@ -33,6 +36,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Influencers", href: "/influencers", icon: Megaphone },
   { label: "Equipo", href: "/equipo", icon: UsersRound },
   { label: "Calendario", href: "/calendario", icon: Calendar },
+  { label: "Sistemas", href: "/sistemas", icon: ServerCog, ownerOnly: true },
   { label: "Historial / Auditoría", href: "/historial", icon: ShieldCheck },
   { label: "Configuración", href: "/configuracion", icon: Settings },
 ];

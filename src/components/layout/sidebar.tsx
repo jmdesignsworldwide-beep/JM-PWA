@@ -19,7 +19,7 @@ const SIEMPRE_VISIBLE = ["/", "/configuracion"];
 export function Sidebar({ onNavigate, hidden = [], isOwner = false }: { onNavigate?: () => void; hidden?: string[]; isOwner?: boolean }) {
   const pathname = usePathname();
   const items = NAV_ITEMS.filter((i) =>
-    (i.href !== "/pendientes" || isOwner) &&
+    (!i.ownerOnly || isOwner) &&
     (SIEMPRE_VISIBLE.includes(i.href) || !hidden.includes(i.href)));
 
   return (

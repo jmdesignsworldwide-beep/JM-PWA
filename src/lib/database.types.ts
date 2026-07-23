@@ -547,6 +547,36 @@ export interface Tables {
     usuario_id: string | null;
     fecha: string;
   };
+
+  // ── Control de Sistemas (mapa de cuentas Supabase) — NO guarda contraseñas ──
+  system_accounts: {
+    id: string;
+    correo: string;
+    etiqueta: string | null;
+    capacidad: number;
+    notas: string | null;
+    notas_protegidas: string | null;
+    created_by: string | null;
+  } & Timestamps;
+
+  system_projects: {
+    id: string;
+    account_id: string | null;
+    nombre: string;
+    tipo: "demo" | "cliente" | "colaboracion" | "interno";
+    referencia: string | null;
+    estado: "activo" | "pausado" | "archivado";
+    notas: string | null;
+    notas_protegidas: string | null;
+    created_by: string | null;
+  } & Timestamps;
+
+  system_pin_attempts: {
+    id: string;
+    usuario_id: string | null;
+    ok: boolean;
+    at: string;
+  };
 }
 
 type TableName = keyof Tables;
@@ -566,6 +596,18 @@ export type Database = {
       worker_update_task_estado: {
         Args: { p_task: string; p_estado: string };
         Returns: undefined;
+      };
+      set_system_pin: {
+        Args: { p_actor: string; p_pin: string };
+        Returns: undefined;
+      };
+      system_pin_status: {
+        Args: { p_actor: string };
+        Returns: boolean;
+      };
+      reveal_protected: {
+        Args: { p_actor: string; p_kind: string; p_id: string; p_pin: string };
+        Returns: string | null;
       };
     };
     Enums: Record<string, never>;
