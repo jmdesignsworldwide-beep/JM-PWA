@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Download, FileSpreadsheet, TrendingUp, Repeat, ArrowDownUp, ArrowUpRight, ArrowDownRight, Wallet, Building2, User, Layers, ChevronRight, Calendar } from "lucide-react";
+import Link from "next/link";
+import { Download, TrendingUp, Repeat, ArrowDownUp, ArrowUpRight, ArrowDownRight, Wallet, Building2, User, Layers, ChevronRight, Calendar } from "lucide-react";
 import { money, fechaCorta } from "@/lib/format";
 import { rdToday, startOfMonth, endOfMonth } from "@/lib/fecha";
 import { AddIncomeDialog } from "./add-income-dialog";
@@ -81,18 +82,6 @@ export function FinanzasView({
     return { ingresos, gastos, neto: { DOP: ingresos.DOP - gastos.DOP, USD: ingresos.USD - gastos.USD } };
   }, [fIncomes, fExpenses]);
 
-  // Flujo mensual (respeta todos los filtros): por YYYY-MM, últimos 12 con datos.
-  const monthly = useMemo(() => {
-    const map: Record<string, { ingresos: number; gastos: number }> = {};
-    for (const m of filtered) {
-      const k = m.fecha.slice(0, 7);
-      (map[k] ??= { ingresos: 0, gastos: 0 });
-      if (m.kind === "income") map[k].ingresos += Number(m.monto);
-      else map[k].gastos += Number(m.monto);
-    }
-    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b)).slice(-12).map(([mes, v]) => ({ mes, ...v }));
-  }, [filtered]);
-
   // Gastos por categoría (respeta filtros).
   const byCategory = useMemo(() => {
     const map: Record<string, number> = {};
@@ -100,7 +89,6 @@ export function FinanzasView({
     return Object.entries(map).map(([categoria, total]) => ({ categoria, total })).sort((a, b) => b.total - a.total);
   }, [fExpenses]);
 
-  const maxMonth = Math.max(1, ...monthly.flatMap((m) => [m.ingresos, m.gastos]));
   const maxCat = Math.max(1, ...byCategory.map((c) => c.total));
 
   function applyPreset(p: typeof preset) {
@@ -112,20 +100,6 @@ export function FinanzasView({
       const d = new Date(`${today}T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1);
       const prev = d.toISOString().slice(0, 10); setDesde(startOfMonth(prev)); setHasta(endOfMonth(prev));
     } else if (p === "anio") { setDesde(`${today.slice(0, 4)}-01-01`); setHasta(`${today.slice(0, 4)}-12-31`); }
-  }
-
-  function exportCsv() {
-    const rows = [
-      ["tipo", "fecha", "monto", "moneda", "categoria", "comercio", "negocio_personal", "descripcion"],
-      ...filtered.map((m) => [
-        m.kind === "income" ? "ingreso" : "gasto", m.fecha, m.monto, m.moneda, m.categoria ?? "",
-        m.comercio ?? "", m.es_personal ? "personal" : "negocio", (m.descripcion ?? "").replace(/[\n,]/g, " "),
-      ]),
-    ];
-    const csv = rows.map((r) => r.join(",")).join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
-    const a = document.createElement("a"); a.href = url; a.download = `finanzas-${scope}.csv`; a.click();
-    URL.revokeObjectURL(url);
   }
 
   const sortByDate = (rows: Mov[]) => [...rows].sort((a, b) => b.fecha.localeCompare(a.fecha));
@@ -144,7 +118,6 @@ export function FinanzasView({
         </div>
         <div className="ml-auto flex flex-wrap gap-2">
           <a href="/api/pdf/finance" target="_blank" rel="noopener noreferrer"><Button variant="outline" size="sm"><Download className="size-4" /> PDF</Button></a>
-          <Button variant="outline" size="sm" onClick={exportCsv}><FileSpreadsheet className="size-4" /> Excel (CSV)</Button>
           <AddExpenseDialog categorias={categoriasGasto} projects={projects} brands={brands} />
           <AddIncomeDialog categorias={categoriasIngreso} clients={clients} projects={projects} brands={brands} />
         </div>
@@ -155,7 +128,7 @@ export function FinanzasView({
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3">
           <div className="flex rounded-lg border border-border p-0.5">
             {([["todo", "Todo", Layers], ["negocio", "Negocio", Building2], ["personal", "Personal", User]] as const).map(([id, label, Icon]) => (
-              <button key={id} onClick={() => setScope(id)}
+              <button key={id} onClick={() => { setScope(id); if (id === "personal") setBrandId(""); }}
                 className={cn("flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors", scope === id ? "bg-electric/15 text-electric" : "text-muted-foreground hover:bg-accent/40")}>
                 <Icon className="size-4" /> {label}
               </button>
@@ -178,7 +151,8 @@ export function FinanzasView({
             <input type="date" value={hasta} onChange={(e) => { setHasta(e.target.value); setPreset("custom"); }} className="h-8 rounded-lg border border-border bg-background/50 px-2 text-xs" />
           </div>
 
-          {brands.length > 0 && (
+          {/* Las marcas son del negocio: no se muestran en Personal */}
+          {scope !== "personal" && brands.length > 0 && (
             <Select value={brandId} onChange={(e) => setBrandId(e.target.value)} className="h-8 w-auto text-sm">
               <option value="">Todas las marcas</option>
               {brands.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}
@@ -191,37 +165,11 @@ export function FinanzasView({
 
       {tab === "resumen" && (
         <div className="space-y-5">
-          {/* Balance — clicable */}
+          {/* Balance — cada uno lleva a la página de Movimientos (buscar/filtrar) */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <BalanceCard label="Ingresos" b={balance.ingresos} tone="success" onClick={() => setDrill({ title: "Ingresos", rows: sortByDate(fIncomes) })} />
-            <BalanceCard label="Gastos" b={balance.gastos} tone="destructive" onClick={() => setDrill({ title: "Gastos", rows: sortByDate(fExpenses) })} />
-            <BalanceCard label="Neto" b={balance.neto} tone="electric" onClick={() => setDrill({ title: "Todos los movimientos", rows: sortByDate(filtered) })} />
-          </div>
-
-          {/* Ingresos vs gastos por mes — barras clicables */}
-          <div className="rounded-xl border border-border bg-card p-5">
-            <h3 className="mb-4 font-semibold">Ingresos vs gastos por mes</h3>
-            {monthly.length === 0 ? <Empty text="Sin movimientos en este filtro." /> : (
-              <>
-                <div className="flex items-end gap-3" style={{ height: 160 }}>
-                  {monthly.map((m) => (
-                    <button key={m.mes} onClick={() => setDrill({ title: `Movimientos de ${m.mes}`, rows: sortByDate(filtered.filter((x) => x.fecha.slice(0, 7) === m.mes)) })}
-                      className="group flex flex-1 flex-col items-center gap-1 rounded-lg pt-1 transition-colors hover:bg-accent/40">
-                      <div className="flex w-full items-end justify-center gap-1" style={{ height: 130 }}>
-                        <div className="w-3 rounded-t bg-success transition-all group-hover:opacity-80" style={{ height: `${(m.ingresos / maxMonth) * 100}%` }} title={`Ingresos ${money(m.ingresos, "DOP")}`} />
-                        <div className="w-3 rounded-t bg-destructive transition-all group-hover:opacity-80" style={{ height: `${(m.gastos / maxMonth) * 100}%` }} title={`Gastos ${money(m.gastos, "DOP")}`} />
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">{m.mes.slice(5)}/{m.mes.slice(2, 4)}</span>
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-success" /> Ingresos</span>
-                  <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-destructive" /> Gastos</span>
-                  <span className="ml-auto">Clic en un mes para ver el detalle</span>
-                </div>
-              </>
-            )}
+            <BalanceCard label="Ingresos" b={balance.ingresos} tone="success" href="/finanzas/movimientos?tipo=ingreso" />
+            <BalanceCard label="Gastos" b={balance.gastos} tone="destructive" href="/finanzas/movimientos?tipo=gasto" />
+            <BalanceCard label="Neto" b={balance.neto} tone="electric" href="/finanzas/movimientos" />
           </div>
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -301,11 +249,11 @@ export function FinanzasView({
   );
 }
 
-function BalanceCard({ label, b, tone, onClick }: { label: string; b: Bucket; tone: string; onClick: () => void }) {
+function BalanceCard({ label, b, tone, href }: { label: string; b: Bucket; tone: string; href: string }) {
   const color = tone === "success" ? "var(--success)" : tone === "destructive" ? "var(--destructive)" : "var(--electric)";
   const Icon = tone === "success" ? ArrowUpRight : tone === "destructive" ? ArrowDownRight : Wallet;
   return (
-    <button onClick={onClick} className="rounded-xl border border-border bg-card p-4 text-left transition-all hover:border-electric/40 hover:shadow-md">
+    <Link href={href} className="block rounded-xl border border-border bg-card p-4 text-left transition-all hover:border-electric/40 hover:shadow-md">
       <div className="flex items-center justify-between">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
         <span className="flex size-8 items-center justify-center rounded-lg" style={{ backgroundColor: `color-mix(in srgb, ${color} 14%, transparent)`, color }}>
@@ -314,8 +262,8 @@ function BalanceCard({ label, b, tone, onClick }: { label: string; b: Bucket; to
       </div>
       <p className="mt-2 text-2xl font-bold tracking-tight" style={{ color }}>{money(b.DOP, "DOP")}</p>
       {b.USD !== 0 && <p className="text-sm text-muted-foreground">{money(b.USD, "USD")}</p>}
-      <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">Ver detalle <ChevronRight className="size-3" /></p>
-    </button>
+      <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">Buscar y filtrar <ChevronRight className="size-3" /></p>
+    </Link>
   );
 }
 
