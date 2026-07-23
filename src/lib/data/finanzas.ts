@@ -92,31 +92,83 @@ export async function getExpensesByCategory() {
   return Object.entries(map).map(([categoria, total]) => ({ categoria, total })).sort((a, b) => b.total - a.total);
 }
 
-/** Margen real por proyecto: precio − gastos asignados. */
-export async function getProjectMargins() {
+export type ProjectAbono = { id: string; monto: number; moneda: string; fecha: string; tipo: string; metodo: string | null; nota: string | null; comprobante_url: string | null };
+export type ProjectGasto = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; comercio: string | null; factura_url: string | null };
+export type ProjectMargin = {
+  id: string; nombre: string | null; precio_total: number; moneda: string;
+  tipo: string | null; client_id: string; brand_id: string | null;
+  clienteNombre: string | null; brandNombre: string | null;
+  gastos: number; cobrado: number; ganancia: number; margen: number;
+  abonos: ProjectAbono[]; gastosList: ProjectGasto[];
+};
+
+/**
+ * Margen real por proyecto, con el historial completo para el detalle:
+ * precio contratado, lo realmente cobrado (abonos), los gastos asignados y
+ * quién es el cliente / marca. Un proyecto sin cobro (RD$0) es válido: se
+ * muestra tal cual con su gasto, sin marcarlo como error.
+ */
+export async function getProjectMargins(): Promise<ProjectMargin[]> {
   const supabase = await createClient();
   const { data: projects } = await supabase
     .from("projects")
-    .select("id, nombre, precio_total, moneda, tipo, client_id")
+    .select("id, nombre, precio_total, moneda, tipo, client_id, order_id, brand_id")
     .order("created_at", { ascending: false })
     .limit(50);
-  const projs = (projects ?? []) as { id: string; nombre: string | null; precio_total: number; moneda: string; tipo: string | null; client_id: string }[];
+  const projs = (projects ?? []) as { id: string; nombre: string | null; precio_total: number; moneda: string; tipo: string | null; client_id: string; order_id: string | null; brand_id: string | null }[];
   if (projs.length === 0) return [];
 
-  const { data: exps } = await supabase
-    .from("expenses")
-    .select("project_id, monto")
-    .eq("es_personal", false)
-    .in("project_id", projs.map((p) => p.id));
-  const gastosByProj: Record<string, number> = {};
-  for (const e of (exps ?? []) as { project_id: string | null; monto: number }[]) {
-    if (e.project_id) gastosByProj[e.project_id] = (gastosByProj[e.project_id] ?? 0) + Number(e.monto);
+  const projIds = projs.map((p) => p.id);
+  const orderIds = projs.map((p) => p.order_id).filter(Boolean) as string[];
+  const clientIds = [...new Set(projs.map((p) => p.client_id))];
+  const brandIds = [...new Set(projs.map((p) => p.brand_id).filter(Boolean))] as string[];
+
+  const [expsRes, paysRes, clientsRes, brandsRes] = await Promise.all([
+    supabase.from("expenses").select("id, project_id, monto, moneda, fecha, categoria, descripcion, comercio, factura_url").eq("es_personal", false).in("project_id", projIds),
+    orderIds.length
+      ? supabase.from("order_payments").select("id, order_id, monto, moneda, fecha, tipo, metodo, nota, comprobante_url").in("order_id", orderIds)
+      : Promise.resolve({ data: [] as unknown[] }),
+    clientIds.length
+      ? supabase.from("clients").select("id, nombre, apellido").in("id", clientIds)
+      : Promise.resolve({ data: [] as unknown[] }),
+    brandIds.length
+      ? supabase.from("brands").select("id, nombre").in("id", brandIds)
+      : Promise.resolve({ data: [] as unknown[] }),
+  ]);
+
+  const gastosByProj: Record<string, ProjectGasto[]> = {};
+  for (const e of (expsRes.data ?? []) as (ProjectGasto & { project_id: string | null })[]) {
+    if (!e.project_id) continue;
+    (gastosByProj[e.project_id] ??= []).push({ id: e.id, monto: Number(e.monto), moneda: e.moneda, fecha: e.fecha, categoria: e.categoria, descripcion: e.descripcion, comercio: e.comercio, factura_url: e.factura_url });
   }
+
+  const orderToProj = new Map(projs.filter((p) => p.order_id).map((p) => [p.order_id as string, p.id]));
+  const abonosByProj: Record<string, ProjectAbono[]> = {};
+  for (const a of (paysRes.data ?? []) as (ProjectAbono & { order_id: string })[]) {
+    const pid = orderToProj.get(a.order_id);
+    if (!pid) continue;
+    (abonosByProj[pid] ??= []).push({ id: a.id, monto: Number(a.monto), moneda: a.moneda, fecha: a.fecha, tipo: a.tipo, metodo: a.metodo, nota: a.nota, comprobante_url: a.comprobante_url });
+  }
+
+  const clientRows = (clientsRes.data ?? []) as { id: string; nombre: string; apellido: string | null }[];
+  const brandRows = (brandsRes.data ?? []) as { id: string; nombre: string }[];
+  const clientMap = new Map(clientRows.map((c) => [c.id, `${c.nombre} ${c.apellido ?? ""}`.trim()]));
+  const brandMap = new Map(brandRows.map((b) => [b.id, b.nombre]));
+
   return projs.map((p) => {
-    const gastos = gastosByProj[p.id] ?? 0;
+    const gastosList = (gastosByProj[p.id] ?? []).sort((a, b) => b.fecha.localeCompare(a.fecha));
+    const abonos = (abonosByProj[p.id] ?? []).sort((a, b) => b.fecha.localeCompare(a.fecha));
+    const gastos = gastosList.reduce((s, g) => s + g.monto, 0);
+    const cobrado = abonos.reduce((s, a) => s + a.monto, 0);
     const ganancia = Number(p.precio_total) - gastos;
     const margen = p.precio_total > 0 ? (ganancia / Number(p.precio_total)) * 100 : 0;
-    return { ...p, gastos, ganancia, margen };
+    return {
+      id: p.id, nombre: p.nombre, precio_total: Number(p.precio_total), moneda: p.moneda,
+      tipo: p.tipo, client_id: p.client_id, brand_id: p.brand_id,
+      clienteNombre: clientMap.get(p.client_id) ?? null,
+      brandNombre: p.brand_id ? brandMap.get(p.brand_id) ?? null : null,
+      gastos, cobrado, ganancia, margen, abonos, gastosList,
+    };
   });
 }
 

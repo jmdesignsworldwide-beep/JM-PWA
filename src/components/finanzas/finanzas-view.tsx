@@ -2,13 +2,15 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Download, TrendingUp, Repeat, ArrowDownUp, ArrowUpRight, ArrowDownRight, Wallet, Building2, User, Layers, ChevronRight, Calendar } from "lucide-react";
+import { Download, TrendingUp, Repeat, ArrowDownUp, ArrowUpRight, ArrowDownRight, Wallet, Building2, User, Layers, ChevronRight, Calendar, Receipt, PiggyBank } from "lucide-react";
 import { money, fechaCorta } from "@/lib/format";
 import { rdToday, startOfMonth, endOfMonth } from "@/lib/fecha";
 import { AddIncomeDialog } from "./add-income-dialog";
 import { AddExpenseDialog } from "./add-expense-dialog";
 import { RecurringManager } from "./recurring-manager";
 import { TransactionDetail, type Mov } from "./transaction-detail";
+import { ProjectMarginDetail } from "./project-margin-detail";
+import type { ProjectMargin } from "@/lib/data/finanzas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -19,7 +21,7 @@ type Opt = { id: string; nombre: string };
 type Bucket = { DOP: number; USD: number };
 type Income = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; brand_id: string | null; project_id: string | null; client_id: string | null; comprobante_url: string | null; es_personal: boolean; order_payment_id: string | null };
 type Expense = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; brand_id: string | null; project_id: string | null; comercio: string | null; itbis: number | null; metodo_pago: string | null; factura_url: string | null; es_personal: boolean };
-type Margin = { id: string; nombre: string | null; precio_total: number; moneda: string; gastos: number; ganancia: number; margen: number };
+type Margin = ProjectMargin;
 type Plan = { id: string; client_id: string; tipo: string | null; monto: number; moneda: string; frecuencia: string | null; proxima_factura: string | null; activo: boolean };
 
 type Scope = "todo" | "negocio" | "personal";
@@ -52,6 +54,7 @@ export function FinanzasView({
   // Drill-down (lista filtrada) y detalle de un movimiento.
   const [drill, setDrill] = useState<{ title: string; rows: Mov[] } | null>(null);
   const [detail, setDetail] = useState<Mov | null>(null);
+  const [projDetail, setProjDetail] = useState<Margin | null>(null);
 
   const brandMap = useMemo(() => Object.fromEntries(brands.map((b) => [b.id, b.nombre])), [brands]);
 
@@ -90,6 +93,24 @@ export function FinanzasView({
   }, [fExpenses]);
 
   const maxCat = Math.max(1, ...byCategory.map((c) => c.total));
+
+  // Saldo disponible: dinero real en mano (todos los ingresos − gastos de
+  // negocio), sin importar el filtro de fechas. Es el "cuánto tengo de verdad".
+  const saldo = useMemo(() => {
+    const s: Bucket = { DOP: 0, USD: 0 };
+    for (const i of incomes) s[i.moneda === "USD" ? "USD" : "DOP"] += Number(i.monto);
+    for (const e of expenses) if (!e.es_personal) s[e.moneda === "USD" ? "USD" : "DOP"] -= Number(e.monto);
+    return s;
+  }, [incomes, expenses]);
+
+  // Recordatorio neutral: movimientos de negocio a los que les falta el
+  // comprobante. Los ingresos que vienen de Cobros llevan su prueba en el pago,
+  // así que no se cuentan aquí.
+  const sinComprobante = useMemo(() => {
+    const ing = incomes.filter((i) => !i.es_personal && !i.order_payment_id && !i.comprobante_url).length;
+    const gas = expenses.filter((e) => !e.es_personal && !e.factura_url).length;
+    return { ing, gas, total: ing + gas };
+  }, [incomes, expenses]);
 
   function applyPreset(p: typeof preset) {
     setPreset(p);
@@ -165,6 +186,27 @@ export function FinanzasView({
 
       {tab === "resumen" && (
         <div className="space-y-5">
+          {/* Saldo disponible real + recordatorio neutral de comprobantes */}
+          <div className="rounded-xl border border-electric/30 bg-[color-mix(in_srgb,var(--electric)_6%,var(--card))] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground"><PiggyBank className="size-4 text-electric" /> Saldo disponible</p>
+                <p className="mt-1 text-2xl font-bold tracking-tight" style={{ color: saldo.DOP >= 0 ? "var(--foreground)" : "var(--destructive)" }}>{money(saldo.DOP, "DOP")}</p>
+                {saldo.USD !== 0 && <p className="text-sm text-muted-foreground">{money(saldo.USD, "USD")}</p>}
+              </div>
+              <span className="hidden text-right text-[11px] text-muted-foreground sm:block">Ingresos<br />− gastos de negocio</span>
+            </div>
+            {sinComprobante.total > 0 && (
+              <Link href="/finanzas/movimientos" className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-card/60 px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent/40">
+                <Receipt className="size-4 shrink-0 text-electric" />
+                <span className="min-w-0">
+                  {sinComprobante.total} movimiento{sinComprobante.total === 1 ? "" : "s"} sin comprobante. Adjúntalos cuando puedas para tener todo respaldado.
+                </span>
+                <ChevronRight className="ml-auto size-4 shrink-0" />
+              </Link>
+            )}
+          </div>
+
           {/* Balance — cada uno lleva a la página de Movimientos (buscar/filtrar) */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <BalanceCard label="Ingresos" b={balance.ingresos} tone="success" href="/finanzas/movimientos?tipo=ingreso" />
@@ -197,12 +239,18 @@ export function FinanzasView({
                 {margins.length === 0 ? <Empty text="Aún no hay proyectos." /> : (
                   <ul className="space-y-2">
                     {margins.slice(0, 6).map((m) => (
-                      <li key={m.id} className="rounded-lg border border-border px-3 py-2 text-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="truncate font-medium">{m.nombre ?? "Proyecto"}</span>
-                          <Badge dot={m.ganancia >= 0 ? "var(--success)" : "var(--destructive)"}>{money(m.ganancia, m.moneda)}</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">Precio {money(m.precio_total, m.moneda)} · gastos {money(m.gastos, m.moneda)} · margen {m.margen.toFixed(0)}%</p>
+                      <li key={m.id}>
+                        <button onClick={() => setProjDetail(m)} className="block w-full rounded-lg border border-border px-3 py-2 text-left text-sm transition-colors hover:border-electric/40 hover:bg-accent/40">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="flex min-w-0 items-center gap-1 truncate font-medium">{m.nombre ?? "Proyecto"}<ChevronRight className="size-3 shrink-0 text-muted-foreground" /></span>
+                            <Badge dot={m.ganancia >= 0 ? "var(--success)" : "var(--destructive)"}>{money(m.ganancia, m.moneda)}</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {m.precio_total === 0
+                              ? <>Sin cobro (RD$0) · gastos {money(m.gastos, m.moneda)}</>
+                              : <>Cobrado {money(m.cobrado, m.moneda)} de {money(m.precio_total, m.moneda)} · gastos {money(m.gastos, m.moneda)} · margen {m.margen.toFixed(0)}%</>}
+                          </p>
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -245,6 +293,9 @@ export function FinanzasView({
           projects={projects} brands={brands} clients={clients} brandMap={brandMap}
         />
       )}
+
+      {/* Modal detalle de ganancia por proyecto */}
+      {projDetail && <ProjectMarginDetail m={projDetail} onClose={() => setProjDetail(null)} />}
     </div>
   );
 }
