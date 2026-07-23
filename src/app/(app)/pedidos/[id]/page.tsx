@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getOrderFull } from "@/lib/data/orders";
+import { getTeamMembers } from "@/lib/data/equipo";
 import { OrderDetail } from "@/components/pedidos/order-detail";
 import { PageHeader } from "@/components/layout/page-header";
 import { diasDesde } from "@/lib/pedidos";
@@ -19,6 +20,7 @@ export default async function PedidoPage({
 
   const { order, client } = data;
   const contractDias = diasDesde(data.contract?.fecha_envio);
+  const teamMembers = (await getTeamMembers()).map((m) => ({ id: m.id, nombre: m.nombre }));
 
   return (
     <div className="space-y-5">
@@ -59,6 +61,8 @@ export default async function PedidoPage({
         project={data.project}
         milestones={data.milestones}
         updates={data.updates}
+        tasks={data.tasks}
+        teamMembers={teamMembers}
       />
     </div>
   );

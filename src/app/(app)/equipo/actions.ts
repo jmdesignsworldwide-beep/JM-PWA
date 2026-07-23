@@ -40,6 +40,7 @@ export async function updateTaskStage(id: string, estado: "pendiente" | "en_prog
   const { error } = await supabase.from("tasks").update({ estado }).eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/equipo");
+  revalidatePath("/cobros");
   if (memberId) revalidatePath(`/equipo/${memberId}`);
   return { ok: true };
 }
@@ -96,6 +97,6 @@ export async function registerTeamPayment(input: PaymentInput) {
   const supabase = await createClient();
   const { error } = await supabase.from("team_payments").insert(input);
   if (error) return { error: error.message };
-  revalidatePath(`/equipo/${input.team_member_id}`); revalidatePath("/equipo");
+  revalidatePath(`/equipo/${input.team_member_id}`); revalidatePath("/equipo"); revalidatePath("/cobros");
   return { ok: true };
 }

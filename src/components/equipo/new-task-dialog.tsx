@@ -15,9 +15,11 @@ import { Textarea } from "@/components/ui/textarea";
 type Opt = { id: string; nombre: string };
 
 export function NewTaskDialog({
-  members, projects, defaultMemberId, trigger,
+  members, projects, defaultMemberId, trigger, orderId,
 }: {
   members: Opt[]; projects: Opt[]; defaultMemberId?: string; trigger?: React.ReactNode;
+  /** Si se pasa, la tarea pertenece a ESE pedido (se oculta el selector de proyecto). */
+  orderId?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -32,7 +34,8 @@ export function NewTaskDialog({
       const res = await createTask({
         descripcion: (fd.get("descripcion") as string).trim(),
         team_member_id: get("team_member_id"),
-        project_id: get("project_id"),
+        project_id: orderId ? null : get("project_id"),
+        order_id: orderId ?? null,
         monto: Number(fd.get("monto")) || 0,
         moneda: (fd.get("moneda") as "DOP" | "USD") ?? "DOP",
         fecha_limite: get("fecha_limite"),
@@ -52,9 +55,11 @@ export function NewTaskDialog({
             <div className="space-y-1.5"><Label>Persona asignada</Label>
               <Select name="team_member_id" defaultValue={defaultMemberId ?? ""}><option value="">— Sin asignar —</option>{members.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}</Select>
             </div>
-            <div className="space-y-1.5"><Label>Proyecto (opcional)</Label>
-              <Select name="project_id" defaultValue=""><option value="">— Ninguno —</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}</Select>
-            </div>
+            {!orderId && (
+              <div className="space-y-1.5"><Label>Proyecto (opcional)</Label>
+                <Select name="project_id" defaultValue=""><option value="">— Ninguno —</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}</Select>
+              </div>
+            )}
             <div className="space-y-1.5"><Label>Pago acordado</Label><Input name="monto" type="number" step="0.01" min="0" defaultValue="0" /></div>
             <div className="space-y-1.5"><Label>Moneda</Label><Select name="moneda" defaultValue="DOP"><option value="DOP">DOP</option><option value="USD">USD</option></Select></div>
             <div className="space-y-1.5 sm:col-span-2"><Label>Fecha límite</Label><DatePicker name="fecha_limite" placeholder="Sin fecha" /></div>

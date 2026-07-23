@@ -6,7 +6,10 @@ import { CashflowPanel } from "@/components/cobros/cashflow-panel";
 import { CalendarMonth } from "@/components/cobros/calendar-month";
 import { PendientesList } from "@/components/cobros/pendientes-list";
 import { DeudasPanel } from "@/components/cobros/deudas-panel";
+import { DeudasEquipoPanel } from "@/components/cobros/deudas-equipo-panel";
 import { getHoy, getCashflow, getPendientes, getEventsRange, getSaldosClientes } from "@/lib/data/agenda";
+import { getDebts } from "@/lib/data/equipo";
+import { HandCoins } from "lucide-react";
 import { rdToday, startOfMonth, endOfMonth } from "@/lib/fecha";
 
 export const metadata = { title: "Cobros y Entregas" };
@@ -20,12 +23,13 @@ export default async function CobrosPage({
   const month = m && /^\d{4}-\d{2}$/.test(m) ? m : rdToday().slice(0, 7);
   const first = `${month}-01`;
 
-  const [hoy, cashflow, pendientes, monthEvents, saldos] = await Promise.all([
+  const [hoy, cashflow, pendientes, monthEvents, saldos, debts] = await Promise.all([
     getHoy(),
     getCashflow(),
     getPendientes(),
     getEventsRange(startOfMonth(first), endOfMonth(first)),
     getSaldosClientes(),
+    getDebts(),
   ]);
 
   const calEvents = monthEvents.filter((e) => e.tipo === "cobro" || e.tipo === "entrega" || e.tipo === "inicio");
@@ -44,6 +48,12 @@ export default async function CobrosPage({
           <h2 className="mb-3 flex items-center gap-2 font-semibold"><Wallet className="size-4 text-electric" /> Saldos por cliente</h2>
           <p className="mb-3 text-sm text-muted-foreground">Lo que cada cliente debe y lo que ya pagó. Clic para registrar un pago (entra solo a Finanzas).</p>
           <DeudasPanel saldos={saldos} openClientId={cliente} />
+        </StaggerItem>
+
+        <StaggerItem>
+          <h2 className="mb-3 flex items-center gap-2 font-semibold"><HandCoins className="size-4 text-electric" /> ¿A quién le debo?</h2>
+          <p className="mb-3 text-sm text-muted-foreground">Lo que le debes al equipo por tareas hechas. Registra el pago aquí mismo.</p>
+          <DeudasEquipoPanel debts={debts} />
         </StaggerItem>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
