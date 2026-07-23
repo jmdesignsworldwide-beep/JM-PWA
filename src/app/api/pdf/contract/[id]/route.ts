@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { EMPRESA } from "@/lib/empresa";
 import { createClient } from "@/lib/supabase/server";
 import { buildContractPdf } from "@/lib/pdf";
 
@@ -29,7 +30,7 @@ export async function GET(
   ]);
 
   const bytes = await buildContractPdf({
-    brand: brand?.nombre ?? "JM Designs Worldwide",
+    brand: brand?.nombre ?? EMPRESA.nombre,
     cliente: `${cliente?.nombre ?? ""} ${cliente?.apellido ?? ""}`.trim(),
     contenido: c.contenido ?? "",
     estado: c.estado,

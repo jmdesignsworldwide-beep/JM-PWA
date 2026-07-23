@@ -1,5 +1,6 @@
 "use client";
 
+import { EMPRESA } from "@/lib/empresa";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -80,7 +81,7 @@ export function OrderDetail({ order, client, notes, contract, invoice, contractD
         <section className="rounded-xl border border-border bg-card">
           <Header icon={<FileText className="size-4" />} title="Pedido" right={
             <div className="flex items-center gap-2">
-              <Badge dot="var(--electric)">{order.rama === "designs" ? "JM Designs" : "JM Distribution"}</Badge>
+              <Badge dot="var(--electric)">{order.rama === "designs" ? EMPRESA.nombre : "JM Distribution"}</Badge>
               <Button variant="ghost" size="sm" onClick={() => act(() => duplicateOrder(order.id), )}
                 disabled={pending} title="Duplicar pedido">
                 <Copy className="size-4" /> Duplicar

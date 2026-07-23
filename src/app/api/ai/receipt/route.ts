@@ -1,3 +1,4 @@
+import { EMPRESA } from "@/lib/empresa";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/ratelimit";
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
     ? categorias.join(", ")
     : "(sin lista; usa una categoría corta y razonable en español)";
 
-  const system = `Eres el lector de recibos de JM Designs Worldwide (Rep. Dominicana).
+  const system = `Eres el lector de recibos de ${EMPRESA.nombre} (Rep. Dominicana).
 Recibes la FOTO de un recibo/factura y extraes SOLO lo que se lee con seguridad.
 Responde SIEMPRE en español y SOLO con un objeto JSON válido (sin texto extra ni markdown).
 

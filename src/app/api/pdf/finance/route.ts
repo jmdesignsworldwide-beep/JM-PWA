@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { EMPRESA } from "@/lib/empresa";
 import { createClient } from "@/lib/supabase/server";
 import { getBalance, getExpensesByCategory, getProjectMargins } from "@/lib/data/finanzas";
 import { buildFinanceReportPdf } from "@/lib/pdf-report";
@@ -16,7 +17,7 @@ export async function GET() {
   ]);
 
   const bytes = await buildFinanceReportPdf({
-    brand: "JM Designs Worldwide",
+    brand: EMPRESA.nombre,
     periodo: `Al ${rdToday()}`,
     ingresos: balance.ingresos,
     gastos: balance.gastos,

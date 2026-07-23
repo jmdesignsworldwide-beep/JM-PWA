@@ -1,5 +1,6 @@
 "use client";
 
+import { EMPRESA } from "@/lib/empresa";
 import { useState, useTransition } from "react";
 import { KeyRound, Loader2, Copy, Check, MessageCircle, AtSign } from "lucide-react";
 import { grantPortalAccess, suggestPortalUsername } from "@/app/(app)/clientes/actions";
@@ -53,7 +54,7 @@ export function PortalAccessButton({
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const portalUrl = creds ? `${origin}${creds.loginPath}` : "";
   const mensaje = creds
-    ? `¡Hola ${clientName}! 🎉 Tu portal privado de JM Designs ya está listo. Aquí podrás ver el avance de tu proyecto en tiempo real.\n\nEntra aquí 👉 ${portalUrl}\nUsuario: ${creds.username}\nClave temporal: ${creds.password}\n\n¡Bienvenido! 💜`
+    ? `¡Hola ${clientName}! 🎉 Tu portal privado de ${EMPRESA.nombre} ya está listo. Aquí podrás ver el avance de tu proyecto en tiempo real.\n\nEntra aquí 👉 ${portalUrl}\nUsuario: ${creds.username}\nClave temporal: ${creds.password}\n\n¡Bienvenido! 💜`
     : "";
 
   return (

@@ -1,5 +1,6 @@
 "use server";
 
+import { EMPRESA } from "@/lib/empresa";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { InfluencerEstado, EstadoTrato, Plataforma, Promo } from "@/lib/influencers";
@@ -120,7 +121,7 @@ export async function sendEmailCampaign(input: { asunto: string; mensaje: string
   try {
     const { Resend } = await import("resend");
     const resend = new Resend(key);
-    const from = process.env.RESEND_FROM || "JM Designs <onboarding@resend.dev>";
+    const from = process.env.RESEND_FROM || `${EMPRESA.nombre} <onboarding@resend.dev>`;
     let enviados = 0;
     for (const d of destinatarios) {
       const cuerpo = input.mensaje.replace(/\{nombre\}/g, d.nombre);

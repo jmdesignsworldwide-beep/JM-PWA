@@ -1,3 +1,4 @@
+import { EMPRESA } from "@/lib/empresa";
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { money } from "@/lib/format";
@@ -194,7 +195,7 @@ export async function sendDigest(
           res.push.error = "No hay dispositivos con push activado";
         } else {
           const webpush = (await import("web-push")).default;
-          webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:jm.designs.worldwide@gmail.com", vapidPub, vapidPriv);
+          webpush.setVapidDetails(process.env.VAPID_SUBJECT || `mailto:${EMPRESA.email}`, vapidPub, vapidPriv);
           const payload = JSON.stringify({ title: `☀️ Tu día — ${data.hoy}`, body: data.pushBody, url: "/calendario" });
           for (const s of list) {
             try { await webpush.sendNotification(s.subscription_json as never, payload); res.push.sent++; } catch { /* vencida */ }

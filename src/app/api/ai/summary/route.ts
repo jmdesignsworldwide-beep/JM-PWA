@@ -1,3 +1,4 @@
+import { EMPRESA } from "@/lib/empresa";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getKpis, getRuleInsights } from "@/lib/data/insights";
@@ -42,7 +43,7 @@ export async function GET() {
       contents: `Datos reales del negocio hoy:\n${datos}`,
       config: {
         systemInstruction:
-          "Eres el asistente de negocio de JM Designs Worldwide (Rep. Dominicana). Escribe en español RD un resumen ejecutivo de UN párrafo corto (máx 3 frases) del estado del negocio hoy. Usa SOLO los datos provistos; nunca inventes cifras ni hechos. Tono claro y motivador.",
+          `Eres el asistente de negocio de ${EMPRESA.nombre} (Rep. Dominicana). Escribe en español RD un resumen ejecutivo de UN párrafo corto (máx 3 frases) del estado del negocio hoy. Usa SOLO los datos provistos; nunca inventes cifras ni hechos. Tono claro y motivador.`,
         temperature: 0.5,
         maxOutputTokens: 300,
       },

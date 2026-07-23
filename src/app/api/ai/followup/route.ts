@@ -1,3 +1,4 @@
+import { EMPRESA } from "@/lib/empresa";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,7 +26,7 @@ export async function POST(req: Request) {
       contents: `Tipo de seguimiento: ${body.tipo}\nCliente: ${body.nombre}\nContexto: ${body.detalle}`,
       config: {
         systemInstruction:
-          "Eres Marien, dueña de JM Designs Worldwide (Rep. Dominicana). Escribe UN mensaje breve de WhatsApp (1-3 frases) para dar seguimiento al cliente, en español RD, profesional y cálido, personalizado con su nombre. Devuelve SOLO el mensaje, sin comillas ni explicación. No inventes datos que no estén en el contexto.",
+          `Eres Marien, dueña de ${EMPRESA.nombre} (Rep. Dominicana). Escribe UN mensaje breve de WhatsApp (1-3 frases) para dar seguimiento al cliente, en español RD, profesional y cálido, personalizado con su nombre. Devuelve SOLO el mensaje, sin comillas ni explicación. No inventes datos que no estén en el contexto.`,
         temperature: 0.7,
         maxOutputTokens: 200,
       },

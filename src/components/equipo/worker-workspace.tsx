@@ -1,5 +1,6 @@
 "use client";
 
+import { EMPRESA } from "@/lib/empresa";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, ListTodo, HandCoins } from "lucide-react";
@@ -36,7 +37,7 @@ export function WorkerWorkspace({ nombre, tasks, payments, totals }: {
         <Logo size={30} />
         <div className="leading-tight">
           <p className="text-sm font-semibold">Mi trabajo</p>
-          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">JM Designs</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{EMPRESA.nombre}</p>
         </div>
         <div className="ml-auto flex items-center gap-1.5">
           <ThemeToggle />

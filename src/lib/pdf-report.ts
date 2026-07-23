@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { EMPRESA } from "@/lib/empresa";
 import { money } from "@/lib/format";
 
 const A4: [number, number] = [595.28, 841.89];
@@ -29,7 +30,7 @@ export async function buildFinanceReportPdf(data: {
     page.drawText(s, { x: A4[0] - M - (b ? bold : font).widthOfTextAtSize(s, size), y: yy, size, font: b ? bold : font, color: INK });
 
   page.drawRectangle({ x: 0, y: A4[1] - 8, width: A4[0], height: 8, color: rgb(0.31, 0.55, 1) });
-  line(data.brand || "JM Designs Worldwide", 18, true);
+  line(data.brand || EMPRESA.nombre, 18, true);
   line(`Reporte financiero · ${data.periodo}`, 11, false, MUTED);
   y -= 8;
 
@@ -74,7 +75,7 @@ export async function buildInfluencersPdf(data: {
     page.drawText((s ?? "").replace(/[^\x00-\xFF]/g, ""), { x, y, size, font: b ? bold : font, color: INK });
 
   page.drawRectangle({ x: 0, y: A4[1] - 8, width: A4[0], height: 8, color: rgb(0.31, 0.55, 1) });
-  w(data.brand || "JM Designs Worldwide", M, 18, true); y -= 22;
+  w(data.brand || EMPRESA.nombre, M, 18, true); y -= 22;
   w("Influencers (export para campañas)", M, 11); y -= 22;
 
   const cols = [M, M + 130, M + 250, M + 340, M + 440];

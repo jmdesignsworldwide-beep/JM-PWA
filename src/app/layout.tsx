@@ -1,3 +1,4 @@
+import { EMPRESA } from "@/lib/empresa";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
     template: "%s · JM Control Center",
   },
   description:
-    "Sistema integral de JM Designs Worldwide: ventas, clientes, contratos, facturas, finanzas e inteligencia.",
+    `Sistema integral de ${EMPRESA.nombre}: ventas, clientes, contratos, facturas, finanzas e inteligencia.`,
   manifest: "/manifest.webmanifest",
   applicationName: "JM Control Center",
   appleWebApp: {

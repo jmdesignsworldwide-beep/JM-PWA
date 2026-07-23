@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { EMPRESA } from "@/lib/empresa";
 import { createClient } from "@/lib/supabase/server";
 import { buildInvoicePdf } from "@/lib/pdf";
 
@@ -31,7 +32,7 @@ export async function GET(
   const items = (inv.items_json as { producto?: string; cantidad?: number; subtotal?: number }[]) ?? [];
 
   const bytes = await buildInvoicePdf({
-    brand: brand?.nombre ?? "JM Designs Worldwide",
+    brand: brand?.nombre ?? EMPRESA.nombre,
     cliente: `${cliente?.nombre ?? ""} ${cliente?.apellido ?? ""}`.trim(),
     rnc: inv.rnc,
     ncf: inv.ncf,

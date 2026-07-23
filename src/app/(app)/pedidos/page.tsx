@@ -1,3 +1,4 @@
+import { EMPRESA } from "@/lib/empresa";
 import Link from "next/link";
 import { FileText } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -37,7 +38,7 @@ export default async function PedidosPage() {
                 </div>
                 <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
                   <Badge>{o.estado}</Badge>
-                  <span>{o.rama === "designs" ? "JM Designs" : "JM Distribution"} · {fechaCorta(o.fecha)}</span>
+                  <span>{o.rama === "designs" ? EMPRESA.nombre : "JM Distribution"} · {fechaCorta(o.fecha)}</span>
                 </div>
               </Link>
             </li>
@@ -64,7 +65,7 @@ export default async function PedidosPage() {
                       <FileText className="size-4 text-electric" /> {o.clienteNombre}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{o.rama === "designs" ? "JM Designs" : "JM Distribution"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{o.rama === "designs" ? EMPRESA.nombre : "JM Distribution"}</td>
                   <td className="px-4 py-3"><Badge>{o.estado}</Badge></td>
                   <td className="px-4 py-3 text-muted-foreground">{fechaCorta(o.fecha)}</td>
                   <td className="px-4 py-3 text-right font-medium">{money(o.total, o.moneda)}</td>

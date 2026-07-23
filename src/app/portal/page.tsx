@@ -1,3 +1,4 @@
+import { EMPRESA } from "@/lib/empresa";
 import { redirect } from "next/navigation";
 import {
   CircleDollarSign, FileText, FolderDown, AlertCircle, ListChecks, CheckCircle2, Sparkles,
@@ -27,7 +28,7 @@ export default async function PortalPage() {
   if (!profile.client_id) {
     return (
       <div className="flex min-h-dvh items-center justify-center p-6 text-center text-muted-foreground">
-        Tu cuenta aún no está ligada a un proyecto. Contacta a JM Designs.
+        Tu cuenta aún no está ligada a un proyecto. Contacta a {EMPRESA.nombre}.
       </div>
     );
   }
@@ -41,7 +42,7 @@ export default async function PortalPage() {
 
   return (
     <div className="relative min-h-dvh">
-      <WelcomeOverlay greeting="Bienvenido," name={(d.client?.nombre ?? "").split(" ")[0]} sub={`Así va tu proyecto con ${d.brandName ?? "JM Designs"}.`} />
+      <WelcomeOverlay greeting="Bienvenido," name={(d.client?.nombre ?? "").split(" ")[0]} sub={`Así va tu proyecto con ${d.brandName ?? EMPRESA.nombre}.`} />
       <AuroraBackground className="opacity-60" />
       <PortalHeader brandName={d.brandName} />
 
@@ -53,7 +54,7 @@ export default async function PortalPage() {
           </span>
           <BlurInText as="h1" text={`Bienvenido, ${d.client?.nombre ?? ""} 👋`} className="mt-2 block text-2xl font-semibold tracking-tight sm:text-3xl" />
           <p className="mt-1 text-sm text-muted-foreground">
-            Así va tu proyecto con <span className="text-gradient font-medium">{d.brandName ?? "JM Designs"}</span>. Bienvenido a tu espacio.
+            Así va tu proyecto con <span className="text-gradient font-medium">{d.brandName ?? EMPRESA.nombre}</span>. Bienvenido a tu espacio.
           </p>
         </div>
 

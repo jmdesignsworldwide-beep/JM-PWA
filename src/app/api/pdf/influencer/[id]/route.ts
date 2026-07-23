@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { EMPRESA } from "@/lib/empresa";
 import { createClient } from "@/lib/supabase/server";
 import { buildCollabPdf } from "@/lib/pdf";
 import { COLAB_ESTADO_LABEL, type ColabEstado } from "@/lib/influencers";
@@ -48,7 +49,7 @@ export async function GET(
     : "Registrado";
 
   const bytes = await buildCollabPdf({
-    brand: brand?.nombre ?? "JM Designs Worldwide",
+    brand: brand?.nombre ?? EMPRESA.nombre,
     influencer: inf.nombre,
     nicho: inf.nicho,
     contacto,

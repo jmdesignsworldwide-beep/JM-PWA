@@ -1,5 +1,6 @@
 "use server";
 
+import { EMPRESA } from "@/lib/empresa";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notifyClient } from "@/lib/notify";
@@ -108,7 +109,7 @@ export async function publishUpdate(
   if (input.notificar) {
     notified = await notifyClient({
       clientId,
-      title: "Novedad de tu proyecto con JM Designs",
+      title: `Novedad de tu proyecto con ${EMPRESA.nombre}`,
       body: input.titulo.trim(),
       url: "/portal",
     });
