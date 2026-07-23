@@ -8,22 +8,23 @@ import { AnimatedCard } from "@/components/animations/motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Cat = { id: string; nombre: string; tipo: string };
+type Cat = { id: string; nombre: string; tipo: string; es_personal: boolean };
 
 export function CategoriesSettings({ categories }: { categories: Cat[] }) {
   return (
     <AnimatedCard className="p-6">
       <h2 className="flex items-center gap-2 font-semibold"><Tags className="size-4 text-electric" /> Categorías</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Categorías de ingresos y gastos para Finanzas.</p>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <p className="mt-1 text-sm text-muted-foreground">De ingresos, de gastos del negocio y de tus gastos personales.</p>
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Column tipo="ingreso" titulo="Ingresos" items={categories.filter((c) => c.tipo === "ingreso")} />
-        <Column tipo="gasto" titulo="Gastos" items={categories.filter((c) => c.tipo === "gasto")} />
+        <Column tipo="gasto" titulo="Gastos (negocio)" items={categories.filter((c) => c.tipo === "gasto" && !c.es_personal)} />
+        <Column tipo="gasto" personal titulo="Gastos personales" items={categories.filter((c) => c.tipo === "gasto" && c.es_personal)} />
       </div>
     </AnimatedCard>
   );
 }
 
-function Column({ tipo, titulo, items }: { tipo: "ingreso" | "gasto"; titulo: string; items: Cat[] }) {
+function Column({ tipo, titulo, items, personal = false }: { tipo: "ingreso" | "gasto"; titulo: string; items: Cat[]; personal?: boolean }) {
   const router = useRouter();
   const [nombre, setNombre] = useState("");
   const [pending, startTransition] = useTransition();
@@ -43,7 +44,7 @@ function Column({ tipo, titulo, items }: { tipo: "ingreso" | "gasto"; titulo: st
       <div className="mt-2 flex gap-2">
         <Input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nueva categoría" className="h-9" />
         <Button size="icon" variant="outline" className="size-9 shrink-0" disabled={pending || !nombre.trim()}
-          onClick={() => startTransition(async () => { await createCategory(nombre, tipo); setNombre(""); router.refresh(); })}>
+          onClick={() => startTransition(async () => { await createCategory(nombre, tipo, personal); setNombre(""); router.refresh(); })}>
           {pending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
         </Button>
       </div>

@@ -21,13 +21,14 @@ export default async function MovimientosPage({
     getMovimientos(),
     getClients(),
     getBrands(),
-    supabase.from("categories").select("nombre, tipo"),
+    supabase.from("categories").select("nombre, tipo, es_personal"),
     supabase.from("projects").select("id, nombre").order("created_at", { ascending: false }).limit(200),
   ]);
 
-  const categorias = (cats.data ?? []) as { nombre: string; tipo: string }[];
+  const categorias = (cats.data ?? []) as { nombre: string; tipo: string; es_personal: boolean }[];
   const categoriasIngreso = categorias.filter((c) => c.tipo === "ingreso").map((c) => c.nombre);
-  const categoriasGasto = categorias.filter((c) => c.tipo === "gasto").map((c) => c.nombre);
+  const categoriasGasto = categorias.filter((c) => c.tipo === "gasto" && !c.es_personal).map((c) => c.nombre);
+  const categoriasGastoPersonal = categorias.filter((c) => c.tipo === "gasto" && c.es_personal).map((c) => c.nombre);
   const clientOpts = clients.map((c) => ({ id: c.id, nombre: `${c.nombre} ${c.apellido ?? ""}`.trim() }));
   const projects = ((projs.data ?? []) as { id: string; nombre: string | null }[]).map((p) => ({ id: p.id, nombre: p.nombre ?? "Proyecto" }));
 
@@ -40,7 +41,7 @@ export default async function MovimientosPage({
       <MovimientosView
         incomes={incomes} expenses={expenses}
         clients={clientOpts} brands={brands} projects={projects}
-        categoriasIngreso={categoriasIngreso} categoriasGasto={categoriasGasto}
+        categoriasIngreso={categoriasIngreso} categoriasGasto={categoriasGasto} categoriasGastoPersonal={categoriasGastoPersonal}
         initialTipo={initialTipo}
       />
     </div>

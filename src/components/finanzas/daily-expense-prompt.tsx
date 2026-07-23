@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/button";
 type Opt = { id: string; nombre: string };
 
 export function DailyExpensePrompt({
-  registradoHoy, categorias, projects, brands,
+  registradoHoy, categorias, categoriasPersonal = [], projects, brands,
 }: {
-  registradoHoy: boolean; categorias: string[]; projects: Opt[]; brands: Opt[];
+  registradoHoy: boolean; categorias: string[]; categoriasPersonal?: string[]; projects: Opt[]; brands: Opt[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -31,7 +31,7 @@ export function DailyExpensePrompt({
       <Wallet className="size-5 text-warning" />
       <p className="flex-1 text-sm font-medium">¿Qué gastaste hoy?</p>
       <AddExpenseDialog
-        categorias={categorias} projects={projects} brands={brands}
+        categorias={categorias} categoriasPersonal={categoriasPersonal} projects={projects} brands={brands}
         trigger={<Button variant="gradient" size="sm">Registrar gasto</Button>}
       />
       <Button variant="outline" size="sm" disabled={pending}

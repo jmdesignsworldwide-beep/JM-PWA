@@ -40,12 +40,13 @@ export type Mov = {
 };
 
 export function TransactionDetail({
-  mov, onClose, categoriasIngreso, categoriasGasto, projects, brands, clients, brandMap,
+  mov, onClose, categoriasIngreso, categoriasGasto, categoriasGastoPersonal = [], projects, brands, clients, brandMap,
 }: {
   mov: Mov;
   onClose: () => void;
   categoriasIngreso: string[];
   categoriasGasto: string[];
+  categoriasGastoPersonal?: string[];
   projects: Opt[];
   brands: Opt[];
   clients: Opt[];
@@ -130,7 +131,9 @@ export function TransactionDetail({
     });
   }
 
-  const categorias = isExpense ? categoriasGasto : categoriasIngreso;
+  const categorias = isExpense
+    ? (f.es_personal && categoriasGastoPersonal.length ? categoriasGastoPersonal : categoriasGasto)
+    : categoriasIngreso;
   const catOptions = mov.categoria && !categorias.includes(mov.categoria) ? [mov.categoria, ...categorias] : categorias;
 
   return (

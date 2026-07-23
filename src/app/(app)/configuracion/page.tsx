@@ -29,7 +29,7 @@ export default async function ConfiguracionPage() {
     supabase.from("app_settings").select("*").eq("id", "global").maybeSingle(),
     supabase.from("users_profiles").select("id, nombre, correo, username").eq("rol", "owner").order("created_at"),
     supabase.from("brands").select("id, nombre, activo, rnc, telefono, direccion, logo_url").order("created_at"),
-    supabase.from("categories").select("id, nombre, tipo").order("nombre"),
+    supabase.from("categories").select("id, nombre, tipo, es_personal").order("nombre"),
     supabase.from("message_templates").select("id, tipo, nombre, contenido").order("tipo"),
     user ? supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", user.id) : Promise.resolve({ count: 0 }),
   ]);
@@ -58,7 +58,7 @@ export default async function ConfiguracionPage() {
 
         <BrandsSettings brands={(brands ?? []) as { id: string; nombre: string; activo: boolean; rnc: string | null; telefono: string | null; direccion: string | null; logo_url: string | null }[]} />
 
-        <CategoriesSettings categories={(categories ?? []) as { id: string; nombre: string; tipo: string }[]} />
+        <CategoriesSettings categories={(categories ?? []) as { id: string; nombre: string; tipo: string; es_personal: boolean }[]} />
 
         <TemplatesSettings templates={(templates ?? []) as { id: string; tipo: string; nombre: string; contenido: string | null }[]} />
 

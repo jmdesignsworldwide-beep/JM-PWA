@@ -72,12 +72,14 @@ Esquema JSON requerido (usa null en cualquier campo que NO se lea claro):
   "itbis": monto del ITBIS/impuesto si aparece desglosado, o null,
   "metodo_pago": "efectivo" | "tarjeta" | "transferencia" | "otro", o null,
   "categoria": una de [${listaCats}] si alguna encaja claramente; si ninguna encaja, propón una categoría corta; si no hay forma de saber, null,
+  "lineas": arreglo con cada renglón/artículo que se lea claro, en el orden del recibo. Cada elemento: { "descripcion": texto del artículo, "monto": precio de ESE renglón o null }. Si el recibo no tiene renglones legibles, devuelve [] (arreglo vacío),
   "confianza": "alta" | "media" | "baja" según qué tan legible está el recibo
 }
 
 Reglas estrictas:
 - NO INVENTES. Si dudas de un número o dato, ponlo en null. Es mejor null que un valor equivocado.
 - "monto" es el TOTAL final pagado. No sumes ni calcules: usa el total impreso.
+- En "lineas" copia SOLO renglones que se lean claro; no completes ni adivines precios. Un renglón sin precio legible lleva "monto": null.
 - Si la moneda no se ve, déjala en null (no asumas).
 - Devuelve SOLO el JSON.`;
 
@@ -108,6 +110,16 @@ Reglas estrictas:
     const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
     const fecha = typeof p.fecha === "string" && /^\d{4}-\d{2}-\d{2}$/.test(p.fecha) ? p.fecha : null;
     const metodo = ["efectivo", "tarjeta", "transferencia", "otro"].includes(p.metodo_pago) ? p.metodo_pago : null;
+    // Renglones legibles del recibo (para confirmar, nunca para sumar solos).
+    const lineas = Array.isArray(p.lineas)
+      ? p.lineas
+          .map((l: unknown) => {
+            const o = (l ?? {}) as { descripcion?: unknown; monto?: unknown };
+            return { descripcion: str(o.descripcion), monto: num(o.monto) };
+          })
+          .filter((l: { descripcion: string | null; monto: number | null }) => l.descripcion)
+          .slice(0, 40)
+      : [];
 
     return NextResponse.json({
       ok: true,
@@ -119,6 +131,7 @@ Reglas estrictas:
         itbis: num(p.itbis),
         metodo_pago: metodo,
         categoria: str(p.categoria),
+        lineas,
         confianza: ["alta", "media", "baja"].includes(p.confianza) ? p.confianza : "media",
       },
     });

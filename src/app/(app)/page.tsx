@@ -33,14 +33,16 @@ export default async function DashboardPage() {
     getSuggestedActions(),
     getFunnel(),
     getProjectsByStatus(),
-    supabase.from("categories").select("nombre, tipo").eq("tipo", "gasto"),
+    supabase.from("categories").select("nombre, tipo, es_personal").eq("tipo", "gasto"),
     supabase.from("projects").select("id, nombre").order("created_at", { ascending: false }).limit(100),
     supabase.from("daily_expense_log").select("fecha").eq("fecha", rdToday()).maybeSingle(),
     getMyTodos(),
     getMyProfile(),
   ]);
   const isOwner = profile?.rol === "owner";
-  const categoriasGasto = ((cats.data ?? []) as { nombre: string }[]).map((c) => c.nombre);
+  const catRows = (cats.data ?? []) as { nombre: string; es_personal: boolean }[];
+  const categoriasGasto = catRows.filter((c) => !c.es_personal).map((c) => c.nombre);
+  const categoriasGastoPersonal = catRows.filter((c) => c.es_personal).map((c) => c.nombre);
   const projects = ((projs.data ?? []) as { id: string; nombre: string | null }[]).map((p) => ({ id: p.id, nombre: p.nombre ?? "Proyecto" }));
 
   const KPIS = [
@@ -63,7 +65,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mb-6">
-        <DailyExpensePrompt registradoHoy={!!dailyLog.data} categorias={categoriasGasto} projects={projects} brands={brands} />
+        <DailyExpensePrompt registradoHoy={!!dailyLog.data} categorias={categoriasGasto} categoriasPersonal={categoriasGastoPersonal} projects={projects} brands={brands} />
       </div>
 
       {/* Resumen IA */}
