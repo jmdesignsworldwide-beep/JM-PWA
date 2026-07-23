@@ -11,6 +11,8 @@ import { BrandsSettings } from "@/components/settings/brands-settings";
 import { CategoriesSettings } from "@/components/settings/categories-settings";
 import { TemplatesSettings } from "@/components/settings/templates-settings";
 import { ThemeSettings } from "@/components/settings/theme-settings";
+import { SystemPinSettings } from "@/components/sistemas/pin-settings";
+import { getMyProfile } from "@/lib/data/profile";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Configuración" };
@@ -18,6 +20,8 @@ export const metadata = { title: "Configuración" };
 export default async function ConfiguracionPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const profile = await getMyProfile();
+  const isOwner = profile?.rol === "owner";
   const [
     { data: settings },
     { data: owners },
@@ -55,6 +59,8 @@ export default async function ConfiguracionPage() {
         <UsuariosSettings owners={(owners ?? []) as { id: string; nombre: string | null; correo: string | null; username: string | null }[]} currentUserId={user?.id ?? ""} />
 
         <VisibilitySettings hidden={(settings?.modulos_ocultos as string[] | null) ?? []} />
+
+        {isOwner && <SystemPinSettings />}
 
         <BrandsSettings brands={(brands ?? []) as { id: string; nombre: string; activo: boolean; rnc: string | null; telefono: string | null; direccion: string | null; logo_url: string | null }[]} />
 
