@@ -4,26 +4,26 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFP
 import { money, fechaCorta } from "@/lib/format";
 import { EMPRESA, whatsappBonito, instagramArroba } from "@/lib/empresa";
 
-const A4: [number, number] = [595.28, 841.89];
-const MARGIN = 50;
-const CONTENT_W = A4[0] - MARGIN * 2;
+export const A4: [number, number] = [595.28, 841.89];
+export const MARGIN = 50;
+export const CONTENT_W = A4[0] - MARGIN * 2;
 
 // Paleta de marca JM (consistente con el tema de la app).
-const INK = rgb(0.1, 0.11, 0.14);
-const MUTED = rgb(0.46, 0.48, 0.54);
-const ACCENT = rgb(0.18, 0.42, 0.96); // electric
-const ACCENT_DEEP = rgb(0.36, 0.3, 0.92); // brand-purple
-const BRAND_DARK = rgb(0.05, 0.06, 0.09);
-const ON_DARK = rgb(1, 1, 1);
-const ON_DARK_MUTED = rgb(0.72, 0.74, 0.8);
-const HAIRLINE = rgb(0.88, 0.88, 0.91);
-const TABLE_HEAD = rgb(0.95, 0.96, 0.99);
-const ZEBRA = rgb(0.975, 0.978, 0.99);
+export const INK = rgb(0.1, 0.11, 0.14);
+export const MUTED = rgb(0.46, 0.48, 0.54);
+export const ACCENT = rgb(0.18, 0.42, 0.96); // electric
+export const ACCENT_DEEP = rgb(0.36, 0.3, 0.92); // brand-purple
+export const BRAND_DARK = rgb(0.05, 0.06, 0.09);
+export const ON_DARK = rgb(1, 1, 1);
+export const ON_DARK_MUTED = rgb(0.72, 0.74, 0.8);
+export const HAIRLINE = rgb(0.88, 0.88, 0.91);
+export const TABLE_HEAD = rgb(0.95, 0.96, 0.99);
+export const ZEBRA = rgb(0.975, 0.978, 0.99);
 
 const BAND_H = 98;
 
 /** Quita caracteres que la fuente WinAnsi no puede codificar. */
-function clean(s: string): string {
+export function clean(s: string): string {
   return (s ?? "")
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"')
@@ -32,7 +32,7 @@ function clean(s: string): string {
     .replace(/[^\x00-\xFF]/g, "");
 }
 
-type Ctx = {
+export type Ctx = {
   doc: PDFDocument;
   page: PDFPage;
   font: PDFFont;
@@ -54,19 +54,19 @@ async function loadAsset(rel: string): Promise<Uint8Array | null> {
   return assetCache[rel];
 }
 
-function ensureSpace(ctx: Ctx, needed = 16) {
+export function ensureSpace(ctx: Ctx, needed = 16) {
   if (ctx.y - needed < MARGIN + 24) {
     ctx.page = ctx.doc.addPage(A4);
     ctx.y = A4[1] - MARGIN;
   }
 }
 
-function rightText(page: PDFPage, str: string, xRight: number, y: number, size: number, font: PDFFont, color = INK) {
+export function rightText(page: PDFPage, str: string, xRight: number, y: number, size: number, font: PDFFont, color = INK) {
   const s = clean(str);
   page.drawText(s, { x: xRight - font.widthOfTextAtSize(s, size), y, size, font, color });
 }
 
-function text(ctx: Ctx, str: string, size = 10, opts: { bold?: boolean; color?: ReturnType<typeof rgb>; indent?: number } = {}) {
+export function text(ctx: Ctx, str: string, size = 10, opts: { bold?: boolean; color?: ReturnType<typeof rgb>; indent?: number } = {}) {
   const font = opts.bold ? ctx.bold : ctx.font;
   const maxW = CONTENT_W - (opts.indent ?? 0);
   for (const para of clean(str).split("\n")) {
@@ -88,15 +88,18 @@ function text(ctx: Ctx, str: string, size = 10, opts: { bold?: boolean; color?: 
 }
 
 /** Encabezado premium: banda oscura de marca, logo real, marca y título. */
-function header(ctx: Ctx, brand: string, docTitle: string, dateStr?: string | null) {
+export function header(ctx: Ctx, brand: string, docTitle: string, dateStr?: string | null) {
   const top = A4[1];
   const bandTop = top;
   const bandBottom = top - BAND_H;
   const midY = bandBottom + BAND_H / 2;
 
-  // Banda oscura de marca + filo de acento arriba.
+  // Banda oscura de marca + doble filo de acento arriba (electric + purple).
   ctx.page.drawRectangle({ x: 0, y: bandBottom, width: A4[0], height: BAND_H, color: BRAND_DARK });
-  ctx.page.drawRectangle({ x: 0, y: bandTop - 5, width: A4[0], height: 5, color: ACCENT });
+  ctx.page.drawRectangle({ x: 0, y: bandTop - 4, width: A4[0], height: 4, color: ACCENT });
+  ctx.page.drawRectangle({ x: 0, y: bandTop - 6, width: A4[0], height: 2, color: ACCENT_DEEP });
+  // Filo de acento bajo la banda (remate).
+  ctx.page.drawRectangle({ x: 0, y: bandBottom - 2, width: A4[0], height: 2, color: ACCENT });
 
   // Logo real (mark blanco sobre la banda oscura). Fallback: monograma dibujado.
   let textX = MARGIN;
@@ -123,7 +126,7 @@ function header(ctx: Ctx, brand: string, docTitle: string, dateStr?: string | nu
 }
 
 /** Pie premium: filo + identidad de la empresa (toma todo de EMPRESA). */
-function footer(ctx: Ctx) {
+export function footer(ctx: Ctx) {
   const y = 40;
   ctx.page.drawRectangle({ x: MARGIN, y: y + 18, width: CONTENT_W, height: 1.4, color: ACCENT });
   const parts = [EMPRESA.nombre, `WhatsApp ${whatsappBonito()}`, EMPRESA.email, instagramArroba()].filter(Boolean);
@@ -133,14 +136,52 @@ function footer(ctx: Ctx) {
 }
 
 /** Etiqueta de sección con punto de acento. */
-function sectionLabel(ctx: Ctx, label: string) {
+export function sectionLabel(ctx: Ctx, label: string) {
   ensureSpace(ctx, 22);
   ctx.page.drawRectangle({ x: MARGIN, y: ctx.y - 1, width: 3, height: 11, color: ACCENT });
   ctx.page.drawText(clean(label.toUpperCase()), { x: MARGIN + 9, y: ctx.y, size: 9, font: ctx.bold, color: ACCENT });
   ctx.y -= 18;
 }
 
-async function newCtx(): Promise<Ctx> {
+/** Píldora de estado con color. Devuelve el ancho dibujado. */
+export function chip(ctx: Ctx, label: string, x: number, y: number, fg = ACCENT, bg = rgb(0.92, 0.95, 1)) {
+  const s = clean(label);
+  const w = ctx.bold.widthOfTextAtSize(s, 8.5) + 18;
+  ctx.page.drawRectangle({ x, y: y - 4, width: w, height: 17, color: bg, borderColor: fg, borderWidth: 0.6 });
+  ctx.page.drawText(s, { x: x + 9, y, size: 8.5, font: ctx.bold, color: fg });
+  return w;
+}
+
+/** Tarjeta KPI: etiqueta arriba, valor grande, filo de acento a la izquierda. */
+export function kpiCard(ctx: Ctx, x: number, y: number, w: number, h: number, label: string, value: string, sub: string | null, accent = ACCENT) {
+  ctx.page.drawRectangle({ x, y: y - h, width: w, height: h, color: rgb(0.985, 0.988, 1), borderColor: HAIRLINE, borderWidth: 0.8 });
+  ctx.page.drawRectangle({ x, y: y - h, width: 4, height: h, color: accent });
+  ctx.page.drawText(clean(label.toUpperCase()), { x: x + 14, y: y - 19, size: 8, font: ctx.bold, color: MUTED });
+  ctx.page.drawText(clean(value), { x: x + 14, y: y - h + (sub ? 22 : 15), size: 15, font: ctx.bold, color: INK });
+  if (sub) ctx.page.drawText(clean(sub), { x: x + 14, y: y - h + 9, size: 8, font: ctx.font, color: MUTED });
+}
+
+/** Barra horizontal (para categorías/gráficas simples). */
+export function bar(ctx: Ctx, x: number, y: number, w: number, frac: number, color = ACCENT) {
+  ctx.page.drawRectangle({ x, y, width: w, height: 5, color: rgb(0.9, 0.91, 0.94) });
+  ctx.page.drawRectangle({ x, y, width: Math.max(2, w * Math.min(1, Math.max(0, frac))), height: 5, color });
+}
+
+/** Bloque de firmas: dos líneas (Proveedor / Cliente). */
+export function signatureBlock(ctx: Ctx, leftLabel: string, rightLabel: string) {
+  ensureSpace(ctx, 70);
+  ctx.y -= 26;
+  const y = ctx.y;
+  const colW = (CONTENT_W - 50) / 2;
+  [leftLabel, rightLabel].forEach((label, i) => {
+    const x = MARGIN + i * (colW + 50);
+    ctx.page.drawRectangle({ x, y, width: colW, height: 0.9, color: INK });
+    ctx.page.drawText(clean(label), { x, y: y - 14, size: 9, font: ctx.font, color: MUTED });
+  });
+  ctx.y = y - 30;
+}
+
+export async function newCtx(): Promise<Ctx> {
   const doc = await PDFDocument.create();
   const page = doc.addPage(A4);
   const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -168,6 +209,8 @@ export async function buildContractPdf(data: {
   ctx.y -= 10;
   sectionLabel(ctx, "Términos del acuerdo");
   text(ctx, data.contenido || "-", 10);
+  ctx.y -= 14;
+  signatureBlock(ctx, `Por ${EMPRESA.nombre}`, `Por ${data.cliente || "el Cliente"}`);
   footer(ctx);
   return ctx.doc.save();
 }
