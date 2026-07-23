@@ -20,7 +20,7 @@ type Stats = {
   contracts: { id: string; estado: string; fecha_aprobacion: string | null }[];
   invoices: { id: string; estado_pago: string; total: number; moneda: string; fecha: string }[];
   projects: { id: string; nombre: string | null; estado: string; fecha_entrega: string | null }[];
-  payments: { id: string; order_id: string; monto: number; moneda: string; fecha: string; tipo: string; metodo: string | null; nota: string | null }[];
+  payments: { id: string; order_id: string; monto: number; moneda: string; fecha: string; tipo: string; metodo: string | null; nota: string | null; comprobante_url: string | null }[];
 };
 
 type Activity = { id: string; accion: string; tabla: string; fecha: string }[];

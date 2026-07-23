@@ -337,6 +337,7 @@ export type PaymentInput = {
   tipo: "inicial" | "entrega" | "abono";
   metodo?: string | null;
   nota?: string | null;
+  comprobante_url?: string | null;
 };
 
 /** Registra un pago/abono contra un pedido. El saldo se recalcula solo. */
@@ -357,6 +358,7 @@ export async function addOrderPayment(input: PaymentInput) {
     tipo: input.tipo,
     metodo: input.metodo?.trim() || null,
     nota: input.nota?.trim() || null,
+    comprobante_url: input.comprobante_url || null,
   });
   if (error) return { error: error.message };
 

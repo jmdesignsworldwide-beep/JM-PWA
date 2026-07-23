@@ -4,9 +4,11 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Wallet, Plus, Loader2, Trash2, CheckCircle2, HandCoins, Banknote,
+  Wallet, Plus, Loader2, Trash2, CheckCircle2, HandCoins, Banknote, Paperclip, ImageIcon,
 } from "lucide-react";
 import { addOrderPayment, deleteOrderPayment } from "@/app/(app)/pedidos/actions";
+import { getSignedDocUrl } from "@/app/(app)/clientes/actions";
+import { uploadFile } from "@/lib/upload";
 import { money, fechaCorta } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +21,7 @@ export type PagoOrder = { id: string; total: number; moneda: string; fecha: stri
 export type Pago = {
   id: string; order_id: string; monto: number; moneda: string;
   fecha: string; tipo: string; metodo: string | null; nota: string | null;
+  comprobante_url: string | null;
 };
 
 const TIPO_LABEL: Record<string, string> = {
@@ -93,17 +96,26 @@ export function PagosManager({
   const [tipo, setTipo] = useState<"inicial" | "entrega" | "abono">("abono");
   const [metodo, setMetodo] = useState("");
   const [nota, setNota] = useState("");
+  const [comprobante, setComprobante] = useState<File | null>(null);
+  const [fileKey, setFileKey] = useState(0);
 
   function registrar(montoNum: number, tipoPago: "inicial" | "entrega" | "abono", reset: () => void) {
     setError(null);
     if (!orderId) { setError("Crea un pedido primero para registrar el pago."); return; }
     if (!montoNum || montoNum <= 0) { setError("Escribe un monto mayor que cero."); return; }
     start(async () => {
+      // Comprobante opcional: sube la captura/voucher al bucket privado.
+      let comprobante_url: string | null = null;
+      if (comprobante) {
+        comprobante_url = await uploadFile("comprobantes", comprobante);
+        if (!comprobante_url) { setError("No se pudo subir el comprobante."); return; }
+      }
       const res = await addOrderPayment({
         order_id: orderId, monto: montoNum, moneda, fecha,
-        tipo: tipoPago, metodo, nota,
+        tipo: tipoPago, metodo, nota, comprobante_url,
       });
       if (res?.error) { setError(res.error); return; }
+      setComprobante(null); setFileKey((k) => k + 1);
       reset();
       router.refresh();
     });
@@ -115,6 +127,12 @@ export function PagosManager({
       await deleteOrderPayment(id, ordId, clientId);
       router.refresh();
     });
+  }
+
+  async function verComprobante(url: string) {
+    const res = await getSignedDocUrl(url);
+    if (res?.url) window.open(res.url, "_blank");
+    else alert(res?.error ?? "No se pudo abrir el comprobante");
   }
 
   const mitad = selOrder ? Math.round((Number(selOrder.total) / 2) * 100) / 100 : 0;
@@ -132,7 +150,6 @@ export function PagosManager({
       ) : (
         <div className="space-y-3">
           {resumen.map((r) => {
-            const pct = r.total > 0 ? Math.min(100, Math.round((r.pagado / r.total) * 100)) : 0;
             const saldado = r.falta <= 0 && r.total > 0;
             return (
               <div key={r.moneda} className="rounded-xl border border-border bg-card p-4">
@@ -145,16 +162,11 @@ export function PagosManager({
                     accent={saldado ? "text-success" : "text-warning"}
                   />
                 </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
-                  <div
-                    className="h-full rounded-full bg-[linear-gradient(90deg,var(--electric),var(--brand-purple))] transition-all"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  {saldado && <CheckCircle2 className="size-3.5 text-success" />}
-                  {saldado ? "Pagado por completo" : `${pct}% cobrado · ${r.moneda}`}
-                </p>
+                {saldado && (
+                  <p className="mt-2 flex items-center gap-1.5 text-xs text-success">
+                    <CheckCircle2 className="size-3.5" /> Pagado por completo · {r.moneda}
+                  </p>
+                )}
               </div>
             );
           })}
@@ -256,6 +268,11 @@ export function PagosManager({
             <Label>Nota (opcional)</Label>
             <Input value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Referencia, banco, detalle…" />
           </div>
+          <div className="mt-3 space-y-1.5">
+            <Label className="flex items-center gap-1.5"><Paperclip className="size-3.5" /> Comprobante (captura / voucher)</Label>
+            <Input key={fileKey} type="file" accept="image/*,application/pdf" onChange={(e) => setComprobante(e.target.files?.[0] ?? null)} />
+            {comprobante && <p className="text-xs text-muted-foreground">Se adjuntará: {comprobante.name}</p>}
+          </div>
 
           <div className="mt-3 flex items-center justify-between gap-3">
             {error ? <p className="text-sm text-destructive">{error}</p> : <span />}
@@ -288,6 +305,15 @@ export function PagosManager({
                   </p>
                 </div>
                 <Badge dot="var(--success)">Pagado</Badge>
+                {p.comprobante_url && (
+                  <button
+                    title="Ver comprobante"
+                    onClick={() => verComprobante(p.comprobante_url!)}
+                    className="text-muted-foreground transition-colors hover:text-electric"
+                  >
+                    <ImageIcon className="size-4" />
+                  </button>
+                )}
                 {!readOnly && (
                   <button
                     title="Borrar pago"
