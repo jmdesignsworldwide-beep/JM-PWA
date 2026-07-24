@@ -1,7 +1,6 @@
 import { EMPRESA } from "@/lib/empresa";
 import {
   LayoutDashboard,
-  Target,
   Users,
   FileText,
   CalendarClock,
@@ -28,8 +27,7 @@ export type NavItem = {
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Mis pendientes", href: "/pendientes", icon: ListTodo, ownerOnly: true },
-  { label: "Prospectos / Ventas", href: "/leads", icon: Target },
-  { label: "Clientes y Proyectos", href: "/clientes", icon: Users },
+  { label: "Clientes y Prospectos", href: "/clientes", icon: Users },
   { label: "Pedidos / Contratos / Facturas", href: "/pedidos", icon: FileText },
   { label: "Cobros y Entregas", href: "/cobros", icon: CalendarClock },
   { label: "Finanzas", href: "/finanzas", icon: Wallet },

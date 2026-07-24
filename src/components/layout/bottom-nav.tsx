@@ -11,7 +11,7 @@ type Item = { label: string; href: string; icon: LucideIcon };
 /**
  * Accesos principales (pulgar): Inicio · Pedido · Calendario · Pendientes.
  * "Pedido" abre la lista de pedidos (con "+ Nuevo pedido" arriba). El resto del
- * menú (Prospectos, Clientes, Cobros, Finanzas, etc.) vive tras "Más".
+ * menú (Clientes y Prospectos, Cobros, Finanzas, etc.) vive tras "Más".
  */
 const PRIMARY: Item[] = [
   { label: "Inicio", href: "/", icon: LayoutDashboard },

@@ -56,7 +56,7 @@ export async function updateClient(id: string, input: ClientUpdate) {
   if (error) return { error: error.message };
   revalidatePath(`/clientes/${id}`);
   revalidatePath("/clientes");
-  revalidatePath("/leads");
+  revalidatePath("/clientes");
   return { ok: true };
 }
 
@@ -222,7 +222,7 @@ export async function convertToActive(id: string) {
   if (error) return { error: error.message };
   revalidatePath(`/clientes/${id}`);
   revalidatePath("/clientes");
-  revalidatePath("/leads");
+  revalidatePath("/clientes");
   return { ok: true };
 }
 
@@ -239,7 +239,7 @@ export async function setClientEstado(id: string, estado: { es_lead: boolean; et
   if (error) return { error: error.message };
   revalidatePath(`/clientes/${id}`);
   revalidatePath("/clientes");
-  revalidatePath("/leads");
+  revalidatePath("/clientes");
   return { ok: true };
 }
 
@@ -259,6 +259,6 @@ export async function deleteClient(id: string) {
   const { error } = await supabase.from("clients").delete().eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/clientes");
-  revalidatePath("/leads");
+  revalidatePath("/clientes");
   return { ok: true };
 }
