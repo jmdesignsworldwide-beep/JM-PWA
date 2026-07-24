@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader2, Trash2, UserPlus, AtSign } from "lucide-react";
+import { Plus, Loader2, Trash2, UserPlus, AtSign, Zap, ListChecks } from "lucide-react";
 import { createInfluencer, updateInfluencer } from "@/app/(app)/influencers/actions";
 import type { Influencer } from "@/lib/data/influencers";
 import { REDES, type Plataforma } from "@/lib/influencers";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 
 type Brand = { id: string; nombre: string };
 const emptyPlat = (): Plataforma => ({ red: "Instagram", handle: "", seguidores: "", engagement: "" });
@@ -20,6 +21,10 @@ const emptyPlat = (): Plataforma => ({ red: "Instagram", handle: "", seguidores:
  * REGISTRO del influencer (quién es): identidad, redes y contacto. El trato
  * (colaboración) ya no vive aquí — se crea aparte, en la ficha, con
  * CollaborationDialog. Un influencer puede tener varias colaboraciones.
+ *
+ * Dos modos, igual que en clientes:
+ *  · Rápido    → nombre + @Instagram + notas. Y guardar.
+ *  · Detallado → el formulario completo (nicho, plataformas, contacto, manager).
  */
 export function NewInfluencerDialog({ brands, influencer, trigger, onCreated }: {
   brands: Brand[]; influencer?: Influencer; trigger?: React.ReactNode; onCreated?: (id: string) => void;
@@ -30,6 +35,7 @@ export function NewInfluencerDialog({ brands, influencer, trigger, onCreated }: 
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  const [modo, setModo] = useState<"rapido" | "completo">("rapido");
   const [nombre, setNombre] = useState("");
   const [nicho, setNicho] = useState("");
   const [plataformas, setPlataformas] = useState<Plataforma[]>([emptyPlat()]);
@@ -47,11 +53,14 @@ export function NewInfluencerDialog({ brands, influencer, trigger, onCreated }: 
   /** Carga el estado desde el influencer (edición) o lo limpia (nuevo). */
   function reinit() {
     if (!influencer) {
+      setModo("rapido");
       setNombre(""); setNicho(""); setPlataformas([emptyPlat()]); setTieneWa(false); setWhatsapp("");
       setTieneCorreo(false); setCorreo(""); setFacebook(""); setTieneManager(false); setEmpresa(""); setManagerNombre("");
       setBrandId(""); setNotas(""); setError(null);
       return;
     }
+    // En edición mostramos el formulario completo para no ocultar datos existentes.
+    setModo("completo");
     setNombre(influencer.nombre ?? "");
     setNicho(influencer.nicho ?? "");
     const plats = Array.isArray(influencer.plataformas) ? (influencer.plataformas as unknown as Plataforma[]) : [];
@@ -107,57 +116,93 @@ export function NewInfluencerDialog({ brands, influencer, trigger, onCreated }: 
         : <Button variant="gradient" onClick={() => { reinit(); setOpen(true); }}><UserPlus className="size-4" /> Registrar influencer</Button>}
       <Dialog open={open} onClose={() => setOpen(false)} title={isEdit ? "Editar influencer" : "Registrar influencer"} className="max-w-3xl">
         <div className="space-y-5">
-          <Section icon={<AtSign className="size-4 text-electric" />} title="Influencer">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {/* Modo Rápido / Detallado (solo al registrar) */}
+          {!isEdit && (
+            <>
+              <div className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-background/40 p-1">
+                {([["rapido", "Rápido", Zap], ["completo", "Detallado", ListChecks]] as const).map(([id, lbl, Icon]) => (
+                  <button key={id} type="button" onClick={() => setModo(id)}
+                    className={cn("flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                      modo === id ? "bg-electric/15 text-electric" : "text-muted-foreground hover:bg-accent/40")}>
+                    <Icon className="size-4" /> {lbl}
+                  </button>
+                ))}
+              </div>
+              {modo === "rapido" && (
+                <p className="text-xs text-muted-foreground">Lo esencial para no frenarte. Luego completas el resto desde su ficha.</p>
+              )}
+            </>
+          )}
+
+          {/* RÁPIDO: nombre + @Instagram + notas */}
+          {modo === "rapido" ? (
+            <div className="space-y-4">
               <Field label="Nombre *"><Input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre" /></Field>
-              <Field label="Nicho"><Input value={nicho} onChange={(e) => setNicho(e.target.value)} placeholder="Moda, fitness, tech…" /></Field>
+              <Field label="Usuario de Instagram">
+                <Input
+                  value={plataformas[0]?.handle ?? ""}
+                  onChange={(e) => setPlat(0, { red: "Instagram", handle: e.target.value })}
+                  placeholder="@usuario"
+                />
+              </Field>
+              <Field label="Notas"><Input value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Notas del influencer (opcional)" /></Field>
             </div>
-            <Label className="mt-1 block">Plataformas</Label>
-            <div className="space-y-3">
-              {plataformas.map((p, i) => (
-                <div key={i} className="rounded-lg border border-border bg-background/40 p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground">Plataforma {i + 1}</span>
-                    {plataformas.length > 1 && <button type="button" onClick={() => setPlataformas((a) => a.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-destructive" aria-label="Quitar plataforma"><Trash2 className="size-4" /></button>}
+          ) : (
+            /* DETALLADO: formulario completo */
+            <>
+              <Section icon={<AtSign className="size-4 text-electric" />} title="Influencer">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Field label="Nombre *"><Input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre" /></Field>
+                  <Field label="Nicho"><Input value={nicho} onChange={(e) => setNicho(e.target.value)} placeholder="Moda, fitness, tech…" /></Field>
+                </div>
+                <Label className="mt-1 block">Plataformas</Label>
+                <div className="space-y-3">
+                  {plataformas.map((p, i) => (
+                    <div key={i} className="rounded-lg border border-border bg-background/40 p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Plataforma {i + 1}</span>
+                        {plataformas.length > 1 && <button type="button" onClick={() => setPlataformas((a) => a.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-destructive" aria-label="Quitar plataforma"><Trash2 className="size-4" /></button>}
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <Field label="Red"><Select value={p.red} onChange={(e) => setPlat(i, { red: e.target.value })}>{REDES.map((r) => <option key={r} value={r}>{r}</option>)}</Select></Field>
+                        <Field label="Usuario / handle"><Input value={p.handle} onChange={(e) => setPlat(i, { handle: e.target.value })} placeholder="@usuario" /></Field>
+                        <Field label="Seguidores"><Input value={p.seguidores} onChange={(e) => setPlat(i, { seguidores: e.target.value })} placeholder="Ej. 12500" inputMode="numeric" /></Field>
+                        <Field label="Engagement %"><Input value={p.engagement} onChange={(e) => setPlat(i, { engagement: e.target.value })} placeholder="Ej. 3.5" inputMode="decimal" /></Field>
+                      </div>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={() => setPlataformas((a) => [...a, emptyPlat()])}><Plus className="size-4" /> Agregar plataforma</Button>
+                </div>
+                <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border border-border p-3 space-y-2">
+                    <label className="flex items-center gap-2 text-sm"><Switch checked={tieneWa} onCheckedChange={setTieneWa} /> WhatsApp</label>
+                    {tieneWa && <Input type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="1 809 000 0000" />}
+                    <label className="flex items-center gap-2 text-sm"><Switch checked={tieneCorreo} onCheckedChange={setTieneCorreo} /> Correo</label>
+                    {tieneCorreo && <Input type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="correo@ejemplo.com" />}
+                    <label className="flex items-center gap-2 pt-1 text-sm text-muted-foreground">Facebook (opcional)</label>
+                    <Input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="usuario o link" />
                   </div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <Field label="Red"><Select value={p.red} onChange={(e) => setPlat(i, { red: e.target.value })}>{REDES.map((r) => <option key={r} value={r}>{r}</option>)}</Select></Field>
-                    <Field label="Usuario / handle"><Input value={p.handle} onChange={(e) => setPlat(i, { handle: e.target.value })} placeholder="@usuario" /></Field>
-                    <Field label="Seguidores"><Input value={p.seguidores} onChange={(e) => setPlat(i, { seguidores: e.target.value })} placeholder="Ej. 12500" inputMode="numeric" /></Field>
-                    <Field label="Engagement %"><Input value={p.engagement} onChange={(e) => setPlat(i, { engagement: e.target.value })} placeholder="Ej. 3.5" inputMode="decimal" /></Field>
+                  <div className="rounded-lg border border-border p-3 space-y-2">
+                    <label className="flex items-center gap-2 text-sm"><Switch checked={tieneManager} onCheckedChange={setTieneManager} /> Tiene manager / agencia</label>
+                    {tieneManager ? (
+                      <>
+                        <Input value={empresa} onChange={(e) => setEmpresa(e.target.value)} placeholder="Agencia / empresa" />
+                        <Input value={managerNombre} onChange={(e) => setManagerNombre(e.target.value)} placeholder="Nombre del manager" />
+                      </>
+                    ) : <p className="text-xs text-muted-foreground">Independiente</p>}
                   </div>
                 </div>
-              ))}
-              <Button type="button" variant="outline" size="sm" onClick={() => setPlataformas((a) => [...a, emptyPlat()])}><Plus className="size-4" /> Agregar plataforma</Button>
-            </div>
-            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-border p-3 space-y-2">
-                <label className="flex items-center gap-2 text-sm"><Switch checked={tieneWa} onCheckedChange={setTieneWa} /> WhatsApp</label>
-                {tieneWa && <Input type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="1 809 000 0000" />}
-                <label className="flex items-center gap-2 text-sm"><Switch checked={tieneCorreo} onCheckedChange={setTieneCorreo} /> Correo</label>
-                {tieneCorreo && <Input type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="correo@ejemplo.com" />}
-                <label className="flex items-center gap-2 pt-1 text-sm text-muted-foreground">Facebook (opcional)</label>
-                <Input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="usuario o link" />
-              </div>
-              <div className="rounded-lg border border-border p-3 space-y-2">
-                <label className="flex items-center gap-2 text-sm"><Switch checked={tieneManager} onCheckedChange={setTieneManager} /> Tiene manager / agencia</label>
-                {tieneManager ? (
-                  <>
-                    <Input value={empresa} onChange={(e) => setEmpresa(e.target.value)} placeholder="Agencia / empresa" />
-                    <Input value={managerNombre} onChange={(e) => setManagerNombre(e.target.value)} placeholder="Nombre del manager" />
-                  </>
-                ) : <p className="text-xs text-muted-foreground">Independiente</p>}
-              </div>
-            </div>
-          </Section>
+              </Section>
 
-          <Field label="¿Para cuál de tus marcas? (opcional)">
-            <Select value={brandId} onChange={(e) => setBrandId(e.target.value)}>
-              <option value="">— Elegir marca —</option>
-              {brands.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}
-            </Select>
-          </Field>
-          <Field label="Notas"><Input value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Notas del influencer (opcional)" /></Field>
+              <Field label="¿Para cuál de tus marcas? (opcional)">
+                <Select value={brandId} onChange={(e) => setBrandId(e.target.value)}>
+                  <option value="">— Elegir marca —</option>
+                  {brands.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+                </Select>
+              </Field>
+              <Field label="Notas"><Input value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Notas del influencer (opcional)" /></Field>
+            </>
+          )}
 
           {error && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
           <div className="flex justify-end gap-2">

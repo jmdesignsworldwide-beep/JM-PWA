@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Pencil, Trash2, Download, Loader2, Gift, Megaphone, AtSign, Users, Plus, MoreHorizontal, Handshake } from "lucide-react";
 import type { Influencer, Collaboration } from "@/lib/data/influencers";
-import { INFLUENCER_ESTADOS, INFLUENCER_ESTADO_LABEL, COLAB_ESTADOS, COLAB_ESTADO_LABEL, COLAB_ESTADO_COLOR, igHandle, type InfluencerEstado, type ColabEstado, type Plataforma } from "@/lib/influencers";
-import { updateInfluencerStage, deleteInfluencer } from "@/app/(app)/influencers/actions";
+import { COLAB_ESTADOS, COLAB_ESTADO_LABEL, COLAB_ESTADO_COLOR, igHandle, type ColabEstado, type Plataforma } from "@/lib/influencers";
+import { deleteInfluencer } from "@/app/(app)/influencers/actions";
 import { updateCollaborationEstado, deleteCollaboration } from "@/app/(app)/influencers/collab-actions";
 import { NewInfluencerDialog } from "./new-influencer-dialog";
 import { CollaborationDialog } from "./collaboration-dialog";
@@ -32,10 +32,6 @@ export function InfluencerDetail({ influencer, brands, collaborations }: { influ
   const plataformas = (Array.isArray(influencer.plataformas) ? influencer.plataformas : []) as unknown as Plataforma[];
   const brandNombre = influencer.brand_id ? brands.find((b) => b.id === influencer.brand_id)?.nombre : null;
 
-  function setEstado(estado: InfluencerEstado) {
-    startTransition(async () => { await updateInfluencerStage(influencer.id, estado); router.refresh(); });
-  }
-
   function borrar() {
     setError(null);
     startTransition(async () => {
@@ -56,7 +52,6 @@ export function InfluencerDetail({ influencer, brands, collaborations }: { influ
         <div>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{influencer.nombre}</h1>
-            <Badge>{INFLUENCER_ESTADO_LABEL[influencer.estado as InfluencerEstado] ?? influencer.estado}</Badge>
             {influencer.tiene_manager && <Badge dot="var(--electric)">{influencer.empresa ?? "Agencia"}</Badge>}
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -69,18 +64,6 @@ export function InfluencerDetail({ influencer, brands, collaborations }: { influ
           <NewInfluencerDialog brands={brands} influencer={influencer} trigger={<Button variant="gradient" size="sm"><Pencil className="size-4" /> Editar</Button>} />
           <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => setDelOpen(true)}><Trash2 className="size-4" /> Borrar</Button>
         </div>
-      </div>
-
-      {/* Estado del pipeline (outreach) */}
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3">
-        <span className="text-sm text-muted-foreground">Estado:</span>
-        {INFLUENCER_ESTADOS.map((e) => (
-          <button key={e.id} onClick={() => setEstado(e.id)} disabled={pending}
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${influencer.estado === e.id ? "border-transparent text-white" : "border-border text-muted-foreground hover:bg-accent/40"}`}
-            style={influencer.estado === e.id ? { background: e.color } : undefined}>
-            <span className="size-2 rounded-full" style={{ background: influencer.estado === e.id ? "rgba(255,255,255,.9)" : e.color }} /> {e.label}
-          </button>
-        ))}
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
