@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { EtapaVenta } from "@/lib/ventas";
 
 export type NewLeadInput = {
   nombre: string;
@@ -38,17 +37,4 @@ export async function createLead(input: NewLeadInput) {
   if (error) return { error: error.message };
   revalidatePath("/clientes");
   return { id: data.id };
-}
-
-export async function updateLeadStage(id: string, etapa: EtapaVenta) {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("clients")
-    .update({ etapa_venta: etapa })
-    .eq("id", id);
-
-  if (error) return { error: error.message };
-  revalidatePath("/clientes");
-  revalidatePath(`/clientes/${id}`);
-  return { ok: true };
 }

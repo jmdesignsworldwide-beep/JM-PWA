@@ -195,7 +195,7 @@ export function ClientsTable({
                     </Link>
                   </td>
                   <td className="px-4 py-3">
-                    <EstadoSelect clientId={c.id} esLead={c.es_lead} etapa={c.etapa_venta} />
+                    <EstadoSelect clientId={c.id} esLead={c.es_lead} />
                   </td>
                   <td className="px-4 py-3 capitalize text-muted-foreground">{c.categoria_servicio ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.industria ?? "—"}</td>

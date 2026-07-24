@@ -1,24 +1,9 @@
 import type { Row } from "@/lib/database.types";
 
+// Nota: las "etapas de venta" (pipeline por etapas) se retiraron. Se conserva
+// solo el tipo EtapaVenta porque la columna sigue en la BD y algunos writes la
+// rellenan con un valor válido ("nuevo" para prospecto, "ganado" para cliente).
 export type EtapaVenta = Row<"clients">["etapa_venta"];
-
-/** Etapas del pipeline INBOUND de ventas (orden del Kanban). */
-export const ETAPAS: {
-  id: EtapaVenta;
-  label: string;
-  color: string;
-}[] = [
-  { id: "nuevo", label: "Nuevo prospecto", color: "var(--electric)" },
-  { id: "contactado", label: "Contactado", color: "#38bdf8" },
-  { id: "cotizado", label: "Cotizado", color: "var(--brand-purple)" },
-  { id: "contrato_enviado", label: "Contrato enviado", color: "#f59e0b" },
-  { id: "ganado", label: "Ganado", color: "var(--success)" },
-  { id: "perdido", label: "Perdido", color: "var(--destructive)" },
-];
-
-export const ETAPA_LABEL: Record<EtapaVenta, string> = Object.fromEntries(
-  ETAPAS.map((e) => [e.id, e.label]),
-) as Record<EtapaVenta, string>;
 
 /** Categoría de servicio (4 opciones). */
 export const CATEGORIAS_SERVICIO = [

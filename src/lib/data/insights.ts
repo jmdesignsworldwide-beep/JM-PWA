@@ -100,16 +100,6 @@ export async function getRuleInsights(): Promise<Insight[]> {
   return insights;
 }
 
-/** Embudo de conversión de leads. */
-export async function getFunnel() {
-  const supabase = await createClient();
-  const etapas = ["nuevo", "contactado", "cotizado", "contrato_enviado", "ganado", "perdido"];
-  const { data } = await supabase.from("clients").select("etapa_venta");
-  const counts: Record<string, number> = {};
-  for (const r of (data ?? []) as { etapa_venta: string }[]) counts[r.etapa_venta] = (counts[r.etapa_venta] ?? 0) + 1;
-  return etapas.map((e) => ({ etapa: e, count: counts[e] ?? 0 }));
-}
-
 /** Proyectos por estado. */
 export async function getProjectsByStatus() {
   const supabase = await createClient();

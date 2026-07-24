@@ -60,7 +60,7 @@ export default async function ClientePage({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <EstadoSelect clientId={client.id} esLead={client.es_lead} etapa={client.etapa_venta} />
+            <EstadoSelect clientId={client.id} esLead={client.es_lead} />
             <SocialLinks instagram={client.instagram} facebook={client.facebook} />
             <WhatsappButton phone={client.whatsapp ?? client.telefono} text={`Hola ${client.nombre}!`} />
             <ConvertToClientButton clientId={client.id} clientName={nombreCompleto} />
@@ -104,7 +104,7 @@ export default async function ClientePage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <EstadoSelect clientId={client.id} esLead={client.es_lead} etapa={client.etapa_venta} />
+          <EstadoSelect clientId={client.id} esLead={client.es_lead} />
           <SocialLinks instagram={client.instagram} facebook={client.facebook} />
           <WhatsappButton phone={client.whatsapp ?? client.telefono} text={`Hola ${client.nombre}!`} />
           <PortalAccessButton clientId={client.id} clientName={client.nombre} whatsapp={client.whatsapp ?? client.telefono} />
