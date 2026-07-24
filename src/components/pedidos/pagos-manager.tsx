@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Wallet, Plus, Loader2, Trash2, CheckCircle2, HandCoins, Banknote, Paperclip, ImageIcon,
+  Wallet, Plus, Loader2, Trash2, CheckCircle2, HandCoins, Banknote, Paperclip, ImageIcon, FileText,
 } from "lucide-react";
 import { addOrderPayment, deleteOrderPayment } from "@/app/(app)/pedidos/actions";
 import { getSignedDocUrl } from "@/app/(app)/clientes/actions";
@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
 
-export type PagoOrder = { id: string; total: number; moneda: string; fecha: string; estado: string };
+export type PagoOrder = { id: string; total: number; moneda: string; fecha: string; estado: string; concepto?: string; items?: string[] };
 export type Pago = {
   id: string; order_id: string; monto: number; moneda: string;
   fecha: string; tipo: string; metodo: string | null; nota: string | null;
@@ -65,31 +65,24 @@ export function PagosManager({
   const scopeOrders = lockedOrderId ? orders.filter((o) => o.id === lockedOrderId) : orders;
   const scopePayments = lockedOrderId ? payments.filter((p) => p.order_id === lockedOrderId) : payments;
 
-  // Resumen por moneda: Total (suma de pedidos) / Pagado (suma de abonos) / Falta.
-  const resumen = useMemo(() => {
-    const map = new Map<string, { total: number; pagado: number }>();
-    for (const o of scopeOrders) {
-      const e = map.get(o.moneda) ?? { total: 0, pagado: 0 };
-      e.total += Number(o.total) || 0;
-      map.set(o.moneda, e);
-    }
-    for (const p of scopePayments) {
-      const e = map.get(p.moneda) ?? { total: 0, pagado: 0 };
-      e.pagado += Number(p.monto) || 0;
-      map.set(p.moneda, e);
-    }
-    return [...map.entries()].map(([moneda, v]) => ({
-      moneda,
-      total: v.total,
-      pagado: v.pagado,
-      falta: Math.max(0, v.total - v.pagado),
-    }));
-  }, [scopeOrders, scopePayments]);
+  // Pagado y saldo POR PEDIDO (no una suma revuelta de todos).
+  const pagadoDe = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of payments) m.set(p.order_id, (m.get(p.order_id) ?? 0) + (Number(p.monto) || 0));
+    return m;
+  }, [payments]);
+  const resumenDe = (o: PagoOrder) => {
+    const total = Number(o.total) || 0;
+    const pagado = pagadoDe.get(o.id) ?? 0;
+    return { total, pagado, falta: Math.max(0, total - pagado) };
+  };
 
   // Pedido seleccionado para registrar (fijo si lockedOrderId).
   const [orderId, setOrderId] = useState(lockedOrderId ?? orders[0]?.id ?? "");
   const selOrder = orders.find((o) => o.id === orderId);
   const moneda = (selOrder?.moneda as "DOP" | "USD") ?? "DOP";
+  const selResumen = selOrder ? resumenDe(selOrder) : null;
+  const conceptoDe = (o: PagoOrder) => o.concepto?.trim() || `Pedido del ${fechaCorta(o.fecha)}`;
 
   const [monto, setMonto] = useState("");
   const [fecha, setFecha] = useState(() => hoyIso());
@@ -140,33 +133,29 @@ export function PagosManager({
 
   return (
     <div className="space-y-5">
-      {/* Resumen Total / Pagado / Falta */}
-      {resumen.length === 0 ? (
+      {/* Sin pedidos */}
+      {noOrders && (
         <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
-          {noOrders
-            ? "Aún no hay pedidos. Crea uno para empezar a registrar pagos."
-            : "Sin movimientos todavía. Registra el primer abono abajo."}
+          Aún no hay pedidos. Crea uno para empezar a registrar pagos.
         </div>
-      ) : (
+      )}
+
+      {/* Ficha del cliente (solo lectura): desglose POR PEDIDO, no mezclado */}
+      {readOnly && !noOrders && (
         <div className="space-y-3">
-          {resumen.map((r) => {
+          {scopeOrders.map((o) => {
+            const r = resumenDe(o);
             const saldado = r.falta <= 0 && r.total > 0;
             return (
-              <div key={r.moneda} className="rounded-xl border border-border bg-card p-4">
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <Resumen label="Total" value={money(r.total, r.moneda)} />
-                  <Resumen label="Pagado" value={money(r.pagado, r.moneda)} accent="text-success" />
-                  <Resumen
-                    label="Falta"
-                    value={money(r.falta, r.moneda)}
-                    accent={saldado ? "text-success" : "text-warning"}
-                  />
+              <div key={o.id} className="rounded-xl border border-border bg-card p-4">
+                <p className="font-medium">{conceptoDe(o)}</p>
+                {o.items && o.items.length > 0 && <p className="mt-0.5 truncate text-xs text-muted-foreground">{o.items.join(" · ")}</p>}
+                <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                  <Resumen label="Total" value={money(r.total, o.moneda)} />
+                  <Resumen label="Pagado" value={money(r.pagado, o.moneda)} accent="text-success" />
+                  <Resumen label="Falta" value={money(r.falta, o.moneda)} accent={saldado ? "text-success" : "text-warning"} />
                 </div>
-                {saldado && (
-                  <p className="mt-2 flex items-center gap-1.5 text-xs text-success">
-                    <CheckCircle2 className="size-3.5" /> Pagado por completo · {r.moneda}
-                  </p>
-                )}
+                {saldado && <p className="mt-2 flex items-center gap-1.5 text-xs text-success"><CheckCircle2 className="size-3.5" /> Pagado por completo</p>}
               </div>
             );
           })}
@@ -174,7 +163,7 @@ export function PagosManager({
       )}
 
       {/* Solo lectura: botón para registrar el pago en Cobros (no dentro de la ficha) */}
-      {readOnly && cobrosHref && resumen.length > 0 && (
+      {readOnly && cobrosHref && !noOrders && (
         <Link href={cobrosHref}>
           <Button variant="outline" size="sm" className="w-full justify-center">
             <Wallet className="size-4" /> Registrar pago en Cobros
@@ -189,21 +178,45 @@ export function PagosManager({
             <Wallet className="size-4 text-electric" /> Registrar pago
           </h4>
 
-          {/* Selector de pedido (solo en la vista del cliente con varios pedidos) */}
+          {/* ¿A qué pedido va el pago? Selector con concepto + saldo por pedido */}
           {!lockedOrderId && orders.length > 1 && (
             <div className="mt-3 space-y-1.5">
-              <Label>Pedido</Label>
+              <Label>¿A qué pedido va este pago?</Label>
               <select
                 value={orderId}
                 onChange={(e) => setOrderId(e.target.value)}
                 className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
               >
-                {orders.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {fechaCorta(o.fecha)} · {money(o.total, o.moneda)} · {o.estado}
-                  </option>
-                ))}
+                {orders.map((o) => {
+                  const r = resumenDe(o);
+                  return (
+                    <option key={o.id} value={o.id}>
+                      {conceptoDe(o)} · total {money(o.total, o.moneda)} · falta {money(r.falta, o.moneda)}
+                    </option>
+                  );
+                })}
               </select>
+            </div>
+          )}
+
+          {/* Concepto del pedido seleccionado + items + su Total/Pagado/Falta */}
+          {selOrder && selResumen && (
+            <div className="mt-3 rounded-xl border border-electric/25 bg-[color-mix(in_srgb,var(--electric)_5%,var(--card))] p-3">
+              <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground"><FileText className="size-3.5" /> Estás pagando</p>
+              <p className="mt-0.5 font-semibold">{conceptoDe(selOrder)}</p>
+              <p className="text-xs text-muted-foreground">{fechaCorta(selOrder.fecha)} · {selOrder.estado}</p>
+              {selOrder.items && selOrder.items.length > 0 && (
+                <ul className="mt-2 space-y-0.5">
+                  {selOrder.items.map((it, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground"><span className="mt-1.5 size-1 shrink-0 rounded-full bg-electric" />{it}</li>
+                  ))}
+                </ul>
+              )}
+              <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border pt-3 text-center">
+                <Resumen label="Total" value={money(selResumen.total, moneda)} />
+                <Resumen label="Pagado" value={money(selResumen.pagado, moneda)} accent="text-success" />
+                <Resumen label="Falta" value={money(selResumen.falta, moneda)} accent={selResumen.falta <= 0 && selResumen.total > 0 ? "text-success" : "text-warning"} />
+              </div>
             </div>
           )}
 

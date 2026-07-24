@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { rdToday, addDays, endOfWeek, endOfMonth } from "@/lib/fecha";
 import { datesInRange, occurrenceId, type Freq } from "@/lib/recurrence";
+import { conceptoDePedido, itemsDePedido } from "@/lib/pedido-concepto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type EventTipo = "inicio" | "entrega" | "cobro" | "acuerdo" | "personal";
@@ -211,7 +212,7 @@ export async function getPendientes(): Promise<AgendaEvent[]> {
   return attachClients(supabase, ev);
 }
 
-export type PagoOrderLite = { id: string; total: number; moneda: string; fecha: string; estado: string };
+export type PagoOrderLite = { id: string; total: number; moneda: string; fecha: string; estado: string; concepto: string; items: string[] };
 export type PagoLite = { id: string; order_id: string; monto: number; moneda: string; fecha: string; tipo: string; metodo: string | null; nota: string | null; comprobante_url: string | null };
 export type SaldoCliente = {
   id: string;
@@ -231,10 +232,10 @@ export type SaldoCliente = {
 export async function getSaldosClientes(): Promise<SaldoCliente[]> {
   const supabase = await createClient();
   const [ordersRes, paymentsRes] = await Promise.all([
-    supabase.from("orders").select("id, client_id, total, moneda, fecha, estado"),
+    supabase.from("orders").select("id, client_id, total, moneda, fecha, estado, detalle_json, tipo_solucion, industria, rama"),
     supabase.from("order_payments").select("id, order_id, client_id, monto, moneda, fecha, tipo, metodo, nota, comprobante_url"),
   ]);
-  const orders = (ordersRes.data ?? []) as (PagoOrderLite & { client_id: string })[];
+  const orders = (ordersRes.data ?? []) as (PagoOrderLite & { client_id: string; detalle_json: unknown; tipo_solucion: string | null; industria: string | null; rama: string })[];
   const payments = (paymentsRes.data ?? []) as (PagoLite & { client_id: string })[];
   if (orders.length === 0) return [];
 
@@ -249,7 +250,10 @@ export async function getSaldosClientes(): Promise<SaldoCliente[]> {
       id: o.client_id, nombre: nameMap.get(o.client_id) ?? "Cliente",
       orders: [], payments: [], porMoneda: [], saldoTotalDOP: 0,
     };
-    c.orders.push({ id: o.id, total: Number(o.total) || 0, moneda: o.moneda, fecha: o.fecha, estado: o.estado });
+    c.orders.push({
+      id: o.id, total: Number(o.total) || 0, moneda: o.moneda, fecha: o.fecha, estado: o.estado,
+      concepto: conceptoDePedido(o), items: itemsDePedido(o.detalle_json),
+    });
     byClient.set(o.client_id, c);
   }
   for (const p of payments) {
