@@ -1,6 +1,7 @@
 "use client";
 
 import { EMPRESA } from "@/lib/empresa";
+import { conceptoDePedido, itemsDePedido } from "@/lib/pedido-concepto";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -153,7 +154,7 @@ export function OrderDetail({ order, client, notes, contract, invoice, contractD
           <div className="p-4">
             <PagosManager
               clientId={order.client_id}
-              orders={[{ id: order.id, total: order.total, moneda: order.moneda, fecha: order.fecha, estado: order.estado }]}
+              orders={[{ id: order.id, total: order.total, moneda: order.moneda, fecha: order.fecha, estado: order.estado, concepto: conceptoDePedido(order), items: itemsDePedido(order.detalle_json) }]}
               payments={payments}
               lockedOrderId={order.id}
             />

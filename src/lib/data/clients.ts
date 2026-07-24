@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { conceptoDePedido, itemsDePedido } from "@/lib/pedido-concepto";
 import type { Row } from "@/lib/database.types";
 
 export type Client = Row<"clients">;
@@ -48,7 +49,7 @@ export async function getBrands() {
 export async function getClientStats(clientId: string) {
   const supabase = await createClient();
   const [orders, contracts, invoices, projects, payments] = await Promise.all([
-    supabase.from("orders").select("id, estado, total, moneda, fecha").eq("client_id", clientId).order("created_at", { ascending: false }),
+    supabase.from("orders").select("id, estado, total, moneda, fecha, detalle_json, tipo_solucion, industria, rama").eq("client_id", clientId).order("created_at", { ascending: false }),
     supabase.from("contracts").select("id, estado, fecha_aprobacion").eq("client_id", clientId),
     supabase.from("invoices").select("id, estado_pago, total, moneda, fecha").eq("client_id", clientId),
     supabase.from("projects").select("id, nombre, estado, fecha_entrega").eq("client_id", clientId),
@@ -58,8 +59,10 @@ export async function getClientStats(clientId: string) {
       .eq("client_id", clientId)
       .order("fecha", { ascending: false }),
   ]);
+  const ordersFull = ((orders.data ?? []) as { id: string; estado: string; total: number; moneda: string; fecha: string; detalle_json: unknown; tipo_solucion: string | null; industria: string | null; rama: string }[])
+    .map((o) => ({ id: o.id, estado: o.estado, total: o.total, moneda: o.moneda, fecha: o.fecha, concepto: conceptoDePedido(o), items: itemsDePedido(o.detalle_json) }));
   return {
-    orders: orders.data ?? [],
+    orders: ordersFull,
     contracts: contracts.data ?? [],
     invoices: invoices.data ?? [],
     projects: projects.data ?? [],
