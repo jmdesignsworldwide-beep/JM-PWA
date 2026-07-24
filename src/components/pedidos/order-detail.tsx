@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { PagosManager } from "./pagos-manager";
+import { OrderEstadoSelect } from "./order-estado-select";
 import { ExternalContractUpload } from "./external-contract-upload";
 import { OrderTasks } from "./order-tasks";
 import { ProjectManager } from "@/components/clientes/project-manager";
@@ -81,7 +82,8 @@ export function OrderDetail({ order, client, notes, contract, invoice, contractD
         {/* Pedido */}
         <section className="rounded-xl border border-border bg-card">
           <Header icon={<FileText className="size-4" />} title="Pedido" right={
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <OrderEstadoSelect orderId={order.id} estado={order.estado} />
               <Badge dot="var(--electric)">{order.rama === "designs" ? EMPRESA.nombre : "JM Distribution"}</Badge>
               <Button variant="ghost" size="sm" onClick={() => act(() => duplicateOrder(order.id), )}
                 disabled={pending} title="Duplicar pedido">

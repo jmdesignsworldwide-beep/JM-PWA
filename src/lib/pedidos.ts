@@ -1,5 +1,50 @@
 import type { PlanPagoItem } from "@/app/(app)/pedidos/actions";
 
+/** Estado del pedido (los 5 que permite la BD). */
+export type OrderEstado = "borrador" | "confirmado" | "en_proceso" | "completado" | "cancelado";
+
+/**
+ * Estados del pedido, en orden de avance. El automático nunca retrocede (usa
+ * el índice como rango) y nunca toca "cancelado".
+ */
+export const ORDER_ESTADOS: { id: OrderEstado; label: string; color: string }[] = [
+  { id: "borrador", label: "Borrador", color: "var(--muted-foreground)" },
+  { id: "confirmado", label: "Confirmado", color: "var(--electric)" },
+  { id: "en_proceso", label: "En proceso", color: "var(--warning)" },
+  { id: "completado", label: "Completado", color: "var(--success)" },
+  { id: "cancelado", label: "Cancelado", color: "var(--destructive)" },
+];
+
+export const ORDER_ESTADO_LABEL: Record<OrderEstado, string> = Object.fromEntries(
+  ORDER_ESTADOS.map((e) => [e.id, e.label]),
+) as Record<OrderEstado, string>;
+
+export const ORDER_ESTADO_COLOR: Record<OrderEstado, string> = Object.fromEntries(
+  ORDER_ESTADOS.map((e) => [e.id, e.color]),
+) as Record<OrderEstado, string>;
+
+/** Rango para avanzar sin retroceder (cancelado queda fuera de la escalera). */
+const ORDER_ESTADO_RANK: Record<string, number> = { borrador: 0, confirmado: 1, en_proceso: 2, completado: 3 };
+
+/**
+ * Calcula el estado que debería tener el pedido tras un pago, respetando las
+ * reglas: 1er pago saca de "borrador" → "confirmado"; saldo 0 → "completado".
+ * Nunca retrocede ni revive un "cancelado". Devuelve null si no hay que cambiar.
+ */
+export function siguienteEstadoPorPago(
+  actual: string, total: number, pagado: number,
+): OrderEstado | null {
+  if (actual === "cancelado") return null; // si lo cancelaste, un pago no lo revive
+  const saldado = total > 0 && pagado >= total;
+  let target: OrderEstado = actual as OrderEstado;
+  if (actual === "borrador" && pagado > 0) target = "confirmado";
+  if (saldado) target = "completado";
+  if (target === actual) return null;
+  // Solo avanzar (nunca retroceder por el automático).
+  if ((ORDER_ESTADO_RANK[target] ?? 0) <= (ORDER_ESTADO_RANK[actual] ?? 0)) return null;
+  return target;
+}
+
 /** Catálogo base de imprenta (JM Distribution). */
 export const PRINT_CATEGORIAS = [
   "Gorras",
