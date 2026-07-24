@@ -4,34 +4,29 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { setClientEstado } from "@/app/(app)/clientes/actions";
-import { ETAPAS } from "@/lib/ventas";
 import { cn } from "@/lib/utils";
 
 /**
- * Cambia el estado de una persona (prospecto + etapa, o cliente activo) sin
- * recrearla. Sirve en la ficha y en la lista. Codifica el valor como
- * "lead:<etapa>" o "active:ganado".
+ * Cambia el estado de una persona: Prospecto o Cliente activo (sin etapas).
+ * Sirve en la ficha y en la lista. Codifica el valor como "lead" o "active".
  */
 const OPCIONES: { value: string; label: string; es_lead: boolean; etapa: string; color: string }[] = [
-  ...ETAPAS.filter((e) => e.id !== "ganado").map((e) => ({
-    value: `lead:${e.id}`, label: `Prospecto · ${e.label}`, es_lead: true, etapa: e.id, color: e.color,
-  })),
-  { value: "active:ganado", label: "Cliente activo", es_lead: false, etapa: "ganado", color: "var(--success)" },
+  { value: "lead", label: "Prospecto", es_lead: true, etapa: "nuevo", color: "var(--warning)" },
+  { value: "active", label: "Cliente activo", es_lead: false, etapa: "ganado", color: "var(--success)" },
 ];
 
 export function EstadoSelect({
-  clientId, esLead, etapa, className,
+  clientId, esLead, className,
 }: {
   clientId: string;
   esLead: boolean;
-  etapa: string;
   className?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState(false);
 
-  const current = esLead ? `lead:${etapa}` : "active:ganado";
+  const current = esLead ? "lead" : "active";
   const activeColor = OPCIONES.find((o) => o.value === current)?.color ?? "var(--muted-foreground)";
 
   function onChange(value: string) {

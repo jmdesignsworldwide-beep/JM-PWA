@@ -1,9 +1,8 @@
 "use client";
 
-import { Target, MessageSquare, Sparkles } from "lucide-react";
+import { Target, MessageSquare } from "lucide-react";
 import type { Client } from "@/lib/data/clients";
 import { ClientEditForm } from "./client-edit-form";
-import { ETAPA_LABEL } from "@/lib/ventas";
 
 type Brand = { id: string; nombre: string };
 
@@ -31,9 +30,8 @@ export function ProspectoDetail({ client, brands }: { client: Client; brands: Br
         </div>
       </div>
 
-      {/* Resumen rápido: etapa, fuente */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <ResumenCard icon={<Sparkles className="size-4" />} label="Etapa de venta" value={ETAPA_LABEL[client.etapa_venta]} />
+      {/* Resumen rápido: fuente */}
+      <div className="grid grid-cols-1 gap-3">
         <ResumenCard icon={<MessageSquare className="size-4" />} label="Fuente" value={client.fuente ?? "—"} />
       </div>
 

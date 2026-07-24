@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Search, Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { ETAPA_LABEL } from "@/lib/ventas";
 import { Badge } from "@/components/ui/badge";
 
 type Hit = {
@@ -13,7 +12,6 @@ type Hit = {
   nombre: string;
   apellido: string | null;
   es_lead: boolean;
-  etapa_venta: keyof typeof ETAPA_LABEL;
 };
 
 export function GlobalSearch() {
@@ -36,7 +34,7 @@ export function GlobalSearch() {
       const supabase = createClient();
       const { data } = await supabase
         .from("clients")
-        .select("id, nombre, apellido, es_lead, etapa_venta")
+        .select("id, nombre, apellido, es_lead")
         .or(`nombre.ilike.%${term}%,apellido.ilike.%${term}%,correo.ilike.%${term}%`)
         .limit(8);
       setHits((data as Hit[]) ?? []);
@@ -132,7 +130,7 @@ function Result({ hit, onClick }: { hit: Hit; onClick: () => void }) {
         {hit.nombre} {hit.apellido ?? ""}
       </span>
       {hit.es_lead ? (
-        <Badge dot="var(--warning)">{ETAPA_LABEL[hit.etapa_venta]}</Badge>
+        <Badge dot="var(--warning)">Prospecto</Badge>
       ) : (
         <Badge dot="var(--success)">Activo</Badge>
       )}

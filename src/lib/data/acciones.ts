@@ -64,14 +64,14 @@ export async function getSuggestedActions(): Promise<SuggestedAction[]> {
 
   // 3) Leads estancados (+5 días sin avanzar)
   const { data: leads } = await supabase
-    .from("clients").select("id, etapa_venta, updated_at").eq("es_lead", true).lt("updated_at", `${addDays(hoy, -5)}T23:59:59`);
-  for (const l of (leads ?? []) as { id: string; etapa_venta: string; updated_at: string }[]) {
+    .from("clients").select("id, updated_at").eq("es_lead", true).lt("updated_at", `${addDays(hoy, -5)}T23:59:59`);
+  for (const l of (leads ?? []) as { id: string; updated_at: string }[]) {
     const nombre = nameOf(l.id);
     const dias = Math.floor((Date.now() - new Date(l.updated_at).getTime()) / 86400000);
     acc.push({
       id: `lead-${l.id}`, tipo: "lead", prioridad: 50,
       titulo: `Prospecto estancado: ${nombre}`,
-      detalle: `Sin avanzar hace ${dias} días (${l.etapa_venta})`,
+      detalle: `Sin avanzar hace ${dias} días`,
       clientId: l.id, nombre, phone: phoneOf(l.id),
       waText: `Hola ${nombre} 👋, ¿seguimos con su proyecto? Me encantaría ayudarle a arrancar. ¿Le parece si conversamos?`,
     });

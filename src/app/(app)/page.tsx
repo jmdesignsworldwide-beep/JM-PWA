@@ -11,10 +11,10 @@ import { AccionesPanel } from "@/components/dashboard/acciones-panel";
 import { AgendaProximos } from "@/components/dashboard/agenda-proximos";
 import { PendientesWidget } from "@/components/pendientes/pendientes-widget";
 import { InsightCards } from "@/components/dashboard/insight-cards";
-import { FunnelChart, StatusChart } from "@/components/dashboard/mini-charts";
+import { StatusChart } from "@/components/dashboard/mini-charts";
 import { getHoy, getProximosEventos } from "@/lib/data/agenda";
 import { getBrands } from "@/lib/data/clients";
-import { getKpis, getRuleInsights, getFunnel, getProjectsByStatus } from "@/lib/data/insights";
+import { getKpis, getRuleInsights, getProjectsByStatus } from "@/lib/data/insights";
 import { getSuggestedActions } from "@/lib/data/acciones";
 import { getMyTodos } from "@/lib/data/todos";
 import { getMyProfile } from "@/lib/data/profile";
@@ -24,14 +24,13 @@ import { fechaCorta } from "@/lib/format";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const [hoy, proximos, brands, kpis, insights, acciones, funnel, byStatus, cats, projs, dailyLog, todos, profile] = await Promise.all([
+  const [hoy, proximos, brands, kpis, insights, acciones, byStatus, cats, projs, dailyLog, todos, profile] = await Promise.all([
     getHoy(),
     getProximosEventos(7),
     getBrands(),
     getKpis(),
     getRuleInsights(),
     getSuggestedActions(),
-    getFunnel(),
     getProjectsByStatus(),
     supabase.from("categories").select("nombre, tipo, es_personal").eq("tipo", "gasto"),
     supabase.from("projects").select("id, nombre").order("created_at", { ascending: false }).limit(100),
@@ -120,9 +119,8 @@ export default async function DashboardPage() {
 
       {/* Gráficos */}
       <div className="mt-8">
-        <h2 className="mb-3 flex items-center gap-2 font-semibold"><BarChart3 className="size-4 text-electric" /> Embudo y proyectos</h2>
+        <h2 className="mb-3 flex items-center gap-2 font-semibold"><BarChart3 className="size-4 text-electric" /> Proyectos</h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Link href="/clientes?estado=lead" className="block transition-opacity hover:opacity-90"><FunnelChart data={funnel} /></Link>
           <Link href="/clientes" className="block transition-opacity hover:opacity-90"><StatusChart data={byStatus} /></Link>
         </div>
       </div>
