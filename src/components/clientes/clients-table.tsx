@@ -43,12 +43,14 @@ type Brand = { id: string; nombre: string };
 export function ClientsTable({
   clients,
   brands,
+  initialEstado = "",
 }: {
   clients: Client[];
   brands: Brand[];
+  initialEstado?: string;
 }) {
   const [q, setQ] = useState("");
-  const [fEstado, setFEstado] = useState(""); // "" | "lead" | "activo"
+  const [fEstado, setFEstado] = useState(initialEstado); // "" | "lead" | "activo"
   const [fIndustria, setFIndustria] = useState("");
   const [fCategoria, setFCategoria] = useState("");
   const [fMarca, setFMarca] = useState("");
@@ -109,8 +111,8 @@ export function ClientsTable({
         </div>
         <Select value={fEstado} onChange={(e) => setFEstado(e.target.value)} className="h-9 w-auto">
           <option value="">Todos</option>
-          <option value="lead">Solo prospectos</option>
-          <option value="activo">Solo clientes</option>
+          <option value="lead">Prospectos</option>
+          <option value="activo">Clientes activos</option>
         </Select>
         <Select value={fCategoria} onChange={(e) => setFCategoria(e.target.value)} className="h-9 w-auto">
           <option value="">Toda categoría</option>
@@ -131,7 +133,7 @@ export function ClientsTable({
             <option key={b.id} value={b.id}>{b.nombre}</option>
           ))}
         </Select>
-        <div className="ml-auto"><NewLeadDialog brands={brands} label="Nuevo cliente" /></div>
+        <div className="ml-auto"><NewLeadDialog brands={brands} label="Nuevo registro" /></div>
       </div>
 
       {filtered.length === 0 ? (

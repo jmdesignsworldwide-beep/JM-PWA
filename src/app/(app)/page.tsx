@@ -47,9 +47,9 @@ export default async function DashboardPage() {
 
   const KPIS = [
     { label: "Por cobrar (DOP)", value: kpis.porCobrar, icon: Wallet, hint: "Saldo pendiente", prefix: "RD$ ", href: "/cobros" },
-    { label: "Prospectos activos", value: kpis.leadsActivos, icon: TrendingUp, hint: "Pipeline", href: "/leads" },
+    { label: "Prospectos activos", value: kpis.leadsActivos, icon: TrendingUp, hint: "Pipeline", href: "/clientes?estado=lead" },
     { label: "Proyectos activos", value: kpis.proyectosActivos, icon: FileText, hint: "En curso", href: "/clientes" },
-    { label: "Conversión", value: kpis.conversion, icon: Target, hint: "Prospectos ganados", suffix: "%", href: "/leads" },
+    { label: "Conversión", value: kpis.conversion, icon: Target, hint: "Prospectos ganados", suffix: "%", href: "/clientes?estado=lead" },
     { label: "MRR (DOP)", value: kpis.mrr, icon: Repeat, hint: "Recurrente mensual", prefix: "RD$ ", href: "/finanzas" },
     { label: "Ingresado (DOP)", value: kpis.ingresado.DOP, icon: Users, hint: "Total histórico", prefix: "RD$ ", href: "/finanzas" },
   ];
@@ -122,7 +122,7 @@ export default async function DashboardPage() {
       <div className="mt-8">
         <h2 className="mb-3 flex items-center gap-2 font-semibold"><BarChart3 className="size-4 text-electric" /> Embudo y proyectos</h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Link href="/leads" className="block transition-opacity hover:opacity-90"><FunnelChart data={funnel} /></Link>
+          <Link href="/clientes?estado=lead" className="block transition-opacity hover:opacity-90"><FunnelChart data={funnel} /></Link>
           <Link href="/clientes" className="block transition-opacity hover:opacity-90"><StatusChart data={byStatus} /></Link>
         </div>
       </div>

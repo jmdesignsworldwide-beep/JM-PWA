@@ -43,7 +43,7 @@ export default async function ClientePage({
     return (
       <div className="space-y-5">
         <Link
-          href="/leads"
+          href="/clientes?estado=lead"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-4" /> Prospectos

@@ -1,19 +1,9 @@
-import { PageHeader } from "@/components/layout/page-header";
-import { LeadsView } from "@/components/leads/leads-view";
-import { getLeads, getBrands } from "@/lib/data/clients";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Prospectos / Ventas" };
-
-export default async function LeadsPage() {
-  const [leads, brands] = await Promise.all([getLeads(), getBrands()]);
-
-  return (
-    <>
-      <PageHeader
-        title="Prospectos / Ventas"
-        subtitle="Pipeline inbound. Arrastra las tarjetas para mover de etapa."
-      />
-      <LeadsView leads={leads} brands={brands} />
-    </>
-  );
+/**
+ * Prospectos y Clientes se fusionaron en una sola sección. La ruta vieja
+ * `/leads` redirige a la lista unificada, ya filtrada a prospectos.
+ */
+export default function LeadsPage() {
+  redirect("/clientes?estado=lead");
 }

@@ -25,12 +25,13 @@ const FUENTES = [
   { v: "Otro", icon: MoreHorizontal },
 ] as const;
 
-export function NewLeadDialog({ brands, label = "Nuevo prospecto" }: { brands: Brand[]; label?: string }) {
+export function NewLeadDialog({ brands, label = "Nuevo registro" }: { brands: Brand[]; label?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const [tipo, setTipo] = useState<"prospecto" | "cliente">("prospecto");
   const [modo, setModo] = useState<"rapido" | "completo">("rapido");
   const [nombre, setNombre] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -50,7 +51,7 @@ export function NewLeadDialog({ brands, label = "Nuevo prospecto" }: { brands: B
   const [brandId, setBrandId] = useState("");
 
   function reset() {
-    setModo("rapido"); setNombre(""); setWhatsapp(""); setFuente(""); setInfoNota("");
+    setTipo("prospecto"); setModo("rapido"); setNombre(""); setWhatsapp(""); setFuente(""); setInfoNota("");
     setInstagram(""); setFacebook(""); setApellido(""); setCedula(""); setTelefono("");
     setCorreo(""); setCategoria(""); setIndustria(""); setLoQueQuiere(""); setDireccion(""); setBrandId("");
     setError(null);
@@ -77,6 +78,7 @@ export function NewLeadDialog({ brands, label = "Nuevo prospecto" }: { brands: B
       lo_que_quiere: t(loQueQuiere),
       direccion: t(direccion),
       brand_id: t(brandId),
+      es_lead: tipo === "prospecto",
     };
     startTransition(async () => {
       const res = await createLead(input);
@@ -93,6 +95,21 @@ export function NewLeadDialog({ brands, label = "Nuevo prospecto" }: { brands: B
 
       <Dialog open={open} onClose={() => setOpen(false)} title={label} className="max-w-2xl">
         <div className="space-y-4">
+          {/* ¿Prospecto o cliente? Solo cambia el estado; el resto del formulario es igual. */}
+          <div className="space-y-1.5">
+            <Label>¿Es prospecto o cliente?</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {([["prospecto", "Prospecto", "Aún no ha comprado. Ficha ligera."], ["cliente", "Cliente", "Ya es cliente activo."]] as const).map(([id, lbl, hint]) => (
+                <button key={id} type="button" onClick={() => setTipo(id)}
+                  className={cn("rounded-lg border px-3 py-2 text-left transition-colors",
+                    tipo === id ? "border-electric bg-electric/10" : "border-border hover:bg-accent/40")}>
+                  <span className={cn("block text-sm font-medium", tipo === id ? "text-foreground" : "text-muted-foreground")}>{lbl}</span>
+                  <span className="block text-[11px] text-muted-foreground">{hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Modo */}
           <div className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-background/40 p-1">
             {([["rapido", "Rápido", Zap], ["completo", "Detallado", ListChecks]] as const).map(([id, lbl, Icon]) => (

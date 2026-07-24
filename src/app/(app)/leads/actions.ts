@@ -22,18 +22,20 @@ export type NewLeadInput = {
   valor_estimado?: number | null;
   valor_estimado_moneda?: "DOP" | "USD";
   brand_id?: string | null;
+  /** true = prospecto (por defecto); false = cliente activo directo. */
+  es_lead?: boolean;
 };
 
 export async function createLead(input: NewLeadInput) {
   const supabase = await createClient();
+  const { es_lead = true, ...rest } = input;
   const { data, error } = await supabase
     .from("clients")
-    .insert({ ...input, es_lead: true, etapa_venta: "nuevo" })
+    .insert({ ...rest, es_lead, etapa_venta: es_lead ? "nuevo" : "ganado" })
     .select("id")
     .single();
 
   if (error) return { error: error.message };
-  revalidatePath("/leads");
   revalidatePath("/clientes");
   return { id: data.id };
 }
@@ -46,7 +48,7 @@ export async function updateLeadStage(id: string, etapa: EtapaVenta) {
     .eq("id", id);
 
   if (error) return { error: error.message };
-  revalidatePath("/leads");
+  revalidatePath("/clientes");
   revalidatePath(`/clientes/${id}`);
   return { ok: true };
 }
