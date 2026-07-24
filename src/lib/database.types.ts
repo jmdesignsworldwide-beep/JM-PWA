@@ -406,6 +406,9 @@ export interface Tables {
     recurrence_until: string | null;
     recurrence_parent_id: string | null;
     recurrence_skip: boolean;
+    seguimiento_activo: boolean;
+    seguimiento_prox: string | null;
+    seguimiento_ultimo_aviso: string | null;
     created_by: string | null;
   } & Timestamps;
 

@@ -9,16 +9,19 @@ import { BottomNav } from "./bottom-nav";
 import { SpringTransition } from "@/components/animations/spring-transition";
 
 import type { AgendaEvent } from "@/lib/data/agenda";
+import type { SeguimientoEvento } from "@/lib/data/seguimiento";
 
 export function AppShell({
   email,
   alerts,
+  seguimientos = [],
   hiddenModules = [],
   isOwner = false,
   children,
 }: {
   email: string;
   alerts: { count: number; items: AgendaEvent[] };
+  seguimientos?: SeguimientoEvento[];
   hiddenModules?: string[];
   isOwner?: boolean;
   children: React.ReactNode;
@@ -61,7 +64,7 @@ export function AppShell({
 
       {/* Contenido */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar email={email} alerts={alerts} onMenuClick={() => setMobileOpen(true)} />
+        <Topbar email={email} alerts={alerts} seguimientos={seguimientos} onMenuClick={() => setMobileOpen(true)} />
         <main className="flex-1 px-4 py-6 pb-bottomnav sm:px-6 lg:px-8 lg:pb-8">
           <SpringTransition key={pathname} className="mx-auto w-full max-w-7xl">
             {children}

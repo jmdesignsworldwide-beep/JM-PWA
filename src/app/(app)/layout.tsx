@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/layout/app-shell";
 import { WelcomeOverlay } from "@/components/brand/welcome-overlay";
 import { getAlerts } from "@/lib/data/agenda";
+import { getSeguimientosVencidos } from "@/lib/data/seguimiento";
 import { getMyProfile } from "@/lib/data/profile";
 
 export default async function AppLayout({
@@ -23,7 +24,7 @@ export default async function AppLayout({
   if (profile?.rol === "cliente") redirect("/portal");
   if (profile?.rol === "equipo") redirect("/trabajo");
 
-  const alerts = await getAlerts();
+  const [alerts, seguimientos] = await Promise.all([getAlerts(), getSeguimientosVencidos()]);
   const nombre = (profile?.nombre?.trim() || user.email?.split("@")[0] || "de nuevo").split(" ")[0];
   const { data: settings } = await supabase
     .from("app_settings").select("modulos_ocultos").eq("id", "global").maybeSingle();
@@ -32,7 +33,7 @@ export default async function AppLayout({
   return (
     <>
       <WelcomeOverlay greeting="Bienvenido de nuevo," name={nombre} sub="Tu centro de mando está listo." />
-      <AppShell email={user.email ?? "usuario"} alerts={alerts} hiddenModules={hiddenModules} isOwner={profile?.rol === "owner"}>
+      <AppShell email={user.email ?? "usuario"} alerts={alerts} seguimientos={seguimientos} hiddenModules={hiddenModules} isOwner={profile?.rol === "owner"}>
         {children}
       </AppShell>
     </>

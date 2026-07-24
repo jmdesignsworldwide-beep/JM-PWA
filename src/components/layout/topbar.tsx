@@ -8,15 +8,18 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { GlobalSearch } from "@/components/search/global-search";
 import { Button } from "@/components/ui/button";
 import type { AgendaEvent } from "@/lib/data/agenda";
+import type { SeguimientoEvento } from "@/lib/data/seguimiento";
 
 export function Topbar({
   email,
   onMenuClick,
   alerts,
+  seguimientos = [],
 }: {
   email: string;
   onMenuClick: () => void;
   alerts: { count: number; items: AgendaEvent[] };
+  seguimientos?: SeguimientoEvento[];
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/70 pt-safe backdrop-blur-xl">
@@ -37,7 +40,7 @@ export function Topbar({
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <BrandSelector />
           <ThemeToggle />
-          <NotificationsBell count={alerts.count} items={alerts.items} />
+          <NotificationsBell count={alerts.count} items={alerts.items} seguimientos={seguimientos} />
           <UserMenu email={email} />
         </div>
       </div>
