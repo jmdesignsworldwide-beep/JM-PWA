@@ -3,8 +3,8 @@ import Link from "next/link";
 import { FileText } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { NewOrderButton } from "@/components/pedidos/new-order-button";
+import { OrderEstadoSelect } from "@/components/pedidos/order-estado-select";
 import { getRecentOrders } from "@/lib/data/orders";
-import { Badge } from "@/components/ui/badge";
 import { money, fechaCorta } from "@/lib/format";
 
 export const metadata = { title: "Pedidos / Contratos / Facturas" };
@@ -36,8 +36,8 @@ export default async function PedidosPage() {
                   <span className="flex items-center gap-2 font-medium"><FileText className="size-4 text-electric" /> {o.clienteNombre}</span>
                   <span className="font-medium">{money(o.total, o.moneda)}</span>
                 </div>
-                <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
-                  <Badge>{o.estado}</Badge>
+                <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <OrderEstadoSelect orderId={o.id} estado={o.estado} />
                   <span>{o.rama === "designs" ? EMPRESA.nombre : "JM Distribution"} · {fechaCorta(o.fecha)}</span>
                 </div>
               </Link>
@@ -66,7 +66,7 @@ export default async function PedidosPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{o.rama === "designs" ? EMPRESA.nombre : "JM Distribution"}</td>
-                  <td className="px-4 py-3"><Badge>{o.estado}</Badge></td>
+                  <td className="px-4 py-3"><OrderEstadoSelect orderId={o.id} estado={o.estado} /></td>
                   <td className="px-4 py-3 text-muted-foreground">{fechaCorta(o.fecha)}</td>
                   <td className="px-4 py-3 text-right font-medium">{money(o.total, o.moneda)}</td>
                 </tr>

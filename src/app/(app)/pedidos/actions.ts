@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { money, fechaCorta } from "@/lib/format";
 import { rdToday } from "@/lib/fecha";
+import { ORDER_ESTADOS, siguienteEstadoPorPago, type OrderEstado } from "@/lib/pedidos";
 
 export type OrderItemInput = {
   producto?: string | null;
@@ -426,7 +427,7 @@ export async function addOrderPayment(input: PaymentInput) {
   if (!input.monto || input.monto <= 0) return { error: "Monto inválido." };
 
   const { data: order } = await supabase
-    .from("orders").select("client_id").eq("id", input.order_id).maybeSingle();
+    .from("orders").select("client_id, total, estado").eq("id", input.order_id).maybeSingle();
   if (!order) return { error: "Pedido no encontrado" };
 
   const { error } = await supabase.from("order_payments").insert({
@@ -442,8 +443,30 @@ export async function addOrderPayment(input: PaymentInput) {
   });
   if (error) return { error: error.message };
 
+  // Avance automático del estado: 1er pago → "confirmado"; saldo 0 → "completado".
+  const { data: pagos } = await supabase
+    .from("order_payments").select("monto").eq("order_id", input.order_id);
+  const pagado = (pagos ?? []).reduce((s, p) => s + (Number((p as { monto: number }).monto) || 0), 0);
+  const nuevo = siguienteEstadoPorPago(order.estado as string, Number(order.total) || 0, pagado);
+  if (nuevo) await supabase.from("orders").update({ estado: nuevo } as never).eq("id", input.order_id);
+
   revalidatePath(`/pedidos/${input.order_id}`);
   revalidatePath(`/clientes/${order.client_id}`);
+  revalidatePath("/pedidos");
+  return { ok: true };
+}
+
+/** Cambia el estado del pedido a mano (desde la lista o el detalle). */
+export async function setOrderEstado(orderId: string, estado: OrderEstado) {
+  if (!ORDER_ESTADOS.some((e) => e.id === estado)) return { error: "Estado inválido." };
+  const supabase = await createClient();
+  const { data: order } = await supabase
+    .from("orders").select("client_id").eq("id", orderId).maybeSingle();
+  const { error } = await supabase.from("orders").update({ estado } as never).eq("id", orderId);
+  if (error) return { error: error.message };
+  revalidatePath("/pedidos");
+  revalidatePath(`/pedidos/${orderId}`);
+  if (order?.client_id) revalidatePath(`/clientes/${order.client_id}`);
   return { ok: true };
 }
 
