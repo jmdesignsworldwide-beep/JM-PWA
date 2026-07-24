@@ -142,6 +142,20 @@ export function AddExpenseDialog({
     setPartes(0);
   }
 
+  /**
+   * Cambia entre Negocio y Personal. Al pasar a Personal se BORRAN los campos de
+   * negocio (proyecto, marca, comercio, ITBIS, método) y el recibo, para que no
+   * se guarde nada del negocio si ya lo habías llenado.
+   */
+  function cambiarAmbito(personal: boolean) {
+    setForm((f) => ({
+      ...f,
+      es_personal: personal,
+      ...(personal ? { project_id: "", brand_id: "", comercio: "", itbis: "", metodo_pago: "" } : {}),
+    }));
+    if (personal) quitarFoto();
+  }
+
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -156,19 +170,21 @@ export function AddExpenseDialog({
         if (!factura_url) { setError("No se pudo subir la imagen del recibo (se guardará sin ella)."); }
       }
       const t = (s: string) => { const v = s.trim(); return v ? v : null; };
+      // En Personal no se guarda nada del negocio (aunque el DOM ya no lo muestre).
+      const per = form.es_personal;
       const res = await addExpense({
         monto,
         moneda: form.moneda,
         fecha: form.fecha,
         categoria: t(form.categoria),
         descripcion: t(form.descripcion),
-        project_id: t(form.project_id),
-        brand_id: t(form.brand_id),
-        comercio: t(form.comercio),
-        itbis: form.itbis.trim() ? Number(form.itbis) : null,
-        metodo_pago: t(form.metodo_pago),
+        project_id: per ? null : t(form.project_id),
+        brand_id: per ? null : t(form.brand_id),
+        comercio: per ? null : t(form.comercio),
+        itbis: !per && form.itbis.trim() ? Number(form.itbis) : null,
+        metodo_pago: per ? null : t(form.metodo_pago),
         es_personal: form.es_personal,
-        factura_url,
+        factura_url: per ? null : factura_url,
       });
       if (res?.error) { setError(res.error); return; }
       reset();
@@ -201,7 +217,8 @@ export function AddExpenseDialog({
           onChange={(e) => { scan(e.target.files?.[0] ?? null, true); e.target.value = ""; }} />
 
         <form onSubmit={submit} className="space-y-4">
-          {/* Escáner de recibo */}
+          {/* Escáner de recibo — solo para gastos del negocio */}
+          {!form.es_personal && (
           <div className="rounded-xl border border-electric/30 bg-[color-mix(in_srgb,var(--electric)_7%,transparent)] p-3">
             {!preview ? (
               <div className="flex flex-col gap-2">
@@ -266,10 +283,12 @@ export function AddExpenseDialog({
             )}
           </div>
 
+          )}
+
           {/* Negocio vs Personal — se mantienen separados en los números del negocio. */}
           <div className="grid grid-cols-2 gap-2">
             {([["negocio", false, Building2, "Negocio"], ["personal", true, User, "Personal"]] as const).map(([k, val, Icon, label]) => (
-              <button key={k} type="button" onClick={() => set("es_personal", val)}
+              <button key={k} type="button" onClick={() => cambiarAmbito(val)}
                 className={cn("flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
                   form.es_personal === val ? "border-electric bg-electric/10 text-foreground" : "border-border text-muted-foreground hover:bg-accent/40")}>
                 <Icon className="size-4" /> {label}
@@ -284,30 +303,35 @@ export function AddExpenseDialog({
               <Select value={form.moneda} onChange={(e) => set("moneda", e.target.value as "DOP" | "USD")}><option value="DOP">DOP</option><option value="USD">USD</option></Select></div>
             <div className="space-y-1.5"><Label>Fecha</Label>
               <DatePicker value={form.fecha} onChange={(v) => set("fecha", v)} /></div>
-            <div className="space-y-1.5"><Label>Categoría</Label>
+            <div className="space-y-1.5 col-span-2"><Label>Categoría{form.es_personal ? " personal" : ""}</Label>
               <Select value={form.categoria} onChange={(e) => set("categoria", e.target.value)}>
                 <option value="">— Seleccionar —</option>{catOptions.map((c) => <option key={c} value={c}>{c}</option>)}
               </Select></div>
-            <div className="space-y-1.5"><Label>Comercio</Label>
-              <Input value={form.comercio} onChange={(e) => set("comercio", e.target.value)} placeholder="¿Dónde fue?" /></div>
-            <div className="space-y-1.5"><Label>ITBIS (opcional)</Label>
-              <Input type="number" step="0.01" min="0" value={form.itbis} onChange={(e) => set("itbis", e.target.value)} placeholder="0.00" /></div>
-            <div className="space-y-1.5"><Label>Método de pago</Label>
-              <Select value={form.metodo_pago} onChange={(e) => set("metodo_pago", e.target.value)}>
-                <option value="">— Sin especificar —</option>
-                <option value="efectivo">Efectivo</option>
-                <option value="tarjeta">Tarjeta</option>
-                <option value="transferencia">Transferencia</option>
-                <option value="otro">Otro</option>
-              </Select></div>
-            <div className="space-y-1.5"><Label>Proyecto (para margen)</Label>
-              <Select value={form.project_id} onChange={(e) => set("project_id", e.target.value)} disabled={form.es_personal}>
-                <option value="">— Ninguno —</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-              </Select></div>
-            <div className="space-y-1.5 col-span-2"><Label>Marca</Label>
-              <Select value={form.brand_id} onChange={(e) => set("brand_id", e.target.value)}>
-                <option value="">— Ninguna —</option>{brands.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}
-              </Select></div>
+            {/* Personal: sin comercio, ITBIS, método, proyecto ni marca (son del negocio) */}
+            {!form.es_personal && (
+              <>
+                <div className="space-y-1.5"><Label>Comercio</Label>
+                  <Input value={form.comercio} onChange={(e) => set("comercio", e.target.value)} placeholder="¿Dónde fue?" /></div>
+                <div className="space-y-1.5"><Label>ITBIS (opcional)</Label>
+                  <Input type="number" step="0.01" min="0" value={form.itbis} onChange={(e) => set("itbis", e.target.value)} placeholder="0.00" /></div>
+                <div className="space-y-1.5"><Label>Método de pago</Label>
+                  <Select value={form.metodo_pago} onChange={(e) => set("metodo_pago", e.target.value)}>
+                    <option value="">— Sin especificar —</option>
+                    <option value="efectivo">Efectivo</option>
+                    <option value="tarjeta">Tarjeta</option>
+                    <option value="transferencia">Transferencia</option>
+                    <option value="otro">Otro</option>
+                  </Select></div>
+                <div className="space-y-1.5"><Label>Proyecto (para margen)</Label>
+                  <Select value={form.project_id} onChange={(e) => set("project_id", e.target.value)}>
+                    <option value="">— Ninguno —</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                  </Select></div>
+                <div className="space-y-1.5 col-span-2"><Label>Marca</Label>
+                  <Select value={form.brand_id} onChange={(e) => set("brand_id", e.target.value)}>
+                    <option value="">— Ninguna —</option>{brands.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+                  </Select></div>
+              </>
+            )}
           </div>
           <div className="space-y-1.5"><Label>Descripción</Label>
             <Textarea value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} placeholder="¿En qué fue?" /></div>

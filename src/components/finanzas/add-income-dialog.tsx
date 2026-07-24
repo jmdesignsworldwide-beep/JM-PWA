@@ -84,18 +84,26 @@ export function AddIncomeDialog({
             <div className="space-y-1.5"><Label>Categoría</Label>
               <Select name="categoria" defaultValue=""><option value="">— Seleccionar —</option>{categorias.map((c) => <option key={c} value={c}>{c}</option>)}</Select>
             </div>
-            <div className="space-y-1.5"><Label>Cliente</Label>
-              <Select name="client_id" defaultValue=""><option value="">— Ninguno —</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}</Select>
-            </div>
-            <div className="space-y-1.5"><Label>Proyecto</Label>
-              <Select name="project_id" defaultValue=""><option value="">— Ninguno —</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}</Select>
-            </div>
-            <div className="space-y-1.5 col-span-2"><Label>Marca</Label>
-              <Select name="brand_id" defaultValue=""><option value="">— Ninguna —</option>{brands.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}</Select>
-            </div>
+            {/* Personal: sin cliente, proyecto ni marca (son del negocio) */}
+            {!esPersonal && (
+              <>
+                <div className="space-y-1.5"><Label>Cliente</Label>
+                  <Select name="client_id" defaultValue=""><option value="">— Ninguno —</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}</Select>
+                </div>
+                <div className="space-y-1.5"><Label>Proyecto</Label>
+                  <Select name="project_id" defaultValue=""><option value="">— Ninguno —</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}</Select>
+                </div>
+                <div className="space-y-1.5 col-span-2"><Label>Marca</Label>
+                  <Select name="brand_id" defaultValue=""><option value="">— Ninguna —</option>{brands.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}</Select>
+                </div>
+              </>
+            )}
           </div>
           <div className="space-y-1.5"><Label>Descripción</Label><Textarea name="descripcion" /></div>
-          <div className="space-y-1.5"><Label>Comprobante (opcional)</Label><Input name="comprobante" type="file" accept="image/*,application/pdf" /></div>
+          {/* Personal: sin comprobante */}
+          {!esPersonal && (
+            <div className="space-y-1.5"><Label>Comprobante (opcional)</Label><Input name="comprobante" type="file" accept="image/*,application/pdf" /></div>
+          )}
           {error && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
