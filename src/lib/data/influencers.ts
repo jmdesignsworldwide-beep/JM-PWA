@@ -6,23 +6,23 @@ export type Collaboration = Row<"collaborations">;
 export type DMTemplate = Row<"message_templates">;
 
 /** Influencer + resumen de sus colaboraciones (para la lista). */
-export type InfluencerRow = Influencer & { colabCount: number; ultimoEstado: string | null };
+export type InfluencerRow = Influencer & { colabCount: number; ultimoEstado: string | null; ultimaColabId: string | null };
 
 export async function getInfluencers(): Promise<InfluencerRow[]> {
   const supabase = await createClient();
   const [{ data: infs }, { data: colabs }] = await Promise.all([
     supabase.from("influencers").select("*").order("created_at", { ascending: false }),
-    supabase.from("collaborations").select("influencer_id, estado, created_at").order("created_at", { ascending: false }),
+    supabase.from("collaborations").select("id, influencer_id, estado, created_at").order("created_at", { ascending: false }),
   ]);
-  const byInf = new Map<string, { count: number; ultimo: string | null }>();
-  for (const c of (colabs ?? []) as { influencer_id: string; estado: string }[]) {
-    const cur = byInf.get(c.influencer_id) ?? { count: 0, ultimo: null };
+  const byInf = new Map<string, { count: number; ultimo: string | null; ultimaId: string | null }>();
+  for (const c of (colabs ?? []) as { id: string; influencer_id: string; estado: string }[]) {
+    const cur = byInf.get(c.influencer_id) ?? { count: 0, ultimo: null, ultimaId: null };
     // Las colaboraciones vienen ordenadas por fecha desc: la primera vista es la última.
-    byInf.set(c.influencer_id, { count: cur.count + 1, ultimo: cur.ultimo ?? c.estado });
+    byInf.set(c.influencer_id, { count: cur.count + 1, ultimo: cur.ultimo ?? c.estado, ultimaId: cur.ultimaId ?? c.id });
   }
   return ((infs ?? []) as Influencer[]).map((i) => {
     const r = byInf.get(i.id);
-    return { ...i, colabCount: r?.count ?? 0, ultimoEstado: r?.ultimo ?? null };
+    return { ...i, colabCount: r?.count ?? 0, ultimoEstado: r?.ultimo ?? null, ultimaColabId: r?.ultimaId ?? null };
   });
 }
 
