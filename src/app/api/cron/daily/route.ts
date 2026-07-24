@@ -124,5 +124,13 @@ export async function GET(req: Request) {
     result.followups = rows.length;
   } catch (e) { result.followups = `error: ${e instanceof Error ? e.message : "?"}`; }
 
+  // ---- Seguimiento de eventos vencidos (franja de la mañana) ----
+  // El cron diario ya corre con CRON_SECRET, así que esto funciona sin más
+  // configuración. Las franjas de mediodía/noche las cubre GitHub Actions.
+  try {
+    const { runSeguimiento } = await import("@/lib/seguimiento-engine");
+    result.seguimiento = await runSeguimiento(admin, hoy, rdHour());
+  } catch (e) { result.seguimiento = `error: ${e instanceof Error ? e.message : "?"}`; }
+
   return NextResponse.json(result);
 }

@@ -1,18 +1,19 @@
 name: Seguimiento de eventos vencidos
 
-# El plan free de Vercel solo permite crons UNA vez al día. Para preguntar 3x
-# (mañana, mediodía y noche) usamos el cron gratis de GitHub Actions, que le pega
-# al endpoint /api/cron/seguimiento protegido con CRON_SECRET.
+# La franja de la MAÑANA ya la cubre el cron diario de Vercel (/api/cron/daily),
+# que corre sin configurar nada. Este workflow SOLO agrega mediodía y noche para
+# completar las 3 preguntas del día — el plan free de Vercel no permite más de un
+# cron diario. Le pega a /api/cron/seguimiento, protegido con CRON_SECRET.
 #
 # Requiere dos secretos del repo (Settings → Secrets and variables → Actions):
 #   · APP_URL     → dominio de producción, p. ej. https://jm-pwa.vercel.app
 #   · CRON_SECRET → el MISMO valor que la variable CRON_SECRET en Vercel
 #
-# Horario en RD (America/Santo_Domingo, UTC-4, sin horario de verano):
-#   08:00 RD = 12:00 UTC · 13:00 RD = 17:00 UTC · 20:00 RD = 00:00 UTC
+# Sin estos secretos igual funciona el aviso de la mañana (vía Vercel); esto solo
+# suma las otras dos franjas. Horario en RD (UTC-4, sin horario de verano):
+#   13:00 RD = 17:00 UTC (mediodía) · 20:00 RD = 00:00 UTC (noche)
 on:
   schedule:
-    - cron: "0 12 * * *" # mañana (08:00 RD)
     - cron: "0 17 * * *" # mediodía (13:00 RD)
     - cron: "0 0 * * *"  # noche (20:00 RD)
   workflow_dispatch: {}   # permite dispararlo a mano para probar
