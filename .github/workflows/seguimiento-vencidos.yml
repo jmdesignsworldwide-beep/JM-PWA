@@ -1,0 +1,35 @@
+name: Seguimiento de eventos vencidos
+
+# El plan free de Vercel solo permite crons UNA vez al día. Para preguntar 3x
+# (mañana, mediodía y noche) usamos el cron gratis de GitHub Actions, que le pega
+# al endpoint /api/cron/seguimiento protegido con CRON_SECRET.
+#
+# Requiere dos secretos del repo (Settings → Secrets and variables → Actions):
+#   · APP_URL     → dominio de producción, p. ej. https://jm-pwa.vercel.app
+#   · CRON_SECRET → el MISMO valor que la variable CRON_SECRET en Vercel
+#
+# Horario en RD (America/Santo_Domingo, UTC-4, sin horario de verano):
+#   08:00 RD = 12:00 UTC · 13:00 RD = 17:00 UTC · 20:00 RD = 00:00 UTC
+on:
+  schedule:
+    - cron: "0 12 * * *" # mañana (08:00 RD)
+    - cron: "0 17 * * *" # mediodía (13:00 RD)
+    - cron: "0 0 * * *"  # noche (20:00 RD)
+  workflow_dispatch: {}   # permite dispararlo a mano para probar
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar al cron de seguimiento
+        run: |
+          if [ -z "${{ secrets.APP_URL }}" ] || [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "Faltan los secretos APP_URL y/o CRON_SECRET."
+            exit 1
+          fi
+          code=$(curl -sS -o /tmp/out.txt -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/seguimiento")
+          echo "HTTP $code"
+          cat /tmp/out.txt
+          test "$code" = "200"
