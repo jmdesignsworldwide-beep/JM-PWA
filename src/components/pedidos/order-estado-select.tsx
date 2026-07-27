@@ -23,7 +23,7 @@ export function OrderEstadoSelect({
   const [pending, start] = useTransition();
   const [error, setError] = useState(false);
 
-  const value = (ORDER_ESTADOS.some((e) => e.id === estado) ? estado : "borrador") as OrderEstado;
+  const value = (ORDER_ESTADOS.some((e) => e.id === estado) ? estado : "activo") as OrderEstado;
   const color = ORDER_ESTADO_COLOR[value] ?? "var(--muted-foreground)";
 
   function onChange(next: string) {
