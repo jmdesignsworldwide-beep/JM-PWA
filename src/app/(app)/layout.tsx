@@ -25,14 +25,13 @@ export default async function AppLayout({
   if (profile?.rol === "equipo") redirect("/trabajo");
 
   const [alerts, seguimientos] = await Promise.all([getAlerts(), getSeguimientosVencidos()]);
-  const nombre = (profile?.nombre?.trim() || user.email?.split("@")[0] || "de nuevo").split(" ")[0];
   const { data: settings } = await supabase
     .from("app_settings").select("modulos_ocultos").eq("id", "global").maybeSingle();
   const hiddenModules = (settings?.modulos_ocultos as string[] | null) ?? [];
 
   return (
     <>
-      <WelcomeOverlay greeting="Bienvenido de nuevo," name={nombre} sub="Tu centro de mando está listo." />
+      <WelcomeOverlay greeting="Bienvenido de nuevo," name="Admin" sub="Tu centro de mando está listo." />
       <AppShell email={user.email ?? "usuario"} alerts={alerts} seguimientos={seguimientos} hiddenModules={hiddenModules} isOwner={profile?.rol === "owner"}>
         {children}
       </AppShell>

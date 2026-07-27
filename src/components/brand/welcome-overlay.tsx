@@ -43,7 +43,7 @@ export function WelcomeOverlay({ greeting, name, sub }: { greeting: string; name
           initial={{ opacity: 1 }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.06 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden bg-[#07070b] px-6 text-center"
+          className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden bg-[#f5f6fa] px-6 text-center dark:bg-[#07070b]"
         >
           <AuroraBackground />
 
@@ -57,13 +57,13 @@ export function WelcomeOverlay({ greeting, name, sub }: { greeting: string; name
             {!reduce && (
               <>
                 <motion.span
-                  className="absolute rounded-full border border-white/15"
+                  className="absolute rounded-full border border-black/10 dark:border-white/15"
                   style={{ width: 160, height: 160 }}
                   animate={{ scale: [1, 1.35], opacity: [0.5, 0] }}
                   transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut" }}
                 />
                 <motion.span
-                  className="absolute rounded-full border border-white/10"
+                  className="absolute rounded-full border border-black/5 dark:border-white/10"
                   style={{ width: 160, height: 160 }}
                   animate={{ scale: [1, 1.6], opacity: [0.35, 0] }}
                   transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut", delay: 0.6 }}
@@ -71,7 +71,7 @@ export function WelcomeOverlay({ greeting, name, sub }: { greeting: string; name
               </>
             )}
             <span className="absolute size-32 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--brand-purple)_45%,transparent),transparent_70%)] blur-2xl" />
-            <Logo size={92} variant="white" className="relative drop-shadow-[0_8px_30px_rgba(79,140,255,0.5)]" />
+            <Logo size={92} variant="auto" className="relative drop-shadow-[0_8px_30px_rgba(79,140,255,0.5)]" />
           </motion.div>
 
           {/* Saludo */}
@@ -79,7 +79,7 @@ export function WelcomeOverlay({ greeting, name, sub }: { greeting: string; name
             initial={reduce ? false : { opacity: 0, y: 14, filter: "blur(10px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="relative z-10 text-2xl font-semibold tracking-tight text-white sm:text-4xl"
+            className="relative z-10 text-2xl font-semibold tracking-tight text-foreground sm:text-4xl"
           >
             {greeting}{" "}
             <span className="bg-[linear-gradient(90deg,var(--electric),var(--brand-purple),var(--teal))] bg-clip-text text-transparent">
@@ -92,7 +92,7 @@ export function WelcomeOverlay({ greeting, name, sub }: { greeting: string; name
               initial={reduce ? false : { opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.45 }}
-              className="relative z-10 mt-3 max-w-md text-sm text-white/70 sm:text-base"
+              className="relative z-10 mt-3 max-w-md text-sm text-muted-foreground sm:text-base"
             >
               {sub}
             </motion.p>
