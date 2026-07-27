@@ -117,7 +117,7 @@ export async function createOrder(input: NewOrderInput) {
       ...orderFields,
       detalle_json: input.detalle_json as never,
       plan_pago: input.plan_pago as never,
-      estado: "borrador",
+      estado: "activo",
     })
     .select("id")
     .single();
@@ -159,7 +159,7 @@ export async function duplicateOrder(orderId: string) {
 
   const { data: nuevo, error } = await supabase
     .from("orders")
-    .insert({ ...clone, estado: "borrador" } as never)
+    .insert({ ...clone, estado: "activo" } as never)
     .select("id")
     .single();
   if (error) return { error: error.message };

@@ -84,12 +84,7 @@ export interface Tables {
     detalle_json: Json;
     total: number;
     moneda: Moneda;
-    estado:
-      | "borrador"
-      | "confirmado"
-      | "en_proceso"
-      | "completado"
-      | "cancelado";
+    estado: "activo" | "completado" | "cancelado";
     fecha: string;
     subtotal: number;
     descuento: number;
