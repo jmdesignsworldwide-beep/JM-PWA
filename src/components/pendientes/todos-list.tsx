@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
  * Lista personal de pendientes (Mis pendientes). Misma data en el widget del
  * Dashboard y en la página propia. Actualización optimista para sentirse rápido.
  */
-export function TodosList({ initial, emptyText = "Sin pendientes. ¡Todo limpio! ☕" }: { initial: Todo[]; emptyText?: string }) {
+export function TodosList({ initial, emptyText = "Sin pendientes. ¡Todo limpio! ☕", ventureId }: { initial: Todo[]; emptyText?: string; ventureId?: string }) {
   const [todos, setTodos] = useState<Todo[]>(initial);
   const [text, setText] = useState("");
   const [, startTransition] = useTransition();
@@ -27,7 +27,7 @@ export function TodosList({ initial, emptyText = "Sin pendientes. ¡Todo limpio!
     if (!t) return;
     setText("");
     startTransition(async () => {
-      const res = await addTodo(t);
+      const res = await addTodo(t, ventureId);
       if (res?.todo) setTodos((prev) => [res.todo as Todo, ...prev]);
     });
   }

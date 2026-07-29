@@ -433,6 +433,21 @@ export interface Tables {
     id: string;
     texto: string;
     hecho: boolean;
+    venture_id: string | null;
+    origen: string;
+    auto_key: string | null;
+    created_by: string;
+  } & Timestamps;
+
+  ventures: {
+    id: string;
+    nombre: string;
+    registrado: boolean;
+    logo_path: string | null;
+    descripcion: string | null;
+    correo: string | null;
+    tipo: "online" | "fisico" | null;
+    perfil_json: Json;
     created_by: string;
   } & Timestamps;
 
