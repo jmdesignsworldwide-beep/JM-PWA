@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
-import { TodosList } from "@/components/pendientes/todos-list";
-import { getMyTodos } from "@/lib/data/todos";
+import { PendientesTabs } from "@/components/pendientes/pendientes-tabs";
+import { getMyTodos, getVentureTodos } from "@/lib/data/todos";
+import { getVentures, getVentureFileUrl } from "@/lib/data/ventures";
 import { getMyProfile } from "@/lib/data/profile";
 
 export const metadata = { title: "Mis pendientes" };
@@ -9,14 +10,24 @@ export const metadata = { title: "Mis pendientes" };
 export default async function PendientesPage() {
   const profile = await getMyProfile();
   if (profile?.rol !== "owner") redirect("/");
-  const todos = await getMyTodos();
+
+  const [todos, ventures] = await Promise.all([getMyTodos(), getVentures()]);
+
+  // Enriquecer cada proyecto con su logo firmado + cuántos pendientes tiene.
+  const cards = await Promise.all(
+    ventures.map(async (v) => {
+      const [logoUrl, vt] = await Promise.all([
+        getVentureFileUrl(v.logo_path),
+        getVentureTodos(v.id),
+      ]);
+      return { ...v, logoUrl, pendientes: vt.filter((t) => !t.hecho).length };
+    }),
+  );
 
   return (
     <>
-      <PageHeader title="Mis pendientes" subtitle="Tu lista personal y privada. Solo tú la ves." />
-      <div className="mx-auto max-w-2xl rounded-xl border border-border bg-card p-5">
-        <TodosList initial={todos} />
-      </div>
+      <PageHeader title="Mis pendientes" subtitle="Tu lista personal y tus proyectos en incubación. Solo tú los ves." />
+      <PendientesTabs todos={todos} ventures={cards} />
     </>
   );
 }
