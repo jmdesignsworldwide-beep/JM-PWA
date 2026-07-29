@@ -4,16 +4,19 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Rocket, Pencil, Trash2, Loader2, Mail, ListTodo } from "lucide-react";
-import type { Venture } from "@/lib/data/ventures";
+import type { Venture, VentureRed } from "@/lib/data/ventures";
+import type { VenturePerfil } from "@/lib/ventures";
 import type { Todo } from "@/lib/data/todos";
 import { deleteVenture } from "@/app/(app)/pendientes/venture-actions";
 import { NewVentureDialog } from "./new-venture-dialog";
+import { VentureRedes } from "./venture-redes";
+import { VentureEncuesta } from "./venture-encuesta";
 import { TodosList } from "@/components/pendientes/todos-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 
-export function VentureDetail({ venture, logoUrl, todos }: { venture: Venture; logoUrl: string | null; todos: Todo[] }) {
+export function VentureDetail({ venture, logoUrl, todos, redes }: { venture: Venture; logoUrl: string | null; todos: Todo[]; redes: VentureRed[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [delOpen, setDelOpen] = useState(false);
@@ -60,9 +63,15 @@ export function VentureDetail({ venture, logoUrl, todos }: { venture: Venture; l
         </div>
       </div>
 
-      {/* Más secciones (próximos PRs): redes, socios, ideas, referencias, exportar */}
+      {/* Encuesta online/físico */}
+      <VentureEncuesta ventureId={venture.id} tipo={venture.tipo} perfil={(venture.perfil_json ?? {}) as VenturePerfil} />
+
+      {/* Redes sociales (las que faltan generan pendientes) */}
+      <VentureRedes ventureId={venture.id} redes={redes} />
+
+      {/* Más secciones (próximos PRs): socios, ideas, referencias, exportar */}
       <div className="rounded-xl border border-dashed border-border bg-card/40 px-4 py-3 text-xs text-muted-foreground">
-        Próximamente en este proyecto: redes sociales, socios y contratos, ideas y referencias visuales, y exportar el brief.
+        Próximamente en este proyecto: socios y contratos, ideas y referencias visuales, y exportar el brief.
       </div>
 
       {/* Pendientes del proyecto */}
