@@ -3,6 +3,8 @@ import type { Row } from "@/lib/database.types";
 
 export type Venture = Row<"ventures">;
 export type VentureRed = Row<"venture_redes">;
+export type VentureSocio = Row<"venture_socios">;
+export type VentureDoc = Row<"venture_docs">;
 
 /** Redes de un proyecto. */
 export async function getVentureRedes(ventureId: string): Promise<VentureRed[]> {
@@ -11,6 +13,24 @@ export async function getVentureRedes(ventureId: string): Promise<VentureRed[]> 
     .from("venture_redes").select("*").eq("venture_id", ventureId)
     .order("created_at", { ascending: true });
   return (data ?? []) as VentureRed[];
+}
+
+/** Socios de un proyecto (con % y contrato). */
+export async function getVentureSocios(ventureId: string): Promise<VentureSocio[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("venture_socios").select("*").eq("venture_id", ventureId)
+    .order("created_at", { ascending: true });
+  return (data ?? []) as VentureSocio[];
+}
+
+/** Documentos (PDFs) de un proyecto. */
+export async function getVentureDocs(ventureId: string): Promise<VentureDoc[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("venture_docs").select("*").eq("venture_id", ventureId)
+    .order("created_at", { ascending: false });
+  return (data ?? []) as VentureDoc[];
 }
 
 /** Proyectos propios (incubadora) del owner. Más recientes primero. */
