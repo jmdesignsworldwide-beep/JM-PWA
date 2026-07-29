@@ -443,6 +443,7 @@ export interface Tables {
     id: string;
     nombre: string;
     registrado: boolean;
+    legalizado: boolean;
     logo_path: string | null;
     descripcion: string | null;
     correo: string | null;
@@ -457,6 +458,25 @@ export interface Tables {
     tipo: "instagram" | "facebook" | "tiktok" | "whatsapp" | "web";
     hecha: boolean;
     url: string | null;
+    created_by: string;
+  } & Timestamps;
+
+  venture_socios: {
+    id: string;
+    venture_id: string;
+    nombre: string;
+    porcentaje: number;
+    contrato_path: string | null;
+    notas: string | null;
+    created_by: string;
+  } & Timestamps;
+
+  venture_docs: {
+    id: string;
+    venture_id: string;
+    tipo: "contrato" | "legalizacion" | "plan" | "cotizacion" | "otro";
+    nombre: string | null;
+    file_path: string;
     created_by: string;
   } & Timestamps;
 
