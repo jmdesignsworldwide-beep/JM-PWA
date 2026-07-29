@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, Loader2, Tag } from "lucide-react";
 import { createOrder, type NewOrderInput, type OrderItemInput } from "@/app/(app)/pedidos/actions";
 import { createLead } from "@/app/(app)/leads/actions";
+import { CatalogManagerDialog } from "./catalog-manager-dialog";
 import { PRINT_CATEGORIAS, TIPOS_SOLUCION, ITBIS_RATE, planPresets, diasHasta } from "@/lib/pedidos";
 import { INDUSTRIA_OPTIONS } from "@/lib/ventas";
 import { Combobox } from "@/components/ui/combobox";
@@ -203,25 +204,39 @@ export function NewOrderForm({
         </div>
       )}
 
-      {/* Catálogo de la marca: toca para añadir al pedido */}
-      {catItems.length > 0 && (
+      {/* Catálogo de la marca: atajos rápidos (editables) para añadir al pedido */}
+      {brandId && (
         <div className="space-y-2 rounded-xl border border-border bg-card/40 p-3">
-          <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            <Tag className="size-3.5" /> Catálogo — toca para añadir
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {catItems.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => addFromCatalog(c)}
-                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:border-electric/50 hover:bg-accent/40"
-              >
-                <Plus className="size-3.5 text-electric" /> {c.nombre}
-                {Number(c.precio_base) > 0 && <span className="text-xs text-muted-foreground">· {money(Number(c.precio_base), moneda)}</span>}
-              </button>
-            ))}
+          <div className="flex items-center justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <Tag className="size-3.5" /> Catálogo — toca para añadir
+            </p>
+            <CatalogManagerDialog
+              brandId={brandId}
+              brandName={brands.find((b) => b.id === brandId)?.nombre ?? ""}
+              items={catItems}
+              moneda={moneda}
+            />
           </div>
+          {catItems.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {catItems.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => addFromCatalog(c)}
+                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:border-electric/50 hover:bg-accent/40"
+                >
+                  <Plus className="size-3.5 text-electric" /> {c.nombre}
+                  {Number(c.precio_base) > 0 && <span className="text-xs text-muted-foreground">· {money(Number(c.precio_base), moneda)}</span>}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Esta marca aún no tiene atajos. Usa <strong>Editar catálogo</strong> para agregarlos, o añade el ítem a mano abajo.
+            </p>
+          )}
         </div>
       )}
 
@@ -247,7 +262,7 @@ export function NewOrderForm({
         <div className="flex items-center justify-between">
           <h3 className="font-medium">{rama === "designs" ? "Módulos / conceptos" : "Productos del pedido"}</h3>
           <Button variant="outline" size="sm" onClick={() => setItems((p) => [...p, emptyItem()])}>
-            <Plus className="size-4" /> Añadir
+            <Plus className="size-4" /> Añadir otro
           </Button>
         </div>
 
