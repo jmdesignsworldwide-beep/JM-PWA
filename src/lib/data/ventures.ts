@@ -5,6 +5,27 @@ export type Venture = Row<"ventures">;
 export type VentureRed = Row<"venture_redes">;
 export type VentureSocio = Row<"venture_socios">;
 export type VentureDoc = Row<"venture_docs">;
+export type VentureIdea = Row<"venture_ideas">;
+export type VentureReferencia = Row<"venture_referencias">;
+
+/** Ideas de un proyecto (las más recientes al final para editar en orden). */
+export async function getVentureIdeas(ventureId: string): Promise<VentureIdea[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("venture_ideas").select("*").eq("venture_id", ventureId)
+    .order("created_at", { ascending: true });
+  return (data ?? []) as VentureIdea[];
+}
+
+/** Referencias visuales (moodboard) de un proyecto, con su URL firmada. */
+export async function getVentureReferencias(ventureId: string): Promise<(VentureReferencia & { url: string | null })[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("venture_referencias").select("*").eq("venture_id", ventureId)
+    .order("created_at", { ascending: false });
+  const rows = (data ?? []) as VentureReferencia[];
+  return Promise.all(rows.map(async (r) => ({ ...r, url: await getVentureFileUrl(r.image_path) })));
+}
 
 /** Redes de un proyecto. */
 export async function getVentureRedes(ventureId: string): Promise<VentureRed[]> {

@@ -480,6 +480,23 @@ export interface Tables {
     created_by: string;
   } & Timestamps;
 
+  venture_ideas: {
+    id: string;
+    venture_id: string;
+    titulo: string;
+    tipo: string | null;
+    campos_json: Json;
+    created_by: string;
+  } & Timestamps;
+
+  venture_referencias: {
+    id: string;
+    venture_id: string;
+    image_path: string;
+    nota: string | null;
+    created_by: string;
+  } & Timestamps;
+
   message_templates: {
     id: string;
     tipo: "contrato" | "dm" | "whatsapp";
