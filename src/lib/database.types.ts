@@ -451,6 +451,15 @@ export interface Tables {
     created_by: string;
   } & Timestamps;
 
+  venture_redes: {
+    id: string;
+    venture_id: string;
+    tipo: "instagram" | "facebook" | "tiktok" | "whatsapp" | "web";
+    hecha: boolean;
+    url: string | null;
+    created_by: string;
+  } & Timestamps;
+
   message_templates: {
     id: string;
     tipo: "contrato" | "dm" | "whatsapp";

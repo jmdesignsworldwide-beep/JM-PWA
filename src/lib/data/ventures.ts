@@ -2,6 +2,16 @@ import { createClient } from "@/lib/supabase/server";
 import type { Row } from "@/lib/database.types";
 
 export type Venture = Row<"ventures">;
+export type VentureRed = Row<"venture_redes">;
+
+/** Redes de un proyecto. */
+export async function getVentureRedes(ventureId: string): Promise<VentureRed[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("venture_redes").select("*").eq("venture_id", ventureId)
+    .order("created_at", { ascending: true });
+  return (data ?? []) as VentureRed[];
+}
 
 /** Proyectos propios (incubadora) del owner. Más recientes primero. */
 export async function getVentures(): Promise<Venture[]> {
