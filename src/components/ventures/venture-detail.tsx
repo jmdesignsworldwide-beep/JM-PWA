@@ -15,6 +15,7 @@ import { VentureSocios } from "./venture-socios";
 import { VentureDocs } from "./venture-docs";
 import { VentureIdeas } from "./venture-ideas";
 import { VentureReferencias } from "./venture-referencias";
+import { VentureExportButton } from "./venture-export-button";
 import { TodosList } from "@/components/pendientes/todos-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ export function VentureDetail({ venture, logoUrl, todos, redes, socios, docs, id
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <NewVentureDialog venture={venture} logoUrl={logoUrl} trigger={<Button variant="gradient" size="sm"><Pencil className="size-4" /> Editar perfil</Button>} />
+          <VentureExportButton ventureId={venture.id} />
           <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => setDelOpen(true)}><Trash2 className="size-4" /> Borrar</Button>
         </div>
       </div>
@@ -84,11 +86,6 @@ export function VentureDetail({ venture, logoUrl, todos, redes, socios, docs, id
 
       {/* Referencias visuales (moodboard) */}
       <VentureReferencias ventureId={venture.id} refs={refs} />
-
-      {/* Próximo PR: exportar el brief */}
-      <div className="rounded-xl border border-dashed border-border bg-card/40 px-4 py-3 text-xs text-muted-foreground">
-        Próximamente: pendientes por proyecto organizados y exportar el brief (para Claude Code).
-      </div>
 
       {/* Pendientes del proyecto */}
       <div className="rounded-2xl border border-border bg-card p-5">

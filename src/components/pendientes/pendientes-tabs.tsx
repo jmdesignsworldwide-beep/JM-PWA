@@ -6,9 +6,10 @@ import type { Todo } from "@/lib/data/todos";
 import type { Venture } from "@/lib/data/ventures";
 import { TodosList } from "./todos-list";
 import { VenturesList } from "@/components/ventures/ventures-list";
+import { ProjectTodosGrouped } from "@/components/ventures/project-todos-grouped";
 import { cn } from "@/lib/utils";
 
-type VentureCard = Venture & { logoUrl: string | null; pendientes: number };
+type VentureCard = Venture & { logoUrl: string | null; pendientes: number; todosAbiertos: Todo[] };
 
 /** Dos partes de "Mis pendientes": lista personal + Mis Proyectos (incubadora). */
 export function PendientesTabs({ todos, ventures }: { todos: Todo[]; ventures: VentureCard[] }) {
@@ -32,7 +33,10 @@ export function PendientesTabs({ todos, ventures }: { todos: Todo[]; ventures: V
           <TodosList initial={todos} />
         </div>
       ) : (
-        <VenturesList ventures={ventures} />
+        <div className="space-y-4">
+          <VenturesList ventures={ventures} />
+          <ProjectTodosGrouped grupos={ventures.map((v) => ({ id: v.id, nombre: v.nombre, todos: v.todosAbiertos }))} />
+        </div>
       )}
     </div>
   );

@@ -20,7 +20,8 @@ export default async function PendientesPage() {
         getVentureFileUrl(v.logo_path),
         getVentureTodos(v.id),
       ]);
-      return { ...v, logoUrl, pendientes: vt.filter((t) => !t.hecho).length };
+      const abiertos = vt.filter((t) => !t.hecho);
+      return { ...v, logoUrl, pendientes: abiertos.length, todosAbiertos: abiertos };
     }),
   );
 
