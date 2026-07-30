@@ -52,6 +52,8 @@ export interface Tables {
     categoria_servicio: "web" | "software" | "app" | "distribution" | null;
     industria: string | null;
     es_lead: boolean;
+    es_personal: boolean;
+    ocupacion: string | null;
     etapa_venta:
       | "nuevo"
       | "contactado"

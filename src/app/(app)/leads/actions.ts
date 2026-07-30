@@ -23,14 +23,19 @@ export type NewLeadInput = {
   brand_id?: string | null;
   /** true = prospecto (por defecto); false = cliente activo directo. */
   es_lead?: boolean;
+  /** true = contacto Personal (no cliente/prospecto de negocio). */
+  es_personal?: boolean;
+  ocupacion?: string | null;
 };
 
 export async function createLead(input: NewLeadInput) {
   const supabase = await createClient();
-  const { es_lead = true, ...rest } = input;
+  const { es_lead = true, es_personal = false, ...rest } = input;
+  // Un Personal no es lead ni cliente de negocio.
+  const esLeadFinal = es_personal ? false : es_lead;
   const { data, error } = await supabase
     .from("clients")
-    .insert({ ...rest, es_lead, etapa_venta: es_lead ? "nuevo" : "ganado" })
+    .insert({ ...rest, es_lead: esLeadFinal, es_personal, etapa_venta: esLeadFinal ? "nuevo" : "ganado" } as never)
     .select("id")
     .single();
 

@@ -15,8 +15,23 @@ export async function getLeads(): Promise<Client[]> {
   return data ?? [];
 }
 
-/** Todos los clientes (leads + activos) para la lista. */
+/**
+ * Clientes de NEGOCIO (clientes + prospectos), EXCLUYE los contactos Personal.
+ * Es la que usan los selectores de pedidos/cobros/finanzas: a un Personal no se
+ * le vende, solo se le debe.
+ */
 export async function getClients(): Promise<Client[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("es_personal", false)
+    .order("updated_at", { ascending: false });
+  return data ?? [];
+}
+
+/** TODOS los contactos (clientes + prospectos + personales) para la lista. */
+export async function getContacts(): Promise<Client[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("clients")

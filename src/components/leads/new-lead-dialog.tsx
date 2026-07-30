@@ -31,9 +31,10 @@ export function NewLeadDialog({ brands, label = "Nuevo registro" }: { brands: Br
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const [tipo, setTipo] = useState<"prospecto" | "cliente">("prospecto");
+  const [tipo, setTipo] = useState<"prospecto" | "cliente" | "personal">("prospecto");
   const [modo, setModo] = useState<"rapido" | "completo">("rapido");
   const [nombre, setNombre] = useState("");
+  const [ocupacion, setOcupacion] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [fuente, setFuente] = useState("");
   const [infoNota, setInfoNota] = useState("");
@@ -51,7 +52,7 @@ export function NewLeadDialog({ brands, label = "Nuevo registro" }: { brands: Br
   const [brandId, setBrandId] = useState("");
 
   function reset() {
-    setTipo("prospecto"); setModo("rapido"); setNombre(""); setWhatsapp(""); setFuente(""); setInfoNota("");
+    setTipo("prospecto"); setModo("rapido"); setNombre(""); setOcupacion(""); setWhatsapp(""); setFuente(""); setInfoNota("");
     setInstagram(""); setFacebook(""); setApellido(""); setCedula(""); setTelefono("");
     setCorreo(""); setCategoria(""); setIndustria(""); setLoQueQuiere(""); setDireccion(""); setBrandId("");
     setError(null);
@@ -79,6 +80,8 @@ export function NewLeadDialog({ brands, label = "Nuevo registro" }: { brands: Br
       direccion: t(direccion),
       brand_id: t(brandId),
       es_lead: tipo === "prospecto",
+      es_personal: tipo === "personal",
+      ocupacion: t(ocupacion),
     };
     startTransition(async () => {
       const res = await createLead(input);
@@ -95,11 +98,11 @@ export function NewLeadDialog({ brands, label = "Nuevo registro" }: { brands: Br
 
       <Dialog open={open} onClose={() => setOpen(false)} title={label} className="max-w-2xl">
         <div className="space-y-4">
-          {/* ¿Prospecto o cliente? Solo cambia el estado; el resto del formulario es igual. */}
+          {/* ¿Prospecto, cliente o personal? Personal = a quien le debo/pago, no de venta. */}
           <div className="space-y-1.5">
-            <Label>¿Es prospecto o cliente?</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {([["prospecto", "Prospecto", "Aún no ha comprado. Ficha ligera."], ["cliente", "Cliente", "Ya es cliente activo."]] as const).map(([id, lbl, hint]) => (
+            <Label>¿Qué tipo de contacto es?</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {([["prospecto", "Prospecto", "Aún no ha comprado."], ["cliente", "Cliente", "Ya es cliente activo."], ["personal", "Personal", "Familia, proveedor… a quien le debo."]] as const).map(([id, lbl, hint]) => (
                 <button key={id} type="button" onClick={() => setTipo(id)}
                   className={cn("rounded-lg border px-3 py-2 text-left transition-colors",
                     tipo === id ? "border-electric bg-electric/10" : "border-border hover:bg-accent/40")}>
@@ -110,27 +113,37 @@ export function NewLeadDialog({ brands, label = "Nuevo registro" }: { brands: Br
             </div>
           </div>
 
-          {/* Modo */}
-          <div className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-background/40 p-1">
-            {([["rapido", "Rápido", Zap], ["completo", "Detallado", ListChecks]] as const).map(([id, lbl, Icon]) => (
-              <button key={id} type="button" onClick={() => setModo(id)}
-                className={cn("flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                  modo === id ? "bg-electric/15 text-electric" : "text-muted-foreground hover:bg-accent/40")}>
-                <Icon className="size-4" /> {lbl}
-              </button>
-            ))}
-          </div>
-          {modo === "rapido" && (
-            <p className="text-xs text-muted-foreground">Lo esencial para no frenarte. Luego completas el resto desde su ficha.</p>
+          {/* Modo (no aplica a Personal, que es ficha ligera) */}
+          {tipo !== "personal" && (
+            <>
+              <div className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-background/40 p-1">
+                {([["rapido", "Rápido", Zap], ["completo", "Detallado", ListChecks]] as const).map(([id, lbl, Icon]) => (
+                  <button key={id} type="button" onClick={() => setModo(id)}
+                    className={cn("flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                      modo === id ? "bg-electric/15 text-electric" : "text-muted-foreground hover:bg-accent/40")}>
+                    <Icon className="size-4" /> {lbl}
+                  </button>
+                ))}
+              </div>
+              {modo === "rapido" && (
+                <p className="text-xs text-muted-foreground">Lo esencial para no frenarte. Luego completas el resto desde su ficha.</p>
+              )}
+            </>
           )}
 
-          {/* Rápido: nombre + whatsapp */}
+          {/* Nombre + whatsapp */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Nombre *"><Input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre" /></Field>
             <Field label="WhatsApp"><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} type="tel" placeholder="1 809 000 0000" /></Field>
           </div>
 
-          {/* Fuente como botones */}
+          {/* Personal: a qué se dedica (ligero) */}
+          {tipo === "personal" && (
+            <Field label="¿A qué se dedica / qué hace?"><Input value={ocupacion} onChange={(e) => setOcupacion(e.target.value)} placeholder="Ej. Carpintero, mi mamá, proveedor de tela…" /></Field>
+          )}
+
+          {/* Fuente como botones — solo negocio */}
+          {tipo !== "personal" && (<>
           <div className="space-y-1.5">
             <Label>Fuente (de dónde vino)</Label>
             <div className="flex flex-wrap gap-2">
@@ -151,12 +164,14 @@ export function NewLeadDialog({ brands, label = "Nuevo registro" }: { brands: Br
           {fuente === "Facebook" && (
             <Field label="Usuario de Facebook"><Input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="usuario o link" /></Field>
           )}
+          </>
+          )}
 
-          {/* Notas (rápido) */}
+          {/* Notas (para todos) */}
           <Field label="Notas"><Textarea value={infoNota} onChange={(e) => setInfoNota(e.target.value)} placeholder="Lo que se habló, contexto…" /></Field>
 
-          {/* Detallado: resto de campos */}
-          {modo === "completo" && (
+          {/* Detallado: resto de campos (no aplica a Personal) */}
+          {tipo !== "personal" && modo === "completo" && (
             <div className="space-y-4 border-t border-border pt-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="Apellido"><Input value={apellido} onChange={(e) => setApellido(e.target.value)} placeholder="Apellido" /></Field>

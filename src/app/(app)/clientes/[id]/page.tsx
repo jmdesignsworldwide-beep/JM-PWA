@@ -10,6 +10,7 @@ import {
 } from "@/lib/data/clients";
 import { ClientDetail } from "@/components/clientes/client-detail";
 import { ProspectoDetail } from "@/components/clientes/prospecto-detail";
+import { PersonalDetail } from "@/components/clientes/personal-detail";
 import { ConvertToClientButton } from "@/components/clientes/convert-to-client-button";
 import { WhatsappButton } from "@/components/clientes/whatsapp-button";
 import { PortalAccessButton } from "@/components/clientes/portal-access-button";
@@ -37,6 +38,32 @@ export default async function ClientePage({
   }
   const brands = await getBrands();
   const nombreCompleto = `${client.nombre} ${client.apellido ?? ""}`.trim();
+
+  // ── PERSONAL: contacto no de venta (familia, proveedor). Ficha ligera. ──
+  if (client.es_personal) {
+    return (
+      <div className="space-y-5">
+        <Link href="/clientes?estado=personal" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <ArrowLeft className="size-4" /> Personal
+        </Link>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{nombreCompleto}</h1>
+            <Badge dot="var(--electric)">Personal</Badge>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <SocialLinks instagram={client.instagram} facebook={client.facebook} />
+            <WhatsappButton phone={client.whatsapp ?? client.telefono} text={`Hola ${client.nombre}!`} />
+            <DeleteClientButton
+              clientId={client.id} clientName={nombreCompleto} isOwner={isOwner} esLead={false}
+              impacto={{ pedidos: 0, contratos: 0, facturas: 0, proyectos: 0 }}
+            />
+          </div>
+        </div>
+        <PersonalDetail client={client} brands={brands} />
+      </div>
+    );
+  }
 
   // ── PROSPECTO: ficha ligera. Aún no compra → sin pedidos/contratos/facturas/pagos. ──
   if (client.es_lead) {

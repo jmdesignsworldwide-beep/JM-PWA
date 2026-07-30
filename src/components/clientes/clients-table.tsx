@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Search, Users, UserCheck, Target } from "lucide-react";
+import { Search, UserCheck, Target, User } from "lucide-react";
 import type { Client } from "@/lib/data/clients";
 import { INDUSTRIAS } from "@/lib/ventas";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,7 @@ function Avatar({ nombre, apellido }: { nombre: string; apellido?: string | null
   );
 }
 
-function StatChip({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: number }) {
+function StatChip({ icon: Icon, label, value }: { icon: typeof UserCheck; label: string; value: number }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
       <div className="flex size-9 items-center justify-center rounded-lg bg-accent text-electric"><Icon className="size-4" /></div>
@@ -71,6 +71,9 @@ export function ClientsTable({
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     return clients.filter((c) => {
+      // "Personal" es su propia vista; el resto de vistas los excluye.
+      if (fEstado === "personal") { if (!c.es_personal) return false; }
+      else if (c.es_personal) return false;
       if (fEstado === "lead" && !c.es_lead) return false;
       if (fEstado === "activo" && c.es_lead) return false;
       if (fIndustria && c.industria !== fIndustria) return false;
@@ -84,19 +87,22 @@ export function ClientsTable({
     });
   }, [clients, q, fEstado, fIndustria, fCategoria, fMarca]);
 
-  const totales = useMemo(() => ({
-    total: clients.length,
-    activos: clients.filter((c) => !c.es_lead).length,
-    leads: clients.filter((c) => c.es_lead).length,
-  }), [clients]);
+  const totales = useMemo(() => {
+    const negocio = clients.filter((c) => !c.es_personal);
+    return {
+      activos: negocio.filter((c) => !c.es_lead).length,
+      leads: negocio.filter((c) => c.es_lead).length,
+      personal: clients.filter((c) => c.es_personal).length,
+    };
+  }, [clients]);
 
   return (
     <div className="space-y-4">
       {/* Resumen rápido */}
       <div className="grid grid-cols-3 gap-3">
-        <StatChip icon={Users} label="Total" value={totales.total} />
         <StatChip icon={UserCheck} label="Clientes activos" value={totales.activos} />
         <StatChip icon={Target} label="Prospectos" value={totales.leads} />
+        <StatChip icon={User} label="Personal" value={totales.personal} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -113,6 +119,7 @@ export function ClientsTable({
           <option value="">Todos</option>
           <option value="lead">Prospectos</option>
           <option value="activo">Clientes activos</option>
+          <option value="personal">Personal</option>
         </Select>
         <Select value={fCategoria} onChange={(e) => setFCategoria(e.target.value)} className="h-9 w-auto">
           <option value="">Toda categoría</option>
@@ -151,7 +158,9 @@ export function ClientsTable({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate font-medium">{c.nombre} {c.apellido ?? ""}</span>
-                    {c.es_lead ? (
+                    {c.es_personal ? (
+                      <Badge dot="var(--electric)">Personal</Badge>
+                    ) : c.es_lead ? (
                       <Badge dot="var(--warning)">Prospecto</Badge>
                     ) : (
                       <Badge dot="var(--success)">Activo</Badge>
@@ -195,7 +204,9 @@ export function ClientsTable({
                     </Link>
                   </td>
                   <td className="px-4 py-3">
-                    <EstadoSelect clientId={c.id} esLead={c.es_lead} />
+                    {c.es_personal
+                      ? <Badge dot="var(--electric)">Personal</Badge>
+                      : <EstadoSelect clientId={c.id} esLead={c.es_lead} />}
                   </td>
                   <td className="px-4 py-3 capitalize text-muted-foreground">{c.categoria_servicio ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.industria ?? "—"}</td>
