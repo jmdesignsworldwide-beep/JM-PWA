@@ -1,15 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, ArrowUpDown, Building2, User, Layers, Calendar, ArrowUpRight, ArrowDownRight, Paperclip } from "lucide-react";
+import { Search, ArrowUpDown, Building2, User, Layers, Calendar, ArrowUpRight, ArrowDownRight, Paperclip, SlidersHorizontal } from "lucide-react";
 import { money, fechaCorta } from "@/lib/format";
-import { rdToday, startOfMonth, endOfMonth } from "@/lib/fecha";
 import { TransactionDetail, type Mov } from "./transaction-detail";
 import { Select } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 type Opt = { id: string; nombre: string };
-type Income = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; brand_id: string | null; project_id: string | null; client_id: string | null; comprobante_url: string | null; es_personal: boolean; order_payment_id: string | null };
+type Income = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; brand_id: string | null; project_id: string | null; client_id: string | null; comprobante_url: string | null; es_personal: boolean; order_payment_id: string | null; order_id?: string | null };
 type Expense = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; brand_id: string | null; project_id: string | null; comercio: string | null; itbis: number | null; metodo_pago: string | null; factura_url: string | null; es_personal: boolean };
 
 type Scope = "todo" | "negocio" | "personal";
@@ -30,13 +31,12 @@ export function MovimientosView({
   const [q, setQ] = useState("");
   const [tipo, setTipo] = useState<Tipo>(initialTipo);
   const [scope, setScope] = useState<Scope>("todo");
-  const [clientId, setClientId] = useState("");
   const [brandId, setBrandId] = useState("");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
-  const [preset, setPreset] = useState<"todo" | "mes" | "mespasado" | "anio" | "custom">("todo");
   const [orden, setOrden] = useState<"fecha" | "monto">("fecha");
   const [detail, setDetail] = useState<Mov | null>(null);
+  const [sheet, setSheet] = useState(false);
 
   const brandMap = useMemo(() => Object.fromEntries(brands.map((b) => [b.id, b.nombre])), [brands]);
   const clientMap = useMemo(() => Object.fromEntries(clients.map((c) => [c.id, c.nombre])), [clients]);
@@ -53,8 +53,8 @@ export function MovimientosView({
       if (tipo === "gasto" && m.kind !== "expense") return false;
       if (scope === "negocio" && m.es_personal) return false;
       if (scope === "personal" && !m.es_personal) return false;
-      if (clientId && (m.kind !== "income" || m.client_id !== clientId)) return false;
-      if (brandId && m.brand_id !== brandId) return false;
+      if (brandId === "personal") { if (!m.es_personal) return false; }
+      else if (brandId && m.brand_id !== brandId) return false;
       if (desde && m.fecha < desde) return false;
       if (hasta && m.fecha > hasta) return false;
       if (term) {
@@ -66,7 +66,9 @@ export function MovimientosView({
     });
     rows.sort((a, b) => orden === "monto" ? Number(b.monto) - Number(a.monto) : b.fecha.localeCompare(a.fecha));
     return rows;
-  }, [all, q, tipo, scope, clientId, brandId, desde, hasta, orden, clientMap]);
+  }, [all, q, tipo, scope, brandId, desde, hasta, orden, clientMap]);
+
+  const filtrosActivos = [scope !== "todo", tipo !== "todo", !!brandId, !!desde || !!hasta].filter(Boolean).length;
 
   // Total de lo filtrado por moneda (ingresos − gastos = neto; y por lado).
   const totals = useMemo(() => {
@@ -79,19 +81,44 @@ export function MovimientosView({
     return t;
   }, [filtered]);
 
-  function applyPreset(p: typeof preset) {
-    setPreset(p);
-    const today = rdToday();
-    if (p === "todo") { setDesde(""); setHasta(""); }
-    else if (p === "mes") { setDesde(startOfMonth(today)); setHasta(endOfMonth(today)); }
-    else if (p === "mespasado") {
-      const d = new Date(`${today}T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1);
-      const prev = d.toISOString().slice(0, 10); setDesde(startOfMonth(prev)); setHasta(endOfMonth(prev));
-    } else if (p === "anio") { setDesde(`${today.slice(0, 4)}-01-01`); setHasta(`${today.slice(0, 4)}-12-31`); }
-  }
-
   const netoDOP = totals.ingreso.DOP - totals.gasto.DOP;
   const netoUSD = totals.ingreso.USD - totals.gasto.USD;
+
+  // Controles reusados: en fila (desktop) y dentro de la hoja (móvil).
+  const controles = (
+    <>
+      <div className="flex rounded-lg border border-border p-0.5">
+        {([["todo", "Todo", Layers], ["negocio", "Negocio", Building2], ["personal", "Personal", User]] as const).map(([id, label, Icon]) => (
+          <button key={id} onClick={() => setScope(id)}
+            className={cn("flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors sm:flex-none", scope === id ? "bg-electric/15 text-electric" : "text-muted-foreground hover:bg-accent/40")}>
+            <Icon className="size-4" /> {label}
+          </button>
+        ))}
+      </div>
+      <Select value={tipo} onChange={(e) => setTipo(e.target.value as Tipo)} className="h-9 w-full text-sm sm:w-auto">
+        <option value="todo">Ingresos y gastos</option>
+        <option value="ingreso">Solo ingresos</option>
+        <option value="gasto">Solo gastos</option>
+      </Select>
+      {brands.length > 0 && (
+        <Select value={brandId} onChange={(e) => setBrandId(e.target.value)} className="h-9 w-full text-sm sm:w-auto">
+          <option value="">Todas las marcas</option>
+          {brands.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+          <option value="personal">Personal</option>
+        </Select>
+      )}
+      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+        <Calendar className="size-4 shrink-0" />
+        <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="h-9 min-w-0 flex-1 rounded-lg border border-border bg-background/50 px-2 text-xs sm:h-8" />
+        <span>—</span>
+        <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="h-9 min-w-0 flex-1 rounded-lg border border-border bg-background/50 px-2 text-xs sm:h-8" />
+      </div>
+      <button onClick={() => setOrden((o) => o === "fecha" ? "monto" : "fecha")}
+        className="flex items-center justify-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-accent/40 sm:ml-auto">
+        <ArrowUpDown className="size-3.5" /> Orden: {orden === "fecha" ? "fecha" : "monto"}
+      </button>
+    </>
+  );
 
   return (
     <div className="space-y-4">
@@ -102,62 +129,30 @@ export function MovimientosView({
         <TotalCard label="Neto" dop={netoDOP} usd={netoUSD} tone="electric" />
       </div>
 
-      {/* Filtros */}
+      {/* Filtros: búsqueda siempre visible; el resto en fila (desktop) o en hoja (móvil). */}
       <div className="space-y-2 rounded-xl border border-border bg-card p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[200px] flex-1">
+        <div className="flex items-center gap-2">
+          <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar (cliente, concepto, comercio…)"
               className="h-9 w-full rounded-lg border border-border bg-background/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
           </div>
-          <div className="flex rounded-lg border border-border p-0.5">
-            {([["todo", "Todo", Layers], ["negocio", "Negocio", Building2], ["personal", "Personal", User]] as const).map(([id, label, Icon]) => (
-              <button key={id} onClick={() => { setScope(id); if (id === "personal") setBrandId(""); }}
-                className={cn("flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors", scope === id ? "bg-electric/15 text-electric" : "text-muted-foreground hover:bg-accent/40")}>
-                <Icon className="size-4" /> {label}
-              </button>
-            ))}
-          </div>
+          <Button variant="outline" size="sm" className="shrink-0 sm:hidden" onClick={() => setSheet(true)}>
+            <SlidersHorizontal className="size-4" /> Filtros
+            {filtrosActivos > 0 && <span className="ml-1 flex size-5 items-center justify-center rounded-full bg-electric text-[11px] font-semibold text-white">{filtrosActivos}</span>}
+          </Button>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={tipo} onChange={(e) => setTipo(e.target.value as Tipo)} className="h-9 w-auto text-sm">
-            <option value="todo">Ingresos y gastos</option>
-            <option value="ingreso">Solo ingresos</option>
-            <option value="gasto">Solo gastos</option>
-          </Select>
-          {clients.length > 0 && (
-            <Select value={clientId} onChange={(e) => setClientId(e.target.value)} className="h-9 w-auto text-sm">
-              <option value="">Todo cliente</option>
-              {clients.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-            </Select>
-          )}
-          {/* Las marcas son del negocio: no se muestran en Personal */}
-          {scope !== "personal" && brands.length > 0 && (
-            <Select value={brandId} onChange={(e) => setBrandId(e.target.value)} className="h-9 w-auto text-sm">
-              <option value="">Todas las marcas</option>
-              {brands.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}
-            </Select>
-          )}
-          <div className="flex flex-wrap items-center gap-1">
-            {([["todo", "Todo"], ["mes", "Este mes"], ["mespasado", "Mes pasado"], ["anio", "Este año"]] as const).map(([id, label]) => (
-              <button key={id} onClick={() => applyPreset(id)}
-                className={cn("rounded-md px-2.5 py-1.5 text-xs transition-colors", preset === id ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/40")}>
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Calendar className="size-4" />
-            <input type="date" value={desde} onChange={(e) => { setDesde(e.target.value); setPreset("custom"); }} className="h-8 rounded-lg border border-border bg-background/50 px-2 text-xs" />
-            <span>—</span>
-            <input type="date" value={hasta} onChange={(e) => { setHasta(e.target.value); setPreset("custom"); }} className="h-8 rounded-lg border border-border bg-background/50 px-2 text-xs" />
-          </div>
-          <button onClick={() => setOrden((o) => o === "fecha" ? "monto" : "fecha")}
-            className="ml-auto flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-accent/40">
-            <ArrowUpDown className="size-3.5" /> Orden: {orden === "fecha" ? "fecha" : "monto"}
-          </button>
-        </div>
+        <div className="hidden flex-wrap items-center gap-2 sm:flex">{controles}</div>
       </div>
+
+      {/* Móvil: hoja de filtros (bottom sheet con safe-area). */}
+      {sheet && (
+        <Dialog open onClose={() => setSheet(false)} title="Filtros" description="Acota tus movimientos." className="max-w-md">
+          <div className="space-y-3">{controles}
+            <div className="flex justify-end pt-1"><Button variant="gradient" onClick={() => setSheet(false)}>Ver {filtered.length}</Button></div>
+          </div>
+        </Dialog>
+      )}
 
       <p className="text-xs text-muted-foreground">{filtered.length} movimiento{filtered.length === 1 ? "" : "s"}</p>
 

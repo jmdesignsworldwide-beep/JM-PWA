@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Download, TrendingUp, Repeat, ArrowDownUp, ArrowUpRight, ArrowDownRight, Wallet, Building2, User, Layers, ChevronRight, Calendar, Receipt, PiggyBank } from "lucide-react";
+import { Download, TrendingUp, Repeat, ArrowDownUp, ArrowUpRight, ArrowDownRight, Wallet, Building2, User, Layers, ChevronRight, Receipt, PiggyBank } from "lucide-react";
 import { money, fechaCorta } from "@/lib/format";
-import { rdToday, startOfMonth, endOfMonth } from "@/lib/fecha";
+import { addDays, rdToday } from "@/lib/fecha";
 import { AddIncomeDialog } from "./add-income-dialog";
 import { AddExpenseDialog } from "./add-expense-dialog";
 import { RecurringManager } from "./recurring-manager";
@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 
 type Opt = { id: string; nombre: string };
 type Bucket = { DOP: number; USD: number };
-type Income = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; brand_id: string | null; project_id: string | null; client_id: string | null; comprobante_url: string | null; es_personal: boolean; order_payment_id: string | null };
+type Income = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; brand_id: string | null; project_id: string | null; client_id: string | null; comprobante_url: string | null; es_personal: boolean; order_payment_id: string | null; order_id?: string | null };
 type Expense = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; brand_id: string | null; project_id: string | null; comercio: string | null; itbis: number | null; metodo_pago: string | null; factura_url: string | null; es_personal: boolean };
 type Margin = ProjectMargin;
 type Plan = { id: string; client_id: string; tipo: string | null; monto: number; moneda: string; frecuencia: string | null; proxima_factura: string | null; activo: boolean };
@@ -29,7 +29,7 @@ type Scope = "todo" | "negocio" | "personal";
 
 export function FinanzasView({
   margins, incomes, expenses, plans, mrr,
-  categoriasIngreso, categoriasGasto, categoriasGastoPersonal = [], clients, projects, brands, clientMap, registradoHoy,
+  categoriasIngreso, categoriasGasto, categoriasGastoPersonal = [], clients, projects, brands, clientMap,
 }: {
   margins: Margin[];
   incomes: Income[];
@@ -43,15 +43,12 @@ export function FinanzasView({
   projects: Opt[];
   brands: Opt[];
   clientMap: Record<string, string>;
-  registradoHoy: boolean;
 }) {
-  void registradoHoy;
   const [tab, setTab] = useState<"resumen" | "movimientos" | "recurrentes">("resumen");
   const [scope, setScope] = useState<Scope>("todo");
-  const [desde, setDesde] = useState("");
-  const [hasta, setHasta] = useState("");
   const [brandId, setBrandId] = useState("");
-  const [preset, setPreset] = useState<"todo" | "mes" | "mespasado" | "anio" | "custom">("todo");
+  // Movimientos = solo los últimos 3 días (antier, ayer, hoy).
+  const min3dias = useMemo(() => addDays(rdToday(), -2), []);
 
   // Drill-down (lista filtrada) y detalle de un movimiento.
   const [drill, setDrill] = useState<{ title: string; rows: Mov[] } | null>(null);
@@ -69,11 +66,10 @@ export function FinanzasView({
   const filtered = useMemo(() => allMovs.filter((m) => {
     if (scope === "negocio" && m.es_personal) return false;
     if (scope === "personal" && !m.es_personal) return false;
-    if (desde && m.fecha < desde) return false;
-    if (hasta && m.fecha > hasta) return false;
-    if (brandId && m.brand_id !== brandId) return false;
+    if (brandId === "personal") { if (!m.es_personal) return false; }
+    else if (brandId && m.brand_id !== brandId) return false;
     return true;
-  }), [allMovs, scope, desde, hasta, brandId]);
+  }), [allMovs, scope, brandId]);
 
   const fIncomes = useMemo(() => filtered.filter((m) => m.kind === "income"), [filtered]);
   const fExpenses = useMemo(() => filtered.filter((m) => m.kind === "expense"), [filtered]);
@@ -114,18 +110,9 @@ export function FinanzasView({
     return { ing, gas, total: ing + gas };
   }, [incomes, expenses]);
 
-  function applyPreset(p: typeof preset) {
-    setPreset(p);
-    const today = rdToday();
-    if (p === "todo") { setDesde(""); setHasta(""); }
-    else if (p === "mes") { setDesde(startOfMonth(today)); setHasta(endOfMonth(today)); }
-    else if (p === "mespasado") {
-      const d = new Date(`${today}T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1);
-      const prev = d.toISOString().slice(0, 10); setDesde(startOfMonth(prev)); setHasta(endOfMonth(prev));
-    } else if (p === "anio") { setDesde(`${today.slice(0, 4)}-01-01`); setHasta(`${today.slice(0, 4)}-12-31`); }
-  }
-
   const sortByDate = (rows: Mov[]) => [...rows].sort((a, b) => b.fecha.localeCompare(a.fecha));
+  // Movimientos: solo los últimos 3 días (para ver más atrás → Resumen / Movimientos detalle).
+  const recientes = (rows: Mov[]) => sortByDate(rows.filter((m) => m.fecha >= min3dias));
 
   return (
     <div className="space-y-5">
@@ -146,43 +133,30 @@ export function FinanzasView({
         </div>
       </div>
 
-      {/* Filtros: Negocio/Personal/Todo + fecha + marca */}
+      {/* Filtros del resumen: Negocio/Personal/Todo + marca (Personal incluido).
+          Sin filtros de fecha: Finanzas principal es un resumen general. */}
       {tab !== "recurrentes" && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3">
           <div className="flex rounded-lg border border-border p-0.5">
             {([["todo", "Todo", Layers], ["negocio", "Negocio", Building2], ["personal", "Personal", User]] as const).map(([id, label, Icon]) => (
-              <button key={id} onClick={() => { setScope(id); if (id === "personal") setBrandId(""); }}
+              <button key={id} onClick={() => setScope(id)}
                 className={cn("flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors", scope === id ? "bg-electric/15 text-electric" : "text-muted-foreground hover:bg-accent/40")}>
                 <Icon className="size-4" /> {label}
               </button>
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-1">
-            {([["todo", "Todo"], ["mes", "Este mes"], ["mespasado", "Mes pasado"], ["anio", "Este año"]] as const).map(([id, label]) => (
-              <button key={id} onClick={() => applyPreset(id)}
-                className={cn("rounded-md px-2.5 py-1.5 text-xs transition-colors", preset === id ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/40")}>
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Calendar className="size-4" />
-            <input type="date" value={desde} onChange={(e) => { setDesde(e.target.value); setPreset("custom"); }} className="h-8 rounded-lg border border-border bg-background/50 px-2 text-xs" />
-            <span>—</span>
-            <input type="date" value={hasta} onChange={(e) => { setHasta(e.target.value); setPreset("custom"); }} className="h-8 rounded-lg border border-border bg-background/50 px-2 text-xs" />
-          </div>
-
-          {/* Las marcas son del negocio: no se muestran en Personal */}
-          {scope !== "personal" && brands.length > 0 && (
+          {brands.length > 0 && (
             <Select value={brandId} onChange={(e) => setBrandId(e.target.value)} className="h-8 w-auto text-sm">
               <option value="">Todas las marcas</option>
               {brands.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+              <option value="personal">Personal</option>
             </Select>
           )}
 
-          <span className="ml-auto text-xs text-muted-foreground">{filtered.length} movimiento{filtered.length === 1 ? "" : "s"}</span>
+          <span className="ml-auto text-xs text-muted-foreground">
+            {tab === "movimientos" ? "Últimos 3 días" : `${filtered.length} movimiento${filtered.length === 1 ? "" : "s"}`}
+          </span>
         </div>
       )}
 
@@ -267,9 +241,15 @@ export function FinanzasView({
       )}
 
       {tab === "movimientos" && (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <MovList title="Ingresos" rows={sortByDate(fIncomes)} tone="success" brandMap={brandMap} onPick={setDetail} />
-          <MovList title="Gastos" rows={sortByDate(fExpenses)} tone="destructive" brandMap={brandMap} onPick={setDetail} />
+        <div className="space-y-3">
+          <Link href="/finanzas/movimientos" className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card/60 px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent/40">
+            <span>Solo los últimos 3 días. Para ver más atrás, buscar o filtrar por fecha:</span>
+            <span className="flex shrink-0 items-center gap-1 font-medium text-electric">Ver todos <ChevronRight className="size-3.5" /></span>
+          </Link>
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <MovList title="Ingresos" rows={recientes(fIncomes)} tone="success" brandMap={brandMap} onPick={setDetail} />
+            <MovList title="Gastos" rows={recientes(fExpenses)} tone="destructive" brandMap={brandMap} onPick={setDetail} />
+          </div>
         </div>
       )}
 
