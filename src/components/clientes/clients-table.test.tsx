@@ -54,3 +54,47 @@ describe("Filtro de industria (lupita, por inicio de palabra) en Clientes", () =
     expect(screen.getAllByText("LexLegal").length).toBeGreaterThan(0);
   });
 });
+
+describe("Multi-marca: categorías por marca (tipo Tire center)", () => {
+  const brands = [{ id: "designs", nombre: "JM Designs" }, { id: "distri", nombre: "JM Distribution" }];
+  // Un solo cliente que compró web (Designs) Y gorras (Distribution).
+  const tire = [client("Tire center", "Automotriz")];
+  const aggregates = {
+    "Tire center": {
+      brandIds: ["designs", "distri"],
+      pairs: [
+        { brand: "designs", cat: "Sitio web" },
+        { brand: "distri", cat: "Gorras" },
+      ],
+      industrias: ["Automotriz"],
+    },
+  };
+
+  function marcaSelect() {
+    return screen.getByLabelText("Marca") as HTMLSelectElement;
+  }
+  function categoriaSelect() {
+    return screen.getByLabelText("Categoría") as HTMLSelectElement;
+  }
+
+  it("al elegir una marca, la categoría solo ofrece lo de esa marca", async () => {
+    const user = userEvent.setup();
+    render(<ClientsTable clients={tire} brands={brands} aggregates={aggregates} />);
+
+    await user.selectOptions(marcaSelect(), "distri");
+    const opts = Array.from(categoriaSelect().querySelectorAll("option")).map((o) => o.textContent);
+    expect(opts).toContain("Gorras");
+    expect(opts).not.toContain("Sitio web");
+  });
+
+  it("aparece al filtrar por CUALQUIERA de sus marcas", async () => {
+    const user = userEvent.setup();
+    render(<ClientsTable clients={tire} brands={brands} aggregates={aggregates} />);
+
+    await user.selectOptions(marcaSelect(), "designs");
+    expect(screen.getAllByText("Tire center").length).toBeGreaterThan(0);
+
+    await user.selectOptions(marcaSelect(), "distri");
+    expect(screen.getAllByText("Tire center").length).toBeGreaterThan(0);
+  });
+});

@@ -47,30 +47,53 @@ export async function getClients(): Promise<Client[]> {
 }
 
 /** Marcas/categorías/industrias de un contacto DERIVADAS de sus pedidos. */
-export type ContactAgg = { brandIds: string[]; categorias: string[]; industrias: string[] };
+export type ContactAgg = {
+  brandIds: string[];
+  /** Categoría REAL de cada pedido, etiquetada con la marca de ese pedido. */
+  pairs: { brand: string | null; cat: string }[];
+  industrias: string[];
+};
 
 /**
  * Un cliente puede comprar en VARIAS marcas: aquí derivamos de sus pedidos el
  * conjunto de marcas/categorías/industrias con las que ha trabajado (multi-marca).
- * Sin migración: solo lee `orders`. La categoría sale de la rama/tipo_solución.
+ * Sin migración. La categoría REAL sale de cada pedido, ligada a su marca:
+ *   · Designs → `tipo_solucion` (Sitio web, App móvil, …)
+ *   · Imprenta/Distribution/KitJoy → categoría del ítem (`order_print_items.categoria`:
+ *     Gorras, Papelería, …)
+ * Así al filtrar por una marca solo se ofrecen las categorías que esa marca usa.
  */
 export async function getContactAggregates(): Promise<Record<string, ContactAgg>> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("orders")
-    .select("client_id, brand_id, rama, tipo_solucion, industria");
-  const acc: Record<string, { brandIds: Set<string>; categorias: Set<string>; industrias: Set<string> }> = {};
-  const cats = new Set(["web", "software", "app", "distribution"]);
-  for (const o of (data ?? []) as { client_id: string; brand_id: string | null; rama: string | null; tipo_solucion: string | null; industria: string | null }[]) {
-    const a = (acc[o.client_id] ??= { brandIds: new Set(), categorias: new Set(), industrias: new Set() });
+  const [{ data: orders }, { data: prints }] = await Promise.all([
+    supabase.from("orders").select("id, client_id, brand_id, rama, tipo_solucion, industria"),
+    supabase.from("order_print_items").select("order_id, categoria"),
+  ]);
+  type O = { id: string; client_id: string; brand_id: string | null; rama: string | null; tipo_solucion: string | null; industria: string | null };
+  const ords = (orders ?? []) as O[];
+  const orderById = new Map(ords.map((o) => [o.id, o]));
+
+  const acc: Record<string, { brandIds: Set<string>; pairs: Map<string, { brand: string | null; cat: string }>; industrias: Set<string> }> = {};
+  const ensure = (id: string) => (acc[id] ??= { brandIds: new Set(), pairs: new Map(), industrias: new Set() });
+  const addPair = (a: { pairs: Map<string, { brand: string | null; cat: string }> }, brand: string | null, cat: string | null) => {
+    const c = cat?.trim();
+    if (c) a.pairs.set(`${brand ?? ""}|${c}`, { brand: brand ?? null, cat: c });
+  };
+
+  for (const o of ords) {
+    const a = ensure(o.client_id);
     if (o.brand_id) a.brandIds.add(o.brand_id);
-    if (o.rama === "distribution") a.categorias.add("distribution");
-    if (o.tipo_solucion && cats.has(o.tipo_solucion)) a.categorias.add(o.tipo_solucion);
+    if (o.rama === "designs") addPair(a, o.brand_id, o.tipo_solucion);
     if (o.industria) a.industrias.add(o.industria);
   }
+  for (const p of (prints ?? []) as { order_id: string; categoria: string | null }[]) {
+    const o = orderById.get(p.order_id);
+    if (o) addPair(ensure(o.client_id), o.brand_id, p.categoria);
+  }
+
   return Object.fromEntries(
     Object.entries(acc).map(([id, a]) => [id, {
-      brandIds: [...a.brandIds], categorias: [...a.categorias], industrias: [...a.industrias],
+      brandIds: [...a.brandIds], pairs: [...a.pairs.values()], industrias: [...a.industrias],
     }]),
   );
 }
