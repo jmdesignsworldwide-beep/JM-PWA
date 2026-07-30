@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Rocket, Pencil, Trash2, Loader2, Mail, ListTodo } from "lucide-react";
-import type { Venture, VentureRed, VentureSocio, VentureDoc } from "@/lib/data/ventures";
+import type { Venture, VentureRed, VentureSocio, VentureDoc, VentureIdea, VentureReferencia } from "@/lib/data/ventures";
 import type { VenturePerfil } from "@/lib/ventures";
 import type { Todo } from "@/lib/data/todos";
 import { deleteVenture } from "@/app/(app)/pendientes/venture-actions";
@@ -13,12 +13,14 @@ import { VentureRedes } from "./venture-redes";
 import { VentureEncuesta } from "./venture-encuesta";
 import { VentureSocios } from "./venture-socios";
 import { VentureDocs } from "./venture-docs";
+import { VentureIdeas } from "./venture-ideas";
+import { VentureReferencias } from "./venture-referencias";
 import { TodosList } from "@/components/pendientes/todos-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 
-export function VentureDetail({ venture, logoUrl, todos, redes, socios, docs }: { venture: Venture; logoUrl: string | null; todos: Todo[]; redes: VentureRed[]; socios: VentureSocio[]; docs: VentureDoc[] }) {
+export function VentureDetail({ venture, logoUrl, todos, redes, socios, docs, ideas, refs }: { venture: Venture; logoUrl: string | null; todos: Todo[]; redes: VentureRed[]; socios: VentureSocio[]; docs: VentureDoc[]; ideas: VentureIdea[]; refs: (VentureReferencia & { url: string | null })[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [delOpen, setDelOpen] = useState(false);
@@ -77,9 +79,15 @@ export function VentureDetail({ venture, logoUrl, todos, redes, socios, docs }: 
       {/* Documentos + legalización */}
       <VentureDocs ventureId={venture.id} docs={docs} legalizado={venture.legalizado} />
 
-      {/* Más secciones (próximos PRs): ideas, referencias, exportar */}
+      {/* Ideas detalladas (plantilla + campos propios) */}
+      <VentureIdeas ventureId={venture.id} ideas={ideas} />
+
+      {/* Referencias visuales (moodboard) */}
+      <VentureReferencias ventureId={venture.id} refs={refs} />
+
+      {/* Próximo PR: exportar el brief */}
       <div className="rounded-xl border border-dashed border-border bg-card/40 px-4 py-3 text-xs text-muted-foreground">
-        Próximamente en este proyecto: ideas y referencias visuales, y exportar el brief.
+        Próximamente: pendientes por proyecto organizados y exportar el brief (para Claude Code).
       </div>
 
       {/* Pendientes del proyecto */}
