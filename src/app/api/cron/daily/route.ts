@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { rdToday, addDays } from "@/lib/fecha";
 import { sendDigest } from "@/lib/digest";
+import { generarPlanVencido, nextRecurringDate, type DuePlan } from "@/lib/recurrentes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -73,28 +74,15 @@ export async function GET(req: Request) {
     result.resumen = yaEnviadoHoy ? "ya enviado hoy" : `espera hasta las ${resumenHora}:00`;
   }
 
-  // ---- Ingresos recurrentes: generar facturas vencidas ----
+  // ---- Recurrentes: generar los vencidos (ingresos Y gastos, negocio/personal) ----
   try {
     const { data: due } = await admin
       .from("recurring_plans").select("*").eq("activo", true).lte("proxima_factura", hoy);
     let generadas = 0;
-    for (const plan of (due ?? []) as { id: string; client_id: string; tipo: string; monto: number; moneda: string; frecuencia: string; proxima_factura: string; brand_id: string | null }[]) {
-      const { error } = await admin.from("invoices").insert({
-        client_id: plan.client_id, es_fiscal: false,
-        items_json: [{ producto: `Plan ${plan.tipo} (${plan.frecuencia})`, cantidad: 1, subtotal: plan.monto }],
-        subtotal: plan.monto, itbis: 0, total: plan.monto, moneda: plan.moneda,
-        estado_pago: "pendiente", fecha: hoy, brand_id: plan.brand_id,
-      });
-      if (error) continue;
-      await admin.from("calendar_events").insert({
-        titulo: `Cobro recurrente (${plan.tipo})`, tipo: "cobro", fecha: plan.proxima_factura,
-        client_id: plan.client_id, brand_id: plan.brand_id, auto_generado: true, monto: plan.monto, moneda: plan.moneda,
-      });
-      const d = new Date(`${plan.proxima_factura}T12:00:00Z`);
-      if (plan.frecuencia === "anual") d.setUTCFullYear(d.getUTCFullYear() + 1);
-      else if (plan.frecuencia === "trimestral") d.setUTCMonth(d.getUTCMonth() + 3);
-      else d.setUTCMonth(d.getUTCMonth() + 1);
-      await admin.from("recurring_plans").update({ proxima_factura: d.toISOString().slice(0, 10) }).eq("id", plan.id);
+    for (const plan of (due ?? []) as DuePlan[]) {
+      const ok = await generarPlanVencido(admin as never, plan, hoy);
+      if (!ok) continue;
+      await admin.from("recurring_plans").update({ proxima_factura: nextRecurringDate(plan.proxima_factura, plan.frecuencia) }).eq("id", plan.id);
       generadas++;
     }
     result.recurrentes = generadas;

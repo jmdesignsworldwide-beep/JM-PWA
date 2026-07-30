@@ -33,6 +33,8 @@ export type Mov = {
   itbis?: number | null;
   metodo_pago?: string | null;
   factura_url?: string | null;
+  /** Desglose línea por línea (lo que leyó el escáner). Json en BD → se valida al usar. */
+  lineas_json?: unknown;
   // income
   client_id?: string | null;
   comprobante_url?: string | null;
@@ -169,6 +171,21 @@ export function TransactionDetail({
             <Campo label="Marca" value={mov.brand_id ? (brandMap[mov.brand_id] ?? "—") : null} />
             <Campo label="Descripción" value={mov.descripcion} full />
           </dl>
+
+          {/* Desglose línea por línea (lo que leyó el escáner de la factura) */}
+          {isExpense && Array.isArray(mov.lineas_json) && mov.lineas_json.length > 0 && (
+            <div className="rounded-lg border border-border bg-card/60 p-3">
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Detalle de la factura</p>
+              <ul className="space-y-0.5 text-sm">
+                {(mov.lineas_json as { descripcion: string | null; monto: number | null }[]).map((l, i) => (
+                  <li key={i} className="flex justify-between gap-2 border-b border-border/50 py-1 last:border-0">
+                    <span className="min-w-0 truncate text-muted-foreground">{l.descripcion ?? "—"}</span>
+                    <span className="shrink-0 tabular-nums">{l.monto != null ? money(l.monto, mov.moneda) : "—"}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Recibo / comprobante */}
           {fileRef && (

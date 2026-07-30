@@ -229,11 +229,15 @@ export interface Tables {
 
   recurring_plans: {
     id: string;
-    client_id: string;
+    client_id: string | null;
+    clase: "ingreso" | "gasto";
+    es_personal: boolean;
+    categoria: string | null;
+    concepto: string | null;
     tipo: "mantenimiento" | "hosting" | "retainer" | null;
     monto: number;
     moneda: Moneda;
-    frecuencia: "mensual" | "trimestral" | "anual" | null;
+    frecuencia: "quincenal" | "mensual" | "trimestral" | "anual" | null;
     proxima_factura: string | null;
     activo: boolean;
     brand_id: string | null;
@@ -370,6 +374,7 @@ export interface Tables {
     metodo_pago: string | null;
     es_personal: boolean;
     debt_payment_id: string | null;
+    lineas_json: Json | null;
     created_by: string | null;
   } & Timestamps;
 

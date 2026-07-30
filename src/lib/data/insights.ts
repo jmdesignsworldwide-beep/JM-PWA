@@ -16,7 +16,7 @@ export type Kpis = {
 
 export async function getKpis(): Promise<Kpis> {
   const supabase = await createClient();
-  const [balance, mrr, clientsR, leadsR, ganadosR, projR, cobrosR] = await Promise.all([
+  const [balance, recur, clientsR, leadsR, ganadosR, projR, cobrosR] = await Promise.all([
     getBalance(),
     getMRR(),
     supabase.from("clients").select("id", { count: "exact", head: true }),
@@ -37,7 +37,7 @@ export async function getKpis(): Promise<Kpis> {
     leadsActivos: leadsR.count ?? 0,
     proyectosActivos: projR.count ?? 0,
     conversion: total > 0 ? Math.round((ganados / total) * 100) : 0,
-    mrr,
+    mrr: recur.mrr,
   };
 }
 
@@ -94,7 +94,7 @@ export async function getRuleInsights(): Promise<Insight[]> {
   }
 
   // MRR
-  const mrr = await getMRR();
+  const { mrr } = await getMRR();
   if (mrr > 0) insights.push({ icon: "money", texto: `Tu ingreso recurrente mensual (MRR) es de RD$ ${mrr.toLocaleString("es-DO")}.` });
 
   return insights;

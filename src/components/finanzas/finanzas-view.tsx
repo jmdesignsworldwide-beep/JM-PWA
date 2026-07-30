@@ -21,14 +21,14 @@ import { cn } from "@/lib/utils";
 type Opt = { id: string; nombre: string };
 type Bucket = { DOP: number; USD: number };
 type Income = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; brand_id: string | null; project_id: string | null; client_id: string | null; comprobante_url: string | null; es_personal: boolean; order_payment_id: string | null; order_id?: string | null };
-type Expense = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; brand_id: string | null; project_id: string | null; comercio: string | null; itbis: number | null; metodo_pago: string | null; factura_url: string | null; es_personal: boolean };
+type Expense = { id: string; monto: number; moneda: string; fecha: string; categoria: string | null; descripcion: string | null; brand_id: string | null; project_id: string | null; comercio: string | null; itbis: number | null; metodo_pago: string | null; factura_url: string | null; es_personal: boolean; lineas_json?: unknown };
 type Margin = ProjectMargin;
-type Plan = { id: string; client_id: string; tipo: string | null; monto: number; moneda: string; frecuencia: string | null; proxima_factura: string | null; activo: boolean };
+type Plan = { id: string; client_id: string | null; clase: string; es_personal: boolean; categoria: string | null; concepto: string | null; tipo: string | null; monto: number; moneda: string; frecuencia: string | null; proxima_factura: string | null; activo: boolean };
 
 type Scope = "todo" | "negocio" | "personal";
 
 export function FinanzasView({
-  margins, incomes, expenses, plans, mrr,
+  margins, incomes, expenses, plans, mrr, mreGasto = 0,
   categoriasIngreso, categoriasGasto, categoriasGastoPersonal = [], clients, projects, brands, clientMap,
 }: {
   margins: Margin[];
@@ -36,6 +36,7 @@ export function FinanzasView({
   expenses: Expense[];
   plans: Plan[];
   mrr: number;
+  mreGasto?: number;
   categoriasIngreso: string[];
   categoriasGasto: string[];
   categoriasGastoPersonal?: string[];
@@ -254,7 +255,8 @@ export function FinanzasView({
       )}
 
       {tab === "recurrentes" && (
-        <RecurringManager plans={plans} mrr={mrr} clients={clients} clientMap={clientMap} />
+        <RecurringManager plans={plans} mrr={mrr} mreGasto={mreGasto} clients={clients} clientMap={clientMap}
+          brands={brands} categoriasGasto={categoriasGasto} categoriasGastoPersonal={categoriasGastoPersonal} />
       )}
 
       {/* Modal drill-down: lista que abre el detalle */}
