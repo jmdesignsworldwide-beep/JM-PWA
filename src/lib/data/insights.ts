@@ -14,6 +14,50 @@ export type Kpis = {
   mrr: number;
 };
 
+const curM = (m: string | null) => (m === "USD" ? "USD" : "DOP") as "DOP" | "USD";
+const equivMensual = (monto: number, f: string | null) =>
+  f === "anual" ? monto / 12 : f === "trimestral" ? monto / 3 : f === "quincenal" ? monto * 2 : monto;
+
+export type DashboardKpis = {
+  ingresado: { DOP: number; USD: number };
+  gastado: { DOP: number; USD: number };
+  porCobrar: number;
+  mrr: number;
+};
+
+/**
+ * KPIs de dinero del Dashboard, filtrables por marca (brand_id) o Personal.
+ *   · marca vacía   → todo
+ *   · brandId       → solo esa marca
+ *   · "personal"    → solo movimientos personales (por cobrar/MRR son negocio → 0)
+ */
+export async function getDashboardKpis(brandId: string | null, personal: boolean): Promise<DashboardKpis> {
+  const supabase = await createClient();
+  const [inc, exp, cob, plans] = await Promise.all([
+    supabase.from("incomes").select("monto, moneda, brand_id, es_personal"),
+    supabase.from("expenses").select("monto, moneda, brand_id, es_personal"),
+    supabase.from("calendar_events").select("monto, brand_id").eq("tipo", "cobro").eq("completado", false),
+    supabase.from("recurring_plans").select("monto, moneda, brand_id, frecuencia, activo, clase, es_personal"),
+  ]);
+  const match = (b: string | null, esP: boolean) => personal ? esP : (brandId ? b === brandId : true);
+
+  const ingresado = { DOP: 0, USD: 0 }, gastado = { DOP: 0, USD: 0 };
+  for (const r of (inc.data ?? []) as { monto: number; moneda: string | null; brand_id: string | null; es_personal: boolean }[])
+    if (match(r.brand_id, r.es_personal)) ingresado[curM(r.moneda)] += Number(r.monto);
+  for (const r of (exp.data ?? []) as { monto: number; moneda: string | null; brand_id: string | null; es_personal: boolean }[])
+    if (match(r.brand_id, r.es_personal)) gastado[curM(r.moneda)] += Number(r.monto);
+
+  let porCobrar = 0;
+  if (!personal) for (const r of (cob.data ?? []) as { monto: number | null; brand_id: string | null }[])
+    if (brandId ? r.brand_id === brandId : true) porCobrar += Number(r.monto ?? 0);
+
+  let mrr = 0;
+  for (const p of (plans.data ?? []) as { monto: number; moneda: string | null; brand_id: string | null; frecuencia: string | null; activo: boolean; clase: string; es_personal: boolean }[])
+    if (p.activo && p.clase !== "gasto" && curM(p.moneda) === "DOP" && match(p.brand_id, p.es_personal)) mrr += equivMensual(Number(p.monto), p.frecuencia);
+
+  return { ingresado, gastado, porCobrar, mrr };
+}
+
 export async function getKpis(): Promise<Kpis> {
   const supabase = await createClient();
   const [balance, recur, clientsR, leadsR, ganadosR, projR, cobrosR] = await Promise.all([
