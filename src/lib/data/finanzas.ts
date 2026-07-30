@@ -190,14 +190,24 @@ export async function getRecurringPlans(): Promise<RecurringPlan[]> {
   return (data ?? []) as RecurringPlan[];
 }
 
-/** MRR: ingreso recurrente mensual equivalente (DOP), planes activos. */
+/** Equivalente mensual (DOP) de un plan según su frecuencia. */
+function mensualEquiv(monto: number, frecuencia: string | null): number {
+  if (frecuencia === "anual") return monto / 12;
+  if (frecuencia === "trimestral") return monto / 3;
+  if (frecuencia === "quincenal") return monto * 2;
+  return monto;
+}
+
+/**
+ * MRR (ingreso recurrente mensual, DOP) y su espejo de gastos recurrentes.
+ * Solo planes activos en DOP; separa por clase (ingreso vs gasto).
+ */
 export async function getMRR() {
   const plans = await getRecurringPlans();
-  let mrr = 0;
+  let mrr = 0, mreGasto = 0;
   for (const p of plans.filter((x) => x.activo && cur(x.moneda) === "DOP")) {
-    const f = p.frecuencia;
-    const m = Number(p.monto);
-    mrr += f === "anual" ? m / 12 : f === "trimestral" ? m / 3 : m;
+    const eq = mensualEquiv(Number(p.monto), p.frecuencia);
+    if (p.clase === "gasto") mreGasto += eq; else mrr += eq;
   }
-  return mrr;
+  return { mrr, mreGasto };
 }

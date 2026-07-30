@@ -185,6 +185,8 @@ export function AddExpenseDialog({
         metodo_pago: per ? null : t(form.metodo_pago),
         es_personal: form.es_personal,
         factura_url: per ? null : factura_url,
+        // Desglose línea por línea del escáner (para ver el detalle luego).
+        lineas_json: !per && lineas.length > 0 ? lineas : null,
       });
       if (res?.error) { setError(res.error); return; }
       reset();

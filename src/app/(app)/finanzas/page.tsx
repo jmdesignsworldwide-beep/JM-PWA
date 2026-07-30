@@ -11,7 +11,7 @@ export const metadata = { title: "Finanzas" };
 export default async function FinanzasPage() {
   const supabase = await createClient();
   const [
-    movimientos, margins, plans, mrr, clients, brands,
+    movimientos, margins, plans, recur, clients, brands,
     cats, projs,
   ] = await Promise.all([
     getMovimientos(), getProjectMargins(), getRecurringPlans(), getMRR(), getClients(), getBrands(),
@@ -33,7 +33,7 @@ export default async function FinanzasPage() {
       <PageHeader title="Finanzas" subtitle="Tu dinero de verdad: ingresos, gastos, margen real y recurrentes." />
       <FinanzasView
         margins={margins}
-        incomes={incomes} expenses={expenses} plans={plans} mrr={mrr}
+        incomes={incomes} expenses={expenses} plans={plans} mrr={recur.mrr} mreGasto={recur.mreGasto}
         categoriasIngreso={categoriasIngreso} categoriasGasto={categoriasGasto} categoriasGastoPersonal={categoriasGastoPersonal}
         clients={clientOpts} projects={projects} brands={brands}
         clientMap={clientMap}
