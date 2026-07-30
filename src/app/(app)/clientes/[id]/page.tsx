@@ -7,7 +7,10 @@ import {
   getClientStats,
   getClientActivity,
   getClientFiles,
+  getContactBank,
 } from "@/lib/data/clients";
+import { getPinStatus } from "@/app/(app)/sistemas/actions";
+import { BankCard } from "@/components/clientes/bank-card";
 import { ClientDetail } from "@/components/clientes/client-detail";
 import { ProspectoDetail } from "@/components/clientes/prospecto-detail";
 import { PersonalDetail } from "@/components/clientes/personal-detail";
@@ -39,6 +42,14 @@ export default async function ClientePage({
   const brands = await getBrands();
   const nombreCompleto = `${client.nombre} ${client.apellido ?? ""}`.trim();
 
+  // Datos bancarios (protegidos por PIN) — solo el owner los ve.
+  const [bank, pinStatus] = isOwner
+    ? await Promise.all([getContactBank(id), getPinStatus()])
+    : [null, { hasPin: false }];
+  const bankCard = isOwner ? (
+    <BankCard clientId={id} bank={bank} hasPin={Boolean("hasPin" in pinStatus && pinStatus.hasPin)} titularSugerido={nombreCompleto} />
+  ) : null;
+
   // ── PERSONAL: contacto no de venta (familia, proveedor). Ficha ligera. ──
   if (client.es_personal) {
     return (
@@ -61,6 +72,7 @@ export default async function ClientePage({
           </div>
         </div>
         <PersonalDetail client={client} brands={brands} />
+        {bankCard}
       </div>
     );
   }
@@ -99,6 +111,7 @@ export default async function ClientePage({
         </div>
 
         <ProspectoDetail client={client} brands={brands} />
+        {bankCard}
       </div>
     );
   }
@@ -143,6 +156,7 @@ export default async function ClientePage({
       </div>
 
       <ClientDetail client={client} brands={brands} stats={stats} activity={activity} files={files} />
+      {bankCard}
     </div>
   );
 }
