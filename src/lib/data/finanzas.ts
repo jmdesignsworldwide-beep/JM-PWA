@@ -27,14 +27,26 @@ export async function getExpenses(limit = 100): Promise<Expense[]> {
  * categorías) se hace en el cliente para que los filtros — Negocio/Personal,
  * rango de fechas y marca — recalculen todo al instante.
  */
-export async function getMovimientos(limit = 2000): Promise<{ incomes: Income[]; expenses: Expense[] }> {
+export type IncomeMov = Income & { order_id: string | null };
+
+export async function getMovimientos(limit = 2000): Promise<{ incomes: IncomeMov[]; expenses: Expense[] }> {
   const supabase = await createClient();
   const [inc, exp] = await Promise.all([
     supabase.from("incomes").select("*").order("fecha", { ascending: false }).limit(limit),
     supabase.from("expenses").select("*").order("fecha", { ascending: false }).limit(limit),
   ]);
+  const incomes = (inc.data ?? []) as Income[];
+
+  // Resolver el pedido de cada ingreso automático (para el botón "Ver pago").
+  const payIds = [...new Set(incomes.map((i) => i.order_payment_id).filter((x): x is string => !!x))];
+  const payMap = new Map<string, string>();
+  if (payIds.length) {
+    const { data: pays } = await supabase.from("order_payments").select("id, order_id").in("id", payIds);
+    for (const p of (pays ?? []) as { id: string; order_id: string }[]) payMap.set(p.id, p.order_id);
+  }
+
   return {
-    incomes: (inc.data ?? []) as Income[],
+    incomes: incomes.map((i) => ({ ...i, order_id: i.order_payment_id ? payMap.get(i.order_payment_id) ?? null : null })),
     expenses: (exp.data ?? []) as Expense[],
   };
 }

@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Pencil, Trash2, Building2, User, ImageOff, FileText } from "lucide-react";
+import Link from "next/link";
+import { Loader2, Pencil, Trash2, Building2, User, ImageOff, FileText, ExternalLink } from "lucide-react";
 import { updateMovimiento, deleteMovimiento, getReceiptUrl } from "@/app/(app)/finanzas/actions";
 import { money, fechaCorta } from "@/lib/format";
 import { Dialog } from "@/components/ui/dialog";
@@ -37,6 +38,8 @@ export type Mov = {
   comprobante_url?: string | null;
   /** Ingreso automático ligado a un pago de cliente: no editable a mano. */
   order_payment_id?: string | null;
+  /** Pedido del que salió el pago (para el botón "Ver pago"). */
+  order_id?: string | null;
 };
 
 export function TransactionDetail({
@@ -190,11 +193,12 @@ export function TransactionDetail({
 
           {error && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
-          {/* Acciones — bloqueadas si es un ingreso automático desde un pago */}
+          {/* Acciones — si es un ingreso automático desde un pago: botón "Ver pago" */}
           {autoPago ? (
-            <div className="rounded-lg border border-electric/30 bg-electric/10 p-3 text-sm text-muted-foreground">
-              <p className="flex items-center gap-1.5 font-medium text-electric"><Building2 className="size-4" /> Ingreso automático desde un pago de cliente</p>
-              <p className="mt-1">Se cuenta una sola vez. Para cambiarlo o borrarlo, edita el pago en el <strong>Pedido → Pagos</strong> (o en Cobros). Aquí no se edita para no duplicar dinero.</p>
+            <div className="flex justify-end">
+              <Link href={mov.order_id ? `/pedidos/${mov.order_id}` : (mov.client_id ? `/cobros?cliente=${mov.client_id}` : "/cobros")}>
+                <Button type="button" variant="gradient"><ExternalLink className="size-4" /> Ver pago</Button>
+              </Link>
             </div>
           ) : confirmDel ? (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3">
