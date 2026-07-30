@@ -3,11 +3,13 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Search, UserCheck, Target, User } from "lucide-react";
-import type { Client } from "@/lib/data/clients";
-import { INDUSTRIAS } from "@/lib/ventas";
+import { Search, UserCheck, Target, User, SlidersHorizontal, X } from "lucide-react";
+import type { Client, ContactAgg } from "@/lib/data/clients";
+import { INDUSTRIAS, CATEGORIAS_SERVICIO } from "@/lib/ventas";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { NewLeadDialog } from "@/components/leads/new-lead-dialog";
 import { SocialLinks } from "@/components/ui/social-links";
 import { EstadoSelect } from "@/components/clientes/estado-select";
@@ -40,33 +42,87 @@ function StatChip({ icon: Icon, label, value }: { icon: typeof UserCheck; label:
 
 type Brand = { id: string; nombre: string };
 
+const CAT_LABEL: Record<string, string> = Object.fromEntries(CATEGORIAS_SERVICIO.map((c) => [c.id, c.label]));
+
+/** Coincidencia por inicio de palabra (para la búsqueda de industria con lupita). */
+function industriaMatch(industrias: string[], term: string) {
+  const t = term.trim().toLowerCase();
+  if (!t) return true;
+  return industrias.some((ind) => {
+    const low = ind.toLowerCase();
+    return low.startsWith(t) || low.split(/[\s/]+/).some((w) => w.startsWith(t));
+  });
+}
+
 export function ClientsTable({
   clients,
   brands,
+  aggregates = {},
   initialEstado = "",
 }: {
   clients: Client[];
   brands: Brand[];
+  aggregates?: Record<string, ContactAgg>;
   initialEstado?: string;
 }) {
   const [q, setQ] = useState("");
-  const [fEstado, setFEstado] = useState(initialEstado); // "" | "lead" | "activo"
-  const [fIndustria, setFIndustria] = useState("");
-  const [fCategoria, setFCategoria] = useState("");
+  const [fEstado, setFEstado] = useState(initialEstado); // "" | "lead" | "activo" | "personal"
   const [fMarca, setFMarca] = useState("");
+  const [fCategoria, setFCategoria] = useState("");
+  const [fIndustria, setFIndustria] = useState("");
+  const [sheet, setSheet] = useState(false);
 
-  const brandMap = useMemo(
-    () => Object.fromEntries(brands.map((b) => [b.id, b.nombre])),
-    [brands],
-  );
-  // Lista completa de industrias (siempre disponible para filtrar) + cualquier
-  // valor heredado en datos viejos que no esté en la lista canónica.
-  const industrias = useMemo(() => {
-    const extra = clients
-      .map((c) => c.industria)
-      .filter((i): i is string => !!i && !INDUSTRIAS.includes(i));
-    return [...INDUSTRIAS, ...new Set(extra)];
-  }, [clients]);
+  const brandMap = useMemo(() => Object.fromEntries(brands.map((b) => [b.id, b.nombre])), [brands]);
+
+  // Conjuntos EFECTIVOS por contacto: su marca/categoría/industria propias +
+  // las derivadas de sus pedidos (multi-marca). Un cliente aparece bajo cualquier
+  // marca/categoría con la que haya trabajado.
+  const eff = useMemo(() => {
+    const m = new Map<string, { brands: Set<string>; cats: Set<string>; inds: string[] }>();
+    for (const c of clients) {
+      const a = aggregates[c.id];
+      const bs = new Set<string>(a?.brandIds ?? []);
+      if (c.brand_id) bs.add(c.brand_id);
+      const cs = new Set<string>(a?.categorias ?? []);
+      if (c.categoria_servicio) cs.add(c.categoria_servicio);
+      const is = new Set<string>(a?.industrias ?? []);
+      if (c.industria) is.add(c.industria);
+      m.set(c.id, { brands: bs, cats: cs, inds: [...is] });
+    }
+    return m;
+  }, [clients, aggregates]);
+
+  // Contactos de negocio (excluye Personal) que pasan estado + búsqueda: base
+  // para derivar qué categorías/industrias existen bajo la marca elegida.
+  const negocio = useMemo(() => clients.filter((c) => !c.es_personal), [clients]);
+
+  // Cascada: categorías disponibles según la marca elegida (no mostrar lo que no aplica).
+  const categoriaOptions = useMemo(() => {
+    const present = new Set<string>();
+    for (const c of negocio) {
+      const e = eff.get(c.id)!;
+      if (fMarca && !e.brands.has(fMarca)) continue;
+      e.cats.forEach((x) => present.add(x));
+    }
+    const canon = CATEGORIAS_SERVICIO.filter((c) => present.has(c.id)).map((c) => c.id);
+    const extra = [...present].filter((x) => !CAT_LABEL[x]);
+    return [...canon, ...extra];
+  }, [negocio, eff, fMarca]);
+
+  // Cascada: industrias disponibles según marca (+ categoría) — sugerencias de la lupita.
+  const industriaOptions = useMemo(() => {
+    const present = new Set<string>();
+    for (const c of negocio) {
+      const e = eff.get(c.id)!;
+      if (fMarca && !e.brands.has(fMarca)) continue;
+      if (fCategoria && !e.cats.has(fCategoria)) continue;
+      e.inds.forEach((x) => present.add(x));
+    }
+    // Orden canónico primero, luego cualquier valor heredado.
+    const canon = INDUSTRIAS.filter((i) => present.has(i));
+    const extra = [...present].filter((i) => !INDUSTRIAS.includes(i));
+    return [...canon, ...extra];
+  }, [negocio, eff, fCategoria, fMarca]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -76,25 +132,41 @@ export function ClientsTable({
       else if (c.es_personal) return false;
       if (fEstado === "lead" && !c.es_lead) return false;
       if (fEstado === "activo" && c.es_lead) return false;
-      if (fIndustria && c.industria !== fIndustria) return false;
-      if (fCategoria && c.categoria_servicio !== fCategoria) return false;
-      if (fMarca && c.brand_id !== fMarca) return false;
+      const e = eff.get(c.id)!;
+      if (fMarca && !e.brands.has(fMarca)) return false;
+      if (fCategoria && !e.cats.has(fCategoria)) return false;
+      if (!industriaMatch(e.inds, fIndustria)) return false;
       if (term) {
         const hay = `${c.nombre} ${c.apellido ?? ""} ${c.correo ?? ""} ${c.telefono ?? ""} ${c.whatsapp ?? ""}`.toLowerCase();
         if (!hay.includes(term)) return false;
       }
       return true;
     });
-  }, [clients, q, fEstado, fIndustria, fCategoria, fMarca]);
+  }, [clients, eff, q, fEstado, fMarca, fCategoria, fIndustria]);
 
   const totales = useMemo(() => {
-    const negocio = clients.filter((c) => !c.es_personal);
+    const neg = clients.filter((c) => !c.es_personal);
     return {
-      activos: negocio.filter((c) => !c.es_lead).length,
-      leads: negocio.filter((c) => c.es_lead).length,
+      activos: neg.filter((c) => !c.es_lead).length,
+      leads: neg.filter((c) => c.es_lead).length,
       personal: clients.filter((c) => c.es_personal).length,
     };
   }, [clients]);
+
+  // Al cambiar la marca, se limpian categoría e industria (cascada).
+  function cambiarMarca(v: string) { setFMarca(v); setFCategoria(""); setFIndustria(""); }
+
+  const activos = [fMarca, fCategoria, fIndustria.trim(), fEstado].filter(Boolean).length;
+  function limpiar() { setFMarca(""); setFCategoria(""); setFIndustria(""); setFEstado(""); }
+
+  const controls = (
+    <FilterControls
+      brands={brands} fEstado={fEstado} setFEstado={setFEstado}
+      fMarca={fMarca} onMarca={cambiarMarca}
+      fCategoria={fCategoria} setFCategoria={setFCategoria} categoriaOptions={categoriaOptions}
+      fIndustria={fIndustria} setFIndustria={setFIndustria} industriaOptions={industriaOptions}
+    />
+  );
 
   return (
     <div className="space-y-4">
@@ -105,8 +177,9 @@ export function ClientsTable({
         <StatChip icon={User} label="Personal" value={totales.personal} />
       </div>
 
+      {/* Buscador + acciones (siempre visibles). */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[220px] flex-1">
+        <div className="relative min-w-[200px] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={q}
@@ -115,33 +188,27 @@ export function ClientsTable({
             className="h-9 w-full rounded-lg border border-border bg-background/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
-        <Select value={fEstado} onChange={(e) => setFEstado(e.target.value)} className="h-9 w-auto">
-          <option value="">Todos</option>
-          <option value="lead">Prospectos</option>
-          <option value="activo">Clientes activos</option>
-          <option value="personal">Personal</option>
-        </Select>
-        <Select value={fCategoria} onChange={(e) => setFCategoria(e.target.value)} className="h-9 w-auto">
-          <option value="">Toda categoría</option>
-          <option value="web">Web</option>
-          <option value="software">Software</option>
-          <option value="app">App</option>
-          <option value="distribution">JM Distribution</option>
-        </Select>
-        <Select value={fIndustria} onChange={(e) => setFIndustria(e.target.value)} className="h-9 w-auto">
-          <option value="">Toda industria</option>
-          {industrias.map((i) => (
-            <option key={i} value={i}>{i}</option>
-          ))}
-        </Select>
-        <Select value={fMarca} onChange={(e) => setFMarca(e.target.value)} className="h-9 w-auto">
-          <option value="">Todas las marcas</option>
-          {brands.map((b) => (
-            <option key={b.id} value={b.id}>{b.nombre}</option>
-          ))}
-        </Select>
+
+        {/* Móvil: botón de filtros (hoja). Escritorio: filtros en fila. */}
+        <Button variant="outline" size="sm" className="sm:hidden" onClick={() => setSheet(true)}>
+          <SlidersHorizontal className="size-4" /> Filtros
+          {activos > 0 && <span className="ml-1 flex size-5 items-center justify-center rounded-full bg-electric text-[11px] font-semibold text-white">{activos}</span>}
+        </Button>
+        <div className="hidden flex-wrap items-center gap-2 sm:flex">{controls}</div>
+
         <div className="ml-auto"><NewLeadDialog brands={brands} label="Nuevo registro" /></div>
       </div>
+
+      {/* Chips de filtros activos (móvil, para saber qué está aplicado). */}
+      {activos > 0 && (
+        <div className="flex flex-wrap items-center gap-2 sm:hidden">
+          {fMarca && <FilterChip label={brandMap[fMarca] ?? "Marca"} onClear={() => cambiarMarca("")} />}
+          {fCategoria && <FilterChip label={CAT_LABEL[fCategoria] ?? fCategoria} onClear={() => setFCategoria("")} />}
+          {fIndustria.trim() && <FilterChip label={fIndustria.trim()} onClear={() => setFIndustria("")} />}
+          {fEstado && <FilterChip label={fEstado === "lead" ? "Prospectos" : fEstado === "activo" ? "Activos" : "Personal"} onClear={() => setFEstado("")} />}
+          <button onClick={limpiar} className="text-xs text-muted-foreground underline">Limpiar</button>
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center text-sm text-muted-foreground">
@@ -167,7 +234,7 @@ export function ClientsTable({
                     )}
                   </div>
                   <p className="mt-1 truncate text-xs text-muted-foreground">
-                    {[c.categoria_servicio, c.industria, c.brand_id ? brandMap[c.brand_id] : null].filter(Boolean).join(" · ") || "Sin datos"}
+                    {marcasLabel(eff.get(c.id), brandMap, c.categoria_servicio, c.industria)}
                   </p>
                   <p className="mt-1 truncate text-sm text-muted-foreground">{c.whatsapp ?? c.telefono ?? c.correo ?? "Sin contacto"}</p>
                   <SocialLinks instagram={c.instagram} facebook={c.facebook} whatsapp={c.whatsapp ?? c.telefono} waText={`Hola ${c.nombre}!`} size="sm" className="mt-2" />
@@ -186,12 +253,14 @@ export function ClientsTable({
                 <th className="px-4 py-3 font-medium">Estado</th>
                 <th className="px-4 py-3 font-medium">Categoría</th>
                 <th className="px-4 py-3 font-medium">Industria</th>
-                <th className="px-4 py-3 font-medium">Marca</th>
+                <th className="px-4 py-3 font-medium">Marcas</th>
                 <th className="px-4 py-3 font-medium">Contacto</th>
               </tr>
             </thead>
             <motion.tbody variants={containerVariants} initial="hidden" animate="show">
-              {filtered.map((c) => (
+              {filtered.map((c) => {
+                const e = eff.get(c.id);
+                return (
                 <motion.tr
                   key={c.id}
                   variants={itemVariants}
@@ -208,9 +277,9 @@ export function ClientsTable({
                       ? <Badge dot="var(--electric)">Personal</Badge>
                       : <EstadoSelect clientId={c.id} esLead={c.es_lead} />}
                   </td>
-                  <td className="px-4 py-3 capitalize text-muted-foreground">{c.categoria_servicio ?? "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{catList(e, c.categoria_servicio)}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.industria ?? "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.brand_id ? brandMap[c.brand_id] ?? "—" : "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{brandsList(e, brandMap, c.brand_id)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <span className="text-muted-foreground">{c.whatsapp ?? c.telefono ?? c.correo ?? "—"}</span>
@@ -218,12 +287,112 @@ export function ClientsTable({
                     </div>
                   </td>
                 </motion.tr>
-              ))}
+              ); })}
             </motion.tbody>
           </table>
         </div>
         </>
       )}
+
+      {/* Móvil: hoja de filtros (bottom sheet con safe-area, vía Dialog). */}
+      {sheet && (
+        <Dialog open onClose={() => setSheet(false)} title="Filtros" description="Marca → categoría → industria → estado." className="max-w-md">
+          <div className="space-y-4">
+            {controls}
+            <div className="flex justify-between gap-2 pt-1">
+              <Button variant="ghost" onClick={limpiar} disabled={activos === 0}>Limpiar</Button>
+              <Button variant="gradient" onClick={() => setSheet(false)}>Ver {filtered.length}</Button>
+            </div>
+          </div>
+        </Dialog>
+      )}
     </div>
   );
+}
+
+function FilterChip({ label, onClear }: { label: string; onClear: () => void }) {
+  return (
+    <span className="flex items-center gap-1 rounded-full border border-electric/40 bg-electric/10 px-2.5 py-1 text-xs">
+      {label}
+      <button onClick={onClear} className="text-muted-foreground hover:text-foreground"><X className="size-3" /></button>
+    </span>
+  );
+}
+
+/** Controles de filtro en cascada, reusados en la fila (desktop) y la hoja (móvil). */
+function FilterControls({
+  brands, fEstado, setFEstado, fMarca, onMarca,
+  fCategoria, setFCategoria, categoriaOptions,
+  fIndustria, setFIndustria, industriaOptions,
+}: {
+  brands: Brand[];
+  fEstado: string; setFEstado: (v: string) => void;
+  fMarca: string; onMarca: (v: string) => void;
+  fCategoria: string; setFCategoria: (v: string) => void; categoriaOptions: string[];
+  fIndustria: string; setFIndustria: (v: string) => void; industriaOptions: string[];
+}) {
+  return (
+    <>
+      {/* 1) Marca (primero) */}
+      <Select aria-label="Marca" value={fMarca} onChange={(e) => onMarca(e.target.value)} className="h-9 w-full sm:w-auto">
+        <option value="">Todas las marcas</option>
+        {brands.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+      </Select>
+
+      {/* 2) Categoría (según la marca) */}
+      <Select aria-label="Categoría" value={fCategoria} onChange={(e) => setFCategoria(e.target.value)} className="h-9 w-full sm:w-auto"
+        disabled={categoriaOptions.length === 0}>
+        <option value="">Toda categoría</option>
+        {categoriaOptions.map((id) => <option key={id} value={id}>{CAT_LABEL[id] ?? id}</option>)}
+      </Select>
+
+      {/* 3) Estado */}
+      <Select aria-label="Estado" value={fEstado} onChange={(e) => setFEstado(e.target.value)} className="h-9 w-full sm:w-auto">
+        <option value="">Todos</option>
+        <option value="lead">Prospectos</option>
+        <option value="activo">Clientes activos</option>
+        <option value="personal">Personal</option>
+      </Select>
+
+      {/* 4) Industria con búsqueda (lupita) */}
+      <div className="relative w-full sm:w-52">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          value={fIndustria}
+          onChange={(e) => setFIndustria(e.target.value)}
+          placeholder="Industria…"
+          list="industria-opts"
+          className="h-9 w-full rounded-lg border border-border bg-background/50 pl-9 pr-8 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+        {fIndustria && (
+          <button onClick={() => setFIndustria("")} aria-label="Limpiar industria"
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"><X className="size-3.5" /></button>
+        )}
+        <datalist id="industria-opts">
+          {industriaOptions.map((i) => <option key={i} value={i} />)}
+        </datalist>
+      </div>
+    </>
+  );
+}
+
+type Eff = { brands: Set<string>; cats: Set<string>; inds: string[] } | undefined;
+
+/** Etiqueta compacta (móvil): categorías + marcas + industria propia. */
+function marcasLabel(e: Eff, brandMap: Record<string, string>, catProp: string | null, indProp: string | null) {
+  const cats = e ? [...e.cats].map((x) => CAT_LABEL[x] ?? x) : (catProp ? [CAT_LABEL[catProp] ?? catProp] : []);
+  const marcas = e ? [...e.brands].map((id) => brandMap[id]).filter(Boolean) : [];
+  return [cats.join("/"), indProp, marcas.join(" · ")].filter(Boolean).join(" · ") || "Sin datos";
+}
+
+function catList(e: Eff, catProp: string | null) {
+  const cats = e ? [...e.cats] : (catProp ? [catProp] : []);
+  if (cats.length === 0) return "—";
+  return cats.map((x) => CAT_LABEL[x] ?? x).join(", ");
+}
+
+function brandsList(e: Eff, brandMap: Record<string, string>, brandProp: string | null) {
+  const ids = e && e.brands.size ? [...e.brands] : (brandProp ? [brandProp] : []);
+  if (ids.length === 0) return "—";
+  return ids.map((id) => brandMap[id]).filter(Boolean).join(", ") || "—";
 }
