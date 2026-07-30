@@ -431,6 +431,18 @@ export interface Tables {
     updated_at: string;
   };
 
+  debts: {
+    id: string;
+    client_id: string;
+    monto: number;
+    moneda: Moneda;
+    fecha: string;
+    concepto: string | null;
+    nota: string | null;
+    saldado: boolean;
+    created_by: string;
+  } & Timestamps;
+
   personal_todos: {
     id: string;
     texto: string;
