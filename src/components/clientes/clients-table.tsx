@@ -43,6 +43,16 @@ function StatChip({ icon: Icon, label, value }: { icon: typeof UserCheck; label:
 type Brand = { id: string; nombre: string };
 
 const CAT_LABEL: Record<string, string> = Object.fromEntries(CATEGORIAS_SERVICIO.map((c) => [c.id, c.label]));
+/** Etiqueta legible de una categoría (los 4 ids fijos → label; el resto tal cual). */
+const catLabel = (c: string) => CAT_LABEL[c] ?? c;
+const CANON_CATS: string[] = CATEGORIAS_SERVICIO.map((c) => c.id);
+/** Ordena categorías: primero las 4 canónicas presentes, luego el resto alfabético. */
+function orderCats(cats: string[]) {
+  const set = new Set(cats);
+  const canon = CANON_CATS.filter((c) => set.has(c));
+  const extra = cats.filter((c) => !CANON_CATS.includes(c)).sort((a, b) => a.localeCompare(b, "es"));
+  return [...canon, ...extra];
+}
 
 /** Coincidencia por inicio de palabra (para la búsqueda de industria con lupita). */
 function industriaMatch(industrias: string[], term: string) {
@@ -75,19 +85,20 @@ export function ClientsTable({
   const brandMap = useMemo(() => Object.fromEntries(brands.map((b) => [b.id, b.nombre])), [brands]);
 
   // Conjuntos EFECTIVOS por contacto: su marca/categoría/industria propias +
-  // las derivadas de sus pedidos (multi-marca). Un cliente aparece bajo cualquier
-  // marca/categoría con la que haya trabajado.
+  // las derivadas de sus pedidos (multi-marca). La categoría va ETIQUETADA por
+  // marca (pares) para que la cascada solo ofrezca lo que esa marca usa.
   const eff = useMemo(() => {
-    const m = new Map<string, { brands: Set<string>; cats: Set<string>; inds: string[] }>();
+    const m = new Map<string, { brands: Set<string>; pairs: { brand: string | null; cat: string }[]; cats: Set<string>; inds: string[] }>();
     for (const c of clients) {
       const a = aggregates[c.id];
       const bs = new Set<string>(a?.brandIds ?? []);
       if (c.brand_id) bs.add(c.brand_id);
-      const cs = new Set<string>(a?.categorias ?? []);
-      if (c.categoria_servicio) cs.add(c.categoria_servicio);
+      const pairs = [...(a?.pairs ?? [])];
+      // Categoría propia del contacto (útil para prospectos sin pedidos aún).
+      if (c.categoria_servicio) pairs.push({ brand: c.brand_id ?? null, cat: c.categoria_servicio });
       const is = new Set<string>(a?.industrias ?? []);
       if (c.industria) is.add(c.industria);
-      m.set(c.id, { brands: bs, cats: cs, inds: [...is] });
+      m.set(c.id, { brands: bs, pairs, cats: new Set(pairs.map((p) => p.cat)), inds: [...is] });
     }
     return m;
   }, [clients, aggregates]);
@@ -96,18 +107,20 @@ export function ClientsTable({
   // para derivar qué categorías/industrias existen bajo la marca elegida.
   const negocio = useMemo(() => clients.filter((c) => !c.es_personal), [clients]);
 
-  // Cascada: categorías disponibles según la marca elegida (no mostrar lo que no aplica).
+  // Cascada: categorías disponibles según la marca elegida (solo las que esa
+  // marca realmente usa; no mostrar lo que no aplica).
   const categoriaOptions = useMemo(() => {
     const present = new Set<string>();
     for (const c of negocio) {
       const e = eff.get(c.id)!;
-      if (fMarca && !e.brands.has(fMarca)) continue;
-      e.cats.forEach((x) => present.add(x));
+      for (const p of e.pairs) if (!fMarca || p.brand === fMarca) present.add(p.cat);
     }
-    const canon = CATEGORIAS_SERVICIO.filter((c) => present.has(c.id)).map((c) => c.id);
-    const extra = [...present].filter((x) => !CAT_LABEL[x]);
-    return [...canon, ...extra];
+    return orderCats([...present]);
   }, [negocio, eff, fMarca]);
+
+  // ¿El contacto tiene un pedido con esta categoría bajo la marca elegida?
+  const matchCat = (e: { pairs: { brand: string | null; cat: string }[] }, marca: string, cat: string) =>
+    e.pairs.some((p) => p.cat === cat && (!marca || p.brand === marca));
 
   // Cascada: industrias disponibles según marca (+ categoría) — sugerencias de la lupita.
   const industriaOptions = useMemo(() => {
@@ -115,7 +128,7 @@ export function ClientsTable({
     for (const c of negocio) {
       const e = eff.get(c.id)!;
       if (fMarca && !e.brands.has(fMarca)) continue;
-      if (fCategoria && !e.cats.has(fCategoria)) continue;
+      if (fCategoria && !matchCat(e, fMarca, fCategoria)) continue;
       e.inds.forEach((x) => present.add(x));
     }
     // Orden canónico primero, luego cualquier valor heredado.
@@ -134,7 +147,7 @@ export function ClientsTable({
       if (fEstado === "activo" && c.es_lead) return false;
       const e = eff.get(c.id)!;
       if (fMarca && !e.brands.has(fMarca)) return false;
-      if (fCategoria && !e.cats.has(fCategoria)) return false;
+      if (fCategoria && !matchCat(e, fMarca, fCategoria)) return false;
       if (!industriaMatch(e.inds, fIndustria)) return false;
       if (term) {
         const hay = `${c.nombre} ${c.apellido ?? ""} ${c.correo ?? ""} ${c.telefono ?? ""} ${c.whatsapp ?? ""}`.toLowerCase();
@@ -376,11 +389,11 @@ function FilterControls({
   );
 }
 
-type Eff = { brands: Set<string>; cats: Set<string>; inds: string[] } | undefined;
+type Eff = { brands: Set<string>; pairs: { brand: string | null; cat: string }[]; cats: Set<string>; inds: string[] } | undefined;
 
 /** Etiqueta compacta (móvil): categorías + marcas + industria propia. */
 function marcasLabel(e: Eff, brandMap: Record<string, string>, catProp: string | null, indProp: string | null) {
-  const cats = e ? [...e.cats].map((x) => CAT_LABEL[x] ?? x) : (catProp ? [CAT_LABEL[catProp] ?? catProp] : []);
+  const cats = e ? [...e.cats].map((x) => catLabel(x)) : (catProp ? [catLabel(catProp)] : []);
   const marcas = e ? [...e.brands].map((id) => brandMap[id]).filter(Boolean) : [];
   return [cats.join("/"), indProp, marcas.join(" · ")].filter(Boolean).join(" · ") || "Sin datos";
 }
@@ -388,7 +401,7 @@ function marcasLabel(e: Eff, brandMap: Record<string, string>, catProp: string |
 function catList(e: Eff, catProp: string | null) {
   const cats = e ? [...e.cats] : (catProp ? [catProp] : []);
   if (cats.length === 0) return "—";
-  return cats.map((x) => CAT_LABEL[x] ?? x).join(", ");
+  return cats.map((x) => catLabel(x)).join(", ");
 }
 
 function brandsList(e: Eff, brandMap: Record<string, string>, brandProp: string | null) {
