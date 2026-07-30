@@ -456,6 +456,17 @@ export interface Tables {
     created_by: string;
   } & Timestamps;
 
+  contact_bank: {
+    id: string;
+    client_id: string;
+    banco: string | null;
+    tipo_cuenta: "ahorros" | "corriente" | null;
+    titular: string | null;
+    cedula_rnc: string | null;
+    numero_ultimos4: string | null;
+    created_by: string;
+  } & Timestamps;
+
   personal_todos: {
     id: string;
     texto: string;

@@ -3,6 +3,22 @@ import { conceptoDePedido, itemsDePedido } from "@/lib/pedido-concepto";
 import type { Row } from "@/lib/database.types";
 
 export type Client = Row<"clients">;
+export type ContactBank = Row<"contact_bank">;
+
+/**
+ * Datos bancarios NO sensibles del contacto (banco, titular, tipo, últimos 4).
+ * El número completo NUNCA se lee aquí: se cifra en la BD y solo se revela con
+ * el PIN vía RPC (revealBank). Devuelve null si el contacto no tiene datos.
+ */
+export async function getContactBank(clientId: string): Promise<ContactBank | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("contact_bank")
+    .select("id, client_id, banco, tipo_cuenta, titular, cedula_rnc, numero_ultimos4, created_by, created_at, updated_at")
+    .eq("client_id", clientId)
+    .maybeSingle();
+  return (data as ContactBank | null) ?? null;
+}
 
 /** Leads (es_lead = true) para el pipeline. */
 export async function getLeads(): Promise<Client[]> {
