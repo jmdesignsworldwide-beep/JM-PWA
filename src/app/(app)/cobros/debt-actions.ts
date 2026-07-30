@@ -45,6 +45,60 @@ export async function addDebt(input: NewDebtInput) {
   return { ok: true };
 }
 
+export type NewDebtPaymentInput = {
+  debt_id: string;
+  monto: number;
+  moneda: "DOP" | "USD";
+  fecha: string;
+  metodo?: string | null;
+  nota?: string | null;
+  comprobante_url?: string | null;
+};
+
+/**
+ * Registra un abono a una deuda. El trigger lo refleja como GASTO en Finanzas
+ * (fuente única, sin re-teclear). Si el abono cubre el saldo, marca la deuda
+ * como saldada automáticamente.
+ */
+export async function addDebtPayment(input: NewDebtPaymentInput) {
+  const supabase = await createClient();
+  if (!input.monto || input.monto <= 0) return { error: "Escribe un monto mayor que cero." };
+
+  const { error } = await supabase.from("debt_payments").insert({
+    debt_id: input.debt_id,
+    monto: input.monto,
+    moneda: input.moneda,
+    fecha: input.fecha,
+    metodo: input.metodo?.trim() || null,
+    nota: input.nota?.trim() || null,
+    comprobante_url: input.comprobante_url || null,
+  } as never);
+  if (error) return { error: error.message };
+
+  // ¿Ya se cubrió el saldo? Entonces la deuda queda saldada.
+  const { data: deuda } = await supabase.from("debts").select("monto, saldado").eq("id", input.debt_id).single();
+  if (deuda && !(deuda as { saldado: boolean }).saldado) {
+    const { data: pagos } = await supabase.from("debt_payments").select("monto").eq("debt_id", input.debt_id);
+    const total = (pagos ?? []).reduce((s, p) => s + (Number((p as { monto: number }).monto) || 0), 0);
+    if (total >= Number((deuda as { monto: number }).monto)) {
+      await supabase.from("debts").update({ saldado: true } as never).eq("id", input.debt_id);
+    }
+  }
+
+  revalidatePath("/cobros");
+  revalidatePath("/finanzas");
+  return { ok: true };
+}
+
+export async function deleteDebtPayment(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("debt_payments").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/cobros");
+  revalidatePath("/finanzas");
+  return { ok: true };
+}
+
 export async function toggleDebtSaldado(id: string, saldado: boolean) {
   const supabase = await createClient();
   const { error } = await supabase.from("debts").update({ saldado } as never).eq("id", id);

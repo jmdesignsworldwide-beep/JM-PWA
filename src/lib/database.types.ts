@@ -369,6 +369,7 @@ export interface Tables {
     itbis: number | null;
     metodo_pago: string | null;
     es_personal: boolean;
+    debt_payment_id: string | null;
     created_by: string | null;
   } & Timestamps;
 
@@ -440,6 +441,18 @@ export interface Tables {
     concepto: string | null;
     nota: string | null;
     saldado: boolean;
+    created_by: string;
+  } & Timestamps;
+
+  debt_payments: {
+    id: string;
+    debt_id: string;
+    monto: number;
+    moneda: Moneda;
+    fecha: string;
+    metodo: string | null;
+    nota: string | null;
+    comprobante_url: string | null;
     created_by: string;
   } & Timestamps;
 
