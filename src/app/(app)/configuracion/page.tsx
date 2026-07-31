@@ -9,7 +9,6 @@ import { UsuariosSettings } from "@/components/settings/usuarios-settings";
 import { VisibilitySettings } from "@/components/settings/visibility-settings";
 import { BrandsSettings } from "@/components/settings/brands-settings";
 import { CategoriesSettings } from "@/components/settings/categories-settings";
-import { TemplatesSettings } from "@/components/settings/templates-settings";
 import { ThemeSettings } from "@/components/settings/theme-settings";
 import { SystemPinSettings } from "@/components/sistemas/pin-settings";
 import { getMyProfile } from "@/lib/data/profile";
@@ -27,14 +26,12 @@ export default async function ConfiguracionPage() {
     { data: owners },
     { data: brands },
     { data: categories },
-    { data: templates },
     { count: pushDevices },
   ] = await Promise.all([
     supabase.from("app_settings").select("*").eq("id", "global").maybeSingle(),
     supabase.from("users_profiles").select("id, nombre, correo, username").eq("rol", "owner").order("created_at"),
     supabase.from("brands").select("id, nombre, activo, rnc, telefono, direccion, logo_url").order("created_at"),
     supabase.from("categories").select("id, nombre, tipo, es_personal").order("nombre"),
-    supabase.from("message_templates").select("id, tipo, nombre, contenido").order("tipo"),
     user ? supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", user.id) : Promise.resolve({ count: 0 }),
   ]);
 
@@ -53,7 +50,7 @@ export default async function ConfiguracionPage() {
     <>
       <PageHeader
         title="Configuración"
-        subtitle="Usuarios, marcas, plantillas, categorías, tema, recordatorios y notificaciones."
+        subtitle="Usuarios, marcas, categorías, tema, recordatorios y notificaciones."
       />
       <StaggerContainer className="space-y-4">
         <UsuariosSettings owners={(owners ?? []) as { id: string; nombre: string | null; correo: string | null; username: string | null }[]} currentUserId={user?.id ?? ""} />
@@ -65,8 +62,6 @@ export default async function ConfiguracionPage() {
         <BrandsSettings brands={(brands ?? []) as { id: string; nombre: string; activo: boolean; rnc: string | null; telefono: string | null; direccion: string | null; logo_url: string | null }[]} />
 
         <CategoriesSettings categories={(categories ?? []) as { id: string; nombre: string; tipo: string; es_personal: boolean }[]} />
-
-        <TemplatesSettings templates={(templates ?? []) as { id: string; tipo: string; nombre: string; contenido: string | null }[]} />
 
         <ThemeSettings />
 
