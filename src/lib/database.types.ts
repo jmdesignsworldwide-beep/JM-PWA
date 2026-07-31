@@ -658,6 +658,7 @@ export interface Tables {
     capacidad: number;
     notas: string | null;
     notas_protegidas: string | null;
+    password_cifrado: string | null;
     created_by: string | null;
   } & Timestamps;
 

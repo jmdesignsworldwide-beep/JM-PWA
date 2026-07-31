@@ -8,6 +8,7 @@ import type { AccountView } from "@/lib/data/sistemas";
 import { updateAccount, deleteAccount, updateProject, unassignProject, deleteProject } from "@/app/(app)/sistemas/actions";
 import { ProjectDialog } from "./project-dialog";
 import { ProtectedNote } from "./protected-note";
+import { AccountPassword } from "./account-password";
 import { TIPO_LABEL, ESTADO_LABEL } from "./labels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +69,7 @@ export function AccountDetail({ account, cuentasConEspacio }: { account: Account
         {!editNotas ? (
           <div className="mt-3 space-y-3">
             {account.notas && <p className="whitespace-pre-wrap text-sm text-muted-foreground">{account.notas}</p>}
+            <AccountPassword accountId={account.id} tiene={!!account.tienePassword} />
             <ProtectedNote kind="account" id={account.id} tiene={account.tieneProtegida} />
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => setEditNotas(true)}><Pencil className="size-4" /> Editar notas</Button>

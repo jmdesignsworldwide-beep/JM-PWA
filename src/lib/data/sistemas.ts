@@ -13,7 +13,7 @@ export type ProjectView = {
 
 export type AccountView = {
   id: string; correo: string; etiqueta: string | null; capacidad: number;
-  notas: string | null; tieneProtegida: boolean;
+  notas: string | null; tieneProtegida: boolean; tienePassword?: boolean;
   proyectos: ProjectView[];
   usados: number;   // proyectos NO archivados
   libres: number;   // capacidad − usados
@@ -67,14 +67,14 @@ export async function getSystemMap(): Promise<{ accounts: AccountView[]; sinAsig
 export async function getSystemAccount(id: string): Promise<AccountView | null> {
   const supabase = await createClient();
   const [{ data: acc }, { data: projs }] = await Promise.all([
-    supabase.from("system_accounts").select(A_COLS).eq("id", id).maybeSingle(),
+    supabase.from("system_accounts").select(`${A_COLS}, password_cifrado`).eq("id", id).maybeSingle(),
     supabase.from("system_projects").select(P_COLS).eq("account_id", id).order("created_at", { ascending: true }),
   ]);
   if (!acc) return null;
-  const a = acc as SystemAccount;
+  const a = acc as SystemAccount & { password_cifrado: string | null };
   const proyectos = ((projs ?? []) as SystemProject[]).map(toProjectView);
   const usados = proyectos.filter((p) => p.estado !== "archivado").length;
-  return { id: a.id, correo: a.correo, etiqueta: a.etiqueta, capacidad: a.capacidad, notas: a.notas, tieneProtegida: !!a.notas_protegidas, proyectos, usados, libres: Math.max(0, a.capacidad - usados) };
+  return { id: a.id, correo: a.correo, etiqueta: a.etiqueta, capacidad: a.capacidad, notas: a.notas, tieneProtegida: !!a.notas_protegidas, tienePassword: !!a.password_cifrado, proyectos, usados, libres: Math.max(0, a.capacidad - usados) };
 }
 
 /** Cuentas con al menos un slot libre (para el aviso al bloquear). */
