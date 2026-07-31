@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { KeyRound } from "lucide-react";
 
 type Cuenta = { id: string; nombre: string; libres: number };
 
@@ -36,10 +38,13 @@ export function ProjectDialog({
   const [referencia, setReferencia] = useState(project?.referencia ?? "");
   const [notas, setNotas] = useState(project?.notas ?? "");
   const [cuenta, setCuenta] = useState(accountId ?? "");
+  const [tieneAcceso, setTieneAcceso] = useState(project?.tieneAcceso ?? false);
+  const [usuario, setUsuario] = useState(project?.usuario ?? "");
 
   function open_() {
     setNombre(project?.nombre ?? ""); setTipo(project?.tipo ?? "demo"); setEstado(project?.estado ?? "activo");
     setReferencia(project?.referencia ?? ""); setNotas(project?.notas ?? ""); setCuenta(accountId ?? "");
+    setTieneAcceso(project?.tieneAcceso ?? false); setUsuario(project?.usuario ?? "");
     setError(null); setOpen(true);
   }
 
@@ -48,8 +53,8 @@ export function ProjectDialog({
     start(async () => {
       let res;
       if (mode === "assign") res = await assignProject(project!.id, cuenta);
-      else if (mode === "edit") res = await updateProject(project!.id, { nombre, tipo, estado, referencia, notas });
-      else res = await createProject({ account_id: cuenta || null, nombre, tipo, estado, referencia, notas });
+      else if (mode === "edit") res = await updateProject(project!.id, { nombre, tipo, estado, referencia, notas, tiene_acceso: tieneAcceso, usuario });
+      else res = await createProject({ account_id: cuenta || null, nombre, tipo, estado, referencia, notas, tiene_acceso: tieneAcceso, usuario });
       if (res?.error) { setError(res.error); return; }
       setOpen(false); router.refresh();
     });
@@ -91,6 +96,22 @@ export function ProjectDialog({
                 </div>
               )}
               <div className="space-y-1.5"><Label>Referencia (project ref / URL, opcional)</Label><Input value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="ljhvpsyq… o https://…" /></div>
+
+              {/* Acceso: usuario + contraseña (solo si aplica: demos, clientes…). */}
+              <div className="rounded-lg border border-border bg-secondary/20 p-3">
+                <label className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-1.5 text-sm font-medium"><KeyRound className="size-4 text-electric" /> Tiene usuario y contraseña</span>
+                  <Switch checked={tieneAcceso} onCheckedChange={setTieneAcceso} />
+                </label>
+                {tieneAcceso && (
+                  <div className="mt-3 space-y-1.5">
+                    <Label>Usuario</Label>
+                    <Input value={usuario} onChange={(e) => setUsuario(e.target.value)} placeholder="Usuario / correo de acceso" autoComplete="off" />
+                    <p className="text-[11px] text-muted-foreground">La <strong>contraseña</strong> se guarda aparte, cifrada y con tu PIN, desde la tarjeta del proyecto.</p>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-1.5"><Label>Notas (opcional)</Label><Textarea rows={2} value={notas} onChange={(e) => setNotas(e.target.value)} /></div>
             </>
           )}

@@ -84,7 +84,7 @@ async function verificarSlot(auth: { supabase: Awaited<ReturnType<typeof createC
 }
 
 // ── Proyectos ────────────────────────────────────────────────────────────────
-export async function createProject(input: { account_id?: string | null; nombre: string; tipo?: string; referencia?: string; estado?: string; notas?: string; notas_protegidas?: string }) {
+export async function createProject(input: { account_id?: string | null; nombre: string; tipo?: string; referencia?: string; estado?: string; notas?: string; notas_protegidas?: string; tiene_acceso?: boolean; usuario?: string | null }) {
   const auth = await requireOwner();
   if ("error" in auth) return { error: auth.error };
   const nombre = clean(input.nombre, 160);
@@ -96,16 +96,18 @@ export async function createProject(input: { account_id?: string | null; nombre:
     const bloqueo = await verificarSlot(auth, accountId);
     if (bloqueo) return { error: bloqueo };
   }
+  const tieneAcceso = !!input.tiene_acceso;
   const { error } = await auth.supabase.from("system_projects").insert({
     account_id: accountId, nombre, tipo, estado,
     referencia: clean(input.referencia, 300), notas: clean(input.notas, 2000), notas_protegidas: clean(input.notas_protegidas, 2000),
+    tiene_acceso: tieneAcceso, usuario: tieneAcceso ? clean(input.usuario, 200) : null,
   } as never);
   if (error) return { error: error.message };
   revalidatePath("/sistemas"); if (accountId) revalidatePath(`/sistemas/${accountId}`);
   return { ok: true };
 }
 
-export async function updateProject(id: string, input: { nombre?: string; tipo?: string; referencia?: string; estado?: string; notas?: string; notas_protegidas?: string }) {
+export async function updateProject(id: string, input: { nombre?: string; tipo?: string; referencia?: string; estado?: string; notas?: string; notas_protegidas?: string; tiene_acceso?: boolean; usuario?: string | null }) {
   const auth = await requireOwner();
   if ("error" in auth) return { error: auth.error };
   const patch: Record<string, unknown> = {};
@@ -115,10 +117,47 @@ export async function updateProject(id: string, input: { nombre?: string; tipo?:
   if (input.referencia !== undefined) patch.referencia = clean(input.referencia, 300);
   if (input.notas !== undefined) patch.notas = clean(input.notas, 2000);
   if (input.notas_protegidas !== undefined) patch.notas_protegidas = clean(input.notas_protegidas, 2000);
+  if (input.tiene_acceso !== undefined) {
+    patch.tiene_acceso = !!input.tiene_acceso;
+    // Si se apaga el acceso, se limpia el usuario (la contraseña se limpia con su RPC).
+    if (!input.tiene_acceso) patch.usuario = null;
+    else if (input.usuario !== undefined) patch.usuario = clean(input.usuario, 200);
+  } else if (input.usuario !== undefined) {
+    patch.usuario = clean(input.usuario, 200);
+  }
   const { error } = await auth.supabase.from("system_projects").update(patch as never).eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/sistemas");
   return { ok: true };
+}
+
+/** Guarda/actualiza la contraseña de un proyecto (cifrada, requiere PIN). */
+export async function saveProjectPassword(projectId: string, password: string, pin: string) {
+  const auth = await requireOwner();
+  if ("error" in auth) return { error: auth.error };
+  if (!projectId) return { error: "Proyecto inválido." };
+  if (!rateLimit(`pwd:${auth.userId}`, 5, 60_000)) return { error: "Demasiados intentos. Espera un momento." };
+  if (!/^\d{4,10}$/.test((pin ?? "").trim())) return { error: "PIN inválido." };
+  const { error } = await auth.admin.rpc("save_project_password", {
+    p_actor: auth.userId, p_project_id: projectId, p_password: password ?? "", p_pin: pin.trim(),
+  });
+  if (error) return { error: error.message.includes("PIN") ? "PIN incorrecto." : error.message };
+  revalidatePath("/sistemas");
+  return { ok: true };
+}
+
+/** Revela la contraseña de un proyecto verificando el PIN en el servidor. */
+export async function revealProjectPassword(projectId: string, pin: string) {
+  const auth = await requireOwner();
+  if ("error" in auth) return { error: auth.error };
+  if (!rateLimit(`pwd-reveal:${auth.userId}`, 5, 60_000)) return { error: "Demasiados intentos. Espera un momento." };
+  if (!/^\d{4,10}$/.test((pin ?? "").trim())) return { error: "PIN inválido." };
+  const { data, error } = await auth.admin.rpc("reveal_project_password", {
+    p_actor: auth.userId, p_project_id: projectId, p_pin: pin.trim(),
+  });
+  if (error) return { error: error.message };
+  if (data == null) return { error: "PIN incorrecto." };
+  return { ok: true, password: data as string };
 }
 
 /** Asigna un proyecto a una cuenta (bloquea si la cuenta está llena). */
