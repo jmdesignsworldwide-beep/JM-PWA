@@ -170,29 +170,6 @@ export async function deleteCategory(id: string) {
   return { ok: true };
 }
 
-// ---------- Plantillas ----------
-export async function createTemplate(input: { tipo: "contrato" | "dm" | "whatsapp"; nombre: string; contenido: string }) {
-  const supabase = await createClient();
-  const { error } = await supabase.from("message_templates").insert({ tipo: input.tipo, nombre: input.nombre.trim(), contenido: input.contenido });
-  if (error) return { error: error.message };
-  revalidatePath("/configuracion");
-  return { ok: true };
-}
-export async function updateTemplate(id: string, input: { nombre?: string; contenido?: string }) {
-  const supabase = await createClient();
-  const { error } = await supabase.from("message_templates").update(input).eq("id", id);
-  if (error) return { error: error.message };
-  revalidatePath("/configuracion");
-  return { ok: true };
-}
-export async function deleteTemplate(id: string) {
-  const supabase = await createClient();
-  const { error } = await supabase.from("message_templates").delete().eq("id", id);
-  if (error) return { error: error.message };
-  revalidatePath("/configuracion");
-  return { ok: true };
-}
-
 // ============================================================================
 // NOTIFICACIONES — preferencias del owner + pruebas de canal
 // ============================================================================
