@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Mail, FolderOpen, CircleDot, ChevronRight, ShieldAlert, PackageOpen } from "lucide-react";
+import { Mail, FolderOpen, CircleDot, ChevronRight, ShieldAlert, PackageOpen, Search } from "lucide-react";
 import type { AccountView, ProjectView } from "@/lib/data/sistemas";
 import { NewAccountDialog } from "./new-account-dialog";
 import { ProjectDialog } from "./project-dialog";
@@ -18,9 +18,29 @@ function ocupacion(a: AccountView) {
   return { color: "var(--success)", label: "Libre" };
 }
 
+/** Coincidencia por INICIO de palabra (correo, tipo, nombre de proyecto). */
+function empiezaCon(texto: string | null | undefined, term: string) {
+  if (!texto) return false;
+  const low = texto.toLowerCase();
+  return low.startsWith(term) || low.split(/[\s/@._-]+/).some((w) => w.startsWith(term));
+}
+
 export function SistemasView({ accounts, sinAsignar, resumen }: { accounts: AccountView[]; sinAsignar: ProjectView[]; resumen: { correos: number; usados: number; libres: number } }) {
   const [filtro, setFiltro] = useState<Filtro>("todos");
-  const cuentas = accounts.filter((a) => filtro === "todos" || (filtro === "espacio" ? a.libres > 0 : a.libres <= 0));
+  const [q, setQ] = useState("");
+  const term = q.trim().toLowerCase();
+
+  // Una cuenta calza si el término empieza una palabra en su correo/etiqueta, el
+  // tipo (demo/cliente…) o el nombre de cualquiera de sus proyectos.
+  function cuentaCalza(a: AccountView) {
+    if (!term) return true;
+    if (empiezaCon(a.etiqueta, term) || empiezaCon(a.correo, term)) return true;
+    return a.proyectos.some((p) => empiezaCon(p.nombre, term) || empiezaCon(TIPO_LABEL[p.tipo], term));
+  }
+
+  const cuentas = accounts
+    .filter((a) => filtro === "todos" || (filtro === "espacio" ? a.libres > 0 : a.libres <= 0))
+    .filter(cuentaCalza);
   const cuentasConEspacio = accounts.filter((a) => a.libres > 0).map((a) => ({ id: a.id, nombre: a.etiqueta ?? a.correo, libres: a.libres }));
 
   return (
@@ -32,10 +52,16 @@ export function SistemasView({ accounts, sinAsignar, resumen }: { accounts: Acco
         <Stat icon={<CircleDot className="size-4" />} label="Slots libres" value={resumen.libres} highlight />
       </div>
 
-      {/* Acciones */}
+      {/* Buscar: por correo, tipo (demo/cliente…) o nombre de proyecto. */}
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por correo, demo o nombre del proyecto…"
+          className="h-10 w-full rounded-lg border border-border bg-background/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+      </div>
+
+      {/* Acciones — los proyectos se agregan DENTRO de cada correo (Ver y gestionar). */}
       <div className="flex flex-wrap items-center gap-2">
         <NewAccountDialog />
-        <ProjectDialog cuentasConEspacio={cuentasConEspacio} trigger="Nuevo proyecto" />
         <div className="ml-auto flex rounded-lg border border-border p-0.5 text-sm">
           {([["todos", "Todos"], ["espacio", "Con espacio"], ["llenos", "Llenos"]] as const).map(([id, label]) => (
             <button key={id} onClick={() => setFiltro(id)}
