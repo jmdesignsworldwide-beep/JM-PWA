@@ -3,17 +3,20 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, Lock, Eye, EyeOff, Copy, Check, Loader2, Pencil, Plus } from "lucide-react";
-import { saveAccountPassword, revealAccountPassword } from "@/app/(app)/sistemas/actions";
+import { saveAccountPassword, revealAccountPassword, saveProjectPassword, revealProjectPassword } from "@/app/(app)/sistemas/actions";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 /**
- * Contraseña de Supabase de la cuenta (correo). Se guarda CIFRADA y solo se
- * revela con el PIN, verificado en el servidor. Cada revelación queda auditada.
+ * Contraseña (de cuenta o de proyecto). Se guarda CIFRADA y solo se revela con
+ * el PIN, verificado en el servidor. Cada revelación queda auditada.
  */
-export function AccountPassword({ accountId, tiene }: { accountId: string; tiene: boolean }) {
+export function AccountPassword({ kind = "account", id, accountId, tiene }: { kind?: "account" | "project"; id?: string; accountId?: string; tiene: boolean }) {
+  const targetId = id ?? accountId!;
+  const doSave = kind === "project" ? saveProjectPassword : saveAccountPassword;
+  const doReveal = kind === "project" ? revealProjectPassword : revealAccountPassword;
   const [editar, setEditar] = useState(false);
   const [verPin, setVerPin] = useState(false);
   const [pass, setPass] = useState<string | null>(null);
@@ -22,7 +25,7 @@ export function AccountPassword({ accountId, tiene }: { accountId: string; tiene
     <div className="rounded-lg border border-border bg-secondary/30 p-3">
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <KeyRound className="size-4 text-electric" /> Contraseña de Supabase
+          <KeyRound className="size-4 text-electric" /> {kind === "project" ? "Contraseña" : "Contraseña de Supabase"}
         </span>
         <Button variant="ghost" size="sm" onClick={() => setEditar(true)}>
           {tiene ? <><Pencil className="size-3.5" /> Cambiar</> : <><Plus className="size-4" /> Agregar</>}
@@ -46,13 +49,13 @@ export function AccountPassword({ accountId, tiene }: { accountId: string; tiene
       )}
 
       {editar && (
-        <SetPasswordDialog accountId={accountId} tiene={tiene} onClose={() => setEditar(false)} onSaved={() => setPass(null)} />
+        <SetPasswordDialog targetId={targetId} doSave={doSave} tiene={tiene} onClose={() => setEditar(false)} onSaved={() => setPass(null)} />
       )}
       {verPin && (
         <PinDialog
           title="Ver contraseña" onClose={() => setVerPin(false)}
           onConfirm={async (pin) => {
-            const res = await revealAccountPassword(accountId, pin);
+            const res = await doReveal(targetId, pin);
             if (res?.error) return res.error;
             setPass(res.password ?? "");
             setVerPin(false);
@@ -75,7 +78,11 @@ function CopyBtn({ text }: { text: string }) {
   );
 }
 
-function SetPasswordDialog({ accountId, tiene, onClose, onSaved }: { accountId: string; tiene: boolean; onClose: () => void; onSaved: () => void }) {
+function SetPasswordDialog({ targetId, doSave, tiene, onClose, onSaved }: {
+  targetId: string;
+  doSave: (id: string, password: string, pin: string) => Promise<{ error?: string; ok?: boolean }>;
+  tiene: boolean; onClose: () => void; onSaved: () => void;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +94,7 @@ function SetPasswordDialog({ accountId, tiene, onClose, onSaved }: { accountId: 
     if (!password.trim()) { setError("Escribe la contraseña."); return; }
     if (!/^\d{4,10}$/.test(pin.trim())) { setError("Escribe tu PIN (4 a 10 dígitos)."); return; }
     start(async () => {
-      const res = await saveAccountPassword(accountId, password, pin);
+      const res = await doSave(targetId, password, pin);
       if (res?.error) { setError(res.error); return; }
       onSaved(); onClose(); router.refresh();
     });

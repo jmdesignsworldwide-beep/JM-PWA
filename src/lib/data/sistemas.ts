@@ -9,6 +9,7 @@ export type ProjectView = {
   id: string; account_id: string | null; nombre: string;
   tipo: SystemProject["tipo"]; referencia: string | null; estado: SystemProject["estado"];
   notas: string | null; tieneProtegida: boolean;
+  tieneAcceso: boolean; usuario: string | null; tienePassword: boolean;
 };
 
 export type AccountView = {
@@ -20,11 +21,15 @@ export type AccountView = {
 };
 
 const A_COLS = "id, correo, etiqueta, capacidad, notas, notas_protegidas, created_at";
-const P_COLS = "id, account_id, nombre, tipo, referencia, estado, notas, notas_protegidas, created_at";
+const P_COLS = "id, account_id, nombre, tipo, referencia, estado, notas, notas_protegidas, tiene_acceso, usuario, password_cifrado, created_at";
 
-/** La nota protegida NUNCA sale al cliente: se mapea a un booleano de presencia. */
+/** La nota/contraseña protegidas NUNCA salen al cliente: solo un booleano de presencia. */
 function toProjectView(p: SystemProject): ProjectView {
-  return { id: p.id, account_id: p.account_id, nombre: p.nombre, tipo: p.tipo, referencia: p.referencia, estado: p.estado, notas: p.notas, tieneProtegida: !!p.notas_protegidas };
+  return {
+    id: p.id, account_id: p.account_id, nombre: p.nombre, tipo: p.tipo, referencia: p.referencia, estado: p.estado,
+    notas: p.notas, tieneProtegida: !!p.notas_protegidas,
+    tieneAcceso: !!p.tiene_acceso, usuario: p.usuario, tienePassword: !!p.password_cifrado,
+  };
 }
 
 /** Mapa completo: cuentas con sus proyectos, slots calculados, + sin asignar. */

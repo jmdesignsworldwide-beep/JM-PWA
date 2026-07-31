@@ -671,6 +671,9 @@ export interface Tables {
     estado: "activo" | "pausado" | "archivado";
     notas: string | null;
     notas_protegidas: string | null;
+    tiene_acceso: boolean;
+    usuario: string | null;
+    password_cifrado: string | null;
     created_by: string | null;
   } & Timestamps;
 

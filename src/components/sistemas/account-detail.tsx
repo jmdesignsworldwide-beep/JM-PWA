@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Trash2, Pencil, Link2Off, Archive, RotateCcw, ShieldAlert, Save, X } from "lucide-react";
+import { ArrowLeft, Loader2, Trash2, Pencil, Link2Off, Archive, RotateCcw, ShieldAlert, Save, X, KeyRound, Copy, Check } from "lucide-react";
 import type { AccountView } from "@/lib/data/sistemas";
 import { updateAccount, deleteAccount, updateProject, unassignProject, deleteProject } from "@/app/(app)/sistemas/actions";
 import { ProjectDialog } from "./project-dialog";
@@ -18,6 +18,17 @@ import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 type Cuenta = { id: string; nombre: string; libres: number };
+
+function CopyText({ text }: { text: string }) {
+  const [ok, setOk] = useState(false);
+  if (!text) return null;
+  return (
+    <button onClick={async () => { await navigator.clipboard.writeText(text); setOk(true); setTimeout(() => setOk(false), 1500); }}
+      className="shrink-0 text-muted-foreground hover:text-electric" title="Copiar">
+      {ok ? <Check className="size-4 text-success" /> : <Copy className="size-4" />}
+    </button>
+  );
+}
 
 export function AccountDetail({ account, cuentasConEspacio }: { account: AccountView; cuentasConEspacio: Cuenta[] }) {
   const router = useRouter();
@@ -109,7 +120,10 @@ export function AccountDetail({ account, cuentasConEspacio }: { account: Account
               <li key={p.id} className="rounded-lg border border-border bg-background/40 p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className={cn("truncate font-medium", p.estado === "archivado" && "line-through opacity-60")}>{p.nombre}</p>
+                    <p className={cn("flex items-center gap-1.5 truncate font-medium", p.estado === "archivado" && "line-through opacity-60")}>
+                      {p.nombre}
+                      {p.tieneAcceso && <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-electric/40 bg-electric/10 px-1.5 py-0.5 text-[10px] font-medium text-electric"><KeyRound className="size-3" /> Acceso</span>}
+                    </p>
                     <p className="text-xs text-muted-foreground">{TIPO_LABEL[p.tipo]} · {ESTADO_LABEL[p.estado]}{p.referencia ? ` · ${p.referencia}` : ""}</p>
                   </div>
                   <div className="flex shrink-0 gap-1">
@@ -121,9 +135,21 @@ export function AccountDetail({ account, cuentasConEspacio }: { account: Account
                     <Button variant="ghost" size="icon" title="Borrar" className="text-destructive" onClick={() => borrarProyecto(p.id)} disabled={pending}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
-                {(p.notas || p.tieneProtegida) && (
+                {(p.notas || p.tieneProtegida || p.tieneAcceso) && (
                   <div className="mt-2 space-y-2">
                     {p.notas && <p className="text-xs text-muted-foreground">{p.notas}</p>}
+                    {p.tieneAcceso && (
+                      <div className="rounded-lg border border-border bg-secondary/30 p-3">
+                        {p.usuario && (
+                          <div className="mb-2 flex items-center gap-2 text-sm">
+                            <span className="text-muted-foreground">Usuario</span>
+                            <code className="min-w-0 flex-1 truncate font-mono">{p.usuario}</code>
+                            <CopyText text={p.usuario} />
+                          </div>
+                        )}
+                        <AccountPassword kind="project" id={p.id} tiene={p.tienePassword} />
+                      </div>
+                    )}
                     <ProtectedNote kind="project" id={p.id} tiene={p.tieneProtegida} />
                   </div>
                 )}
