@@ -171,6 +171,35 @@ export async function setPin(pin: string) {
   return { ok: true };
 }
 
+/** Guarda/actualiza la contraseña de Supabase de una cuenta (cifrada, requiere PIN). */
+export async function saveAccountPassword(accountId: string, password: string, pin: string) {
+  const auth = await requireOwner();
+  if ("error" in auth) return { error: auth.error };
+  if (!accountId) return { error: "Cuenta inválida." };
+  if (!rateLimit(`pwd:${auth.userId}`, 5, 60_000)) return { error: "Demasiados intentos. Espera un momento." };
+  if (!/^\d{4,10}$/.test((pin ?? "").trim())) return { error: "PIN inválido." };
+  const { error } = await auth.admin.rpc("save_account_password", {
+    p_actor: auth.userId, p_account_id: accountId, p_password: password ?? "", p_pin: pin.trim(),
+  });
+  if (error) return { error: error.message.includes("PIN") ? "PIN incorrecto." : error.message };
+  revalidatePath(`/sistemas/${accountId}`);
+  return { ok: true };
+}
+
+/** Revela la contraseña de una cuenta verificando el PIN en el servidor. */
+export async function revealAccountPassword(accountId: string, pin: string) {
+  const auth = await requireOwner();
+  if ("error" in auth) return { error: auth.error };
+  if (!rateLimit(`pwd-reveal:${auth.userId}`, 5, 60_000)) return { error: "Demasiados intentos. Espera un momento." };
+  if (!/^\d{4,10}$/.test((pin ?? "").trim())) return { error: "PIN inválido." };
+  const { data, error } = await auth.admin.rpc("reveal_account_password", {
+    p_actor: auth.userId, p_account_id: accountId, p_pin: pin.trim(),
+  });
+  if (error) return { error: error.message };
+  if (data == null) return { error: "PIN incorrecto." };
+  return { ok: true, password: data as string };
+}
+
 export async function revealNote(kind: "account" | "project", id: string, pin: string) {
   const auth = await requireOwner();
   if ("error" in auth) return { error: auth.error };
