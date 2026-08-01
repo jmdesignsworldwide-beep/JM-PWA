@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { BottomNav } from "./bottom-nav";
+import { AsistenteFab } from "@/components/asistente/asistente-fab";
 import { SpringTransition } from "@/components/animations/spring-transition";
 
 import type { AgendaEvent } from "@/lib/data/agenda";
@@ -74,6 +75,9 @@ export function AppShell({
 
       {/* Navegación inferior (móvil) — "Más" abre el menú completo */}
       <BottomNav onMore={() => setMobileOpen(true)} hidden={hiddenModules} />
+
+      {/* Asistente flotante (solo owner; oculto en su propia página) */}
+      {isOwner && pathname !== "/asistente" && <AsistenteFab />}
     </div>
   );
 }

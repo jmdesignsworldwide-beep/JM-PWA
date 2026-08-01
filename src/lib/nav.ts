@@ -12,6 +12,7 @@ import {
   UsersRound,
   ListTodo,
   ServerCog,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 
@@ -26,6 +27,7 @@ export type NavItem = {
 /** Ítems del sidebar — orden y nombres según 00-MASTER-SPEC.md. */
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Asistente", href: "/asistente", icon: Sparkles, ownerOnly: true },
   { label: "Mis pendientes", href: "/pendientes", icon: ListTodo, ownerOnly: true },
   { label: "Clientes y Prospectos", href: "/clientes", icon: Users },
   { label: "Pedidos / Contratos / Facturas", href: "/pedidos", icon: FileText },
