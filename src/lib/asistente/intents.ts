@@ -12,7 +12,7 @@
 export type IntentId =
   | "deudas" | "cobros" | "vencimientos"
   | "ingresos" | "gastos" | "neto"
-  | "agenda" | "pedidos" | "clientes" | "proyectos" | "resumen";
+  | "agenda" | "pedidos" | "clientes" | "datos_cliente" | "proyectos" | "pendientes" | "resumen";
 
 export type PeriodoKey = "hoy" | "ayer" | "semana" | "mes" | "mes_pasado" | "anio";
 
@@ -26,7 +26,9 @@ export const INTENT_LABEL: Record<IntentId, string> = {
   agenda: "Mi agenda",
   pedidos: "Mis pedidos",
   clientes: "Mis clientes",
+  datos_cliente: "Datos de cliente",
   proyectos: "Mis proyectos",
+  pendientes: "Mis pendientes",
   resumen: "Resumen general",
 };
 
@@ -41,7 +43,9 @@ export const EJEMPLO: Record<IntentId, string> = {
   agenda: "¿Qué tengo esta semana?",
   pedidos: "¿Cuántos pedidos activos tengo?",
   clientes: "¿Cuántos clientes tengo?",
+  datos_cliente: "Datos de un cliente",
   proyectos: "¿Cómo van mis proyectos?",
+  pendientes: "¿Qué pendientes tengo?",
   resumen: "¿Cómo va todo?",
 };
 
@@ -63,17 +67,19 @@ export function normalizar(s: string): string {
 // Frases por intención. El ORDEN es la prioridad (deudas antes que cobros para
 // que "le debo" gane sobre "debo", etc.).
 const DICC: { id: IntentId; frases: string[] }[] = [
-  { id: "vencimientos", frases: ["que dia me toca cobrar", "cuando me pagan", "cuando me van a pagar", "que vence", "que cobros vencen", "fechas de pago", "fecha de pago", "cuando tengo que cobrar", "cuando cobro", "vencimiento", "proximos cobros", "que me toca cobrar"] },
-  { id: "deudas", frases: ["a quien le debo", "le debo", "cuanto debo", "que debo", "tengo que pagar", "que tengo que pagar", "pagos que debo", "mis deudas", "quien me cobra", "a quien tengo que pagar", "le tengo que pagar", "cuanto le debo"] },
-  { id: "cobros", frases: ["quien me debe", "cuanto me deben", "me deben", "a quien le tengo que cobrar", "tengo que cobrar", "quien no me ha pagado", "no me ha pagado", "cobros pendientes", "mis cobros", "me debe", "saldo pendiente", "me falta cobrar", "que me falta cobrar", "quien debe"] },
-  { id: "ingresos", frases: ["cuanto he facturado", "cuanto he ganado", "cuanto gane", "cuanto entro", "mis ingresos", "cuanto facture", "ingreso", "cuanto vendi", "cuanto he cobrado en total", "facturado", "cuanto gano", "ganancia", "ganado"] },
-  { id: "gastos", frases: ["cuanto he gastado", "en que gaste", "mis gastos", "cuanto gaste", "gaste", "gastado", "gasto", "mis egresos", "egreso", "cuanto llevo gastado"] },
-  { id: "neto", frases: ["cuanto tengo", "cuanto me queda", "mi balance", "balance", "cuanto disponible", "neto", "cuanto tengo disponible", "como voy", "ganancia real", "cuanto me sobro", "disponible"] },
-  { id: "agenda", frases: ["que tengo hoy", "que tengo esta semana", "mi agenda", "agenda", "que reuniones", "reunion", "que eventos", "evento", "que tengo que hacer", "mis entregas", "que entrego", "que hay manana", "mis citas", "cita", "que hay hoy"] },
-  { id: "pedidos", frases: ["cuantos pedidos", "mis pedidos", "pedidos activos", "pedidos sin pagar", "pedidos completados", "estado de mis pedidos", "pedido", "pedidos pendientes"] },
-  { id: "clientes", frases: ["cuantos clientes", "mi mejor cliente", "quien me compra mas", "clientes activos", "cuantos prospectos", "prospecto", "quien no me compra", "mis clientes", "cliente inactivo", "clientes"] },
-  { id: "proyectos", frases: ["que pendientes tengo de", "como va el proyecto", "que me falta en", "mis proyectos", "que proyectos tengo", "proyecto"] },
-  { id: "resumen", frases: ["como va todo", "resumen", "dame un resumen", "como estoy", "estado del negocio", "resumeme", "resume el dia", "resume la semana", "resume el mes", "como vamos"] },
+  { id: "vencimientos", frases: ["que dia me toca cobrar", "cuando me pagan", "cuando me van a pagar", "que vence", "que cobros vencen", "fechas de pago", "fecha de pago", "cuando tengo que cobrar", "cuando cobro", "vencimiento", "proximos cobros", "que me toca cobrar", "quien me paga esta semana", "cobros de esta semana", "cobros esta semana"] },
+  { id: "deudas", frases: ["a quien le debo", "le debo", "cuanto debo", "que debo", "tengo que pagar", "que tengo que pagar", "pagos que debo", "mis deudas", "quien me cobra", "a quien tengo que pagar", "le tengo que pagar", "cuanto le debo", "a quien no le he pagado", "deudas pendientes", "que le debo a", "no le he pagado"] },
+  { id: "cobros", frases: ["quien me debe", "cuanto me deben", "me deben", "a quien le tengo que cobrar", "tengo que cobrar", "quien no me ha pagado", "no me ha pagado", "cobros pendientes", "mis cobros", "me debe", "saldo pendiente", "me falta cobrar", "que me falta cobrar", "quien debe", "quien me queda debiendo", "cuanto me falta que me paguen", "clientes que deben", "cuanto le falta a", "me pago todo", "ya me pago"] },
+  { id: "datos_cliente", frases: ["datos de", "info de", "informacion de", "telefono de", "el telefono de", "numero de", "whatsapp de", "el whatsapp de", "correo de", "el correo de", "contacto de", "ficha de"] },
+  { id: "ingresos", frases: ["cuanto he facturado", "cuanto he ganado", "cuanto gane", "cuanto entro", "mis ingresos", "cuanto facture", "ingreso", "cuanto vendi", "cuanto he cobrado en total", "facturado", "cuanto gano", "ganancia", "ganado", "cuanto dinero entro", "mis ventas", "cuanto gane con"] },
+  { id: "gastos", frases: ["cuanto he gastado", "en que gaste", "mis gastos", "cuanto gaste", "gaste", "gastado", "gasto", "mis egresos", "egreso", "cuanto llevo gastado", "en que se me fue", "mi mayor gasto", "mayor gasto", "en que se fue el dinero"] },
+  { id: "neto", frases: ["cuanto tengo", "cuanto me queda", "mi balance", "balance", "cuanto disponible", "neto", "cuanto tengo disponible", "como voy", "ganancia real", "cuanto me sobro", "disponible", "como esta mi dinero", "estoy en positivo", "estoy en negativo", "cuanto gane de verdad"] },
+  { id: "agenda", frases: ["que tengo hoy", "que tengo esta semana", "mi agenda", "agenda", "que reuniones", "reunion", "que eventos", "evento", "que tengo que hacer", "mis entregas", "que entrego", "que hay manana", "mis citas", "cita", "que hay hoy", "tengo algo manana", "reuniones de esta semana", "que me toca hacer", "que tengo pendiente hoy"] },
+  { id: "pedidos", frases: ["cuantos pedidos", "mis pedidos", "pedidos activos", "pedidos sin pagar", "pedidos completados", "estado de mis pedidos", "pedido", "pedidos pendientes", "pedidos sin terminar", "que le debo entregar a"] },
+  { id: "clientes", frases: ["cuantos clientes", "mi mejor cliente", "quien me compra mas", "clientes activos", "cuantos prospectos", "prospecto", "quien no me compra", "mis clientes", "cliente inactivo", "clientes", "cual es mi cliente top", "cliente top", "clientes que mas me pagan"] },
+  { id: "proyectos", frases: ["que pendientes tengo de", "como va el proyecto", "que me falta en", "mis proyectos", "que proyectos tengo", "proyecto", "pendientes de"] },
+  { id: "pendientes", frases: ["que pendientes tengo", "mis pendientes", "mi lista", "mis tareas", "que me falta hacer", "cuantos pendientes", "lista de pendientes", "mis to do", "mi to-do"] },
+  { id: "resumen", frases: ["como va todo", "resumen", "dame un resumen", "como estoy", "estado del negocio", "resumeme", "resume el dia", "resume la semana", "resume el mes", "como vamos", "como va mi negocio", "ponme al dia"] },
 ];
 
 // Periodos: frase normalizada → clave.

@@ -63,6 +63,19 @@ async function detectarMarca(t: string): Promise<{ id: string | "personal"; nomb
   return null;
 }
 
+/** Cliente/persona mencionada por nombre (coincidencia tolerante, palabra ≥4). */
+function detectarNombre(t: string, contacts: { id: string; nombre: string; apellido: string | null }[]): { id: string; nombre: string } | null {
+  let best: { id: string; nombre: string; len: number } | null = null;
+  for (const c of contacts) {
+    const full = normalizar(`${c.nombre} ${c.apellido ?? ""}`);
+    for (const w of full.split(/\s+/)) {
+      if (w.length >= 4 && t.includes(w) && (!best || w.length > best.len))
+        best = { id: c.id, nombre: `${c.nombre} ${c.apellido ?? ""}`.trim(), len: w.length };
+    }
+  }
+  return best ? { id: best.id, nombre: best.nombre } : null;
+}
+
 const sumar = (rows: { monto: number; moneda: string | null }[]) => {
   const b = { DOP: 0, USD: 0 };
   for (const r of rows) b[r.moneda === "USD" ? "USD" : "DOP"] += Number(r.monto) || 0;
@@ -82,7 +95,14 @@ export async function responder(texto: string): Promise<Answer> {
 
   switch (intent) {
     case "deudas": {
-      const debts = (await getManualDebts()).filter((d) => !d.saldado && d.saldo > 0);
+      let debts = (await getManualDebts()).filter((d) => !d.saldado && d.saldo > 0);
+      const nom = detectarNombre(t, debts.map((d) => ({ id: d.client_id, nombre: d.personaNombre, apellido: null })));
+      if (nom) {
+        debts = debts.filter((d) => d.client_id === nom.id);
+        if (debts.length === 0) return { intent, titulo: `Deuda · ${nom.nombre}`, texto: `No le debes nada a ${nom.nombre} 🎉` };
+        const totN = sumar(debts.map((d) => ({ monto: d.saldo, moneda: d.moneda })));
+        return { intent, titulo: `Le debes a ${nom.nombre}`, texto: money2(totN), items: debts.map((d) => ({ label: d.concepto ?? "Deuda", monto: money(d.saldo, d.moneda), href: `/clientes/${d.client_id}` })) };
+      }
       if (debts.length === 0) return { intent, titulo: "A quién le debes", texto: "No le debes a nadie ahora mismo 🎉" };
       const tot = sumar(debts.map((d) => ({ monto: d.saldo, moneda: d.moneda })));
       return {
@@ -94,7 +114,15 @@ export async function responder(texto: string): Promise<Answer> {
     }
 
     case "cobros": {
-      const saldos = (await getSaldosClientes()).filter((s) => s.porMoneda.some((m) => m.saldo > 0));
+      const todos = await getSaldosClientes();
+      const nom = detectarNombre(t, todos.map((s) => ({ id: s.id, nombre: s.nombre, apellido: null })));
+      if (nom) {
+        const suyo = todos.find((s) => s.id === nom.id);
+        const pend = suyo?.porMoneda.filter((m) => m.saldo > 0) ?? [];
+        if (pend.length === 0) return { intent, titulo: `Cobros · ${nom.nombre}`, texto: `${nom.nombre} está al día 🎉` };
+        return { intent, titulo: `Te debe · ${nom.nombre}`, texto: `${nom.nombre} te debe ${pend.map((m) => money(m.saldo, m.moneda)).join(" · ")}`, items: [{ label: "Ver en Cobros", href: `/cobros?cliente=${suyo!.id}` }] };
+      }
+      const saldos = todos.filter((s) => s.porMoneda.some((m) => m.saldo > 0));
       if (saldos.length === 0) return { intent, titulo: "Quién te debe", texto: "Nadie te debe ahora mismo 🎉" };
       saldos.sort((a, b) => b.saldoTotalDOP - a.saldoTotalDOP);
       const totDOP = saldos.reduce((s, c) => s + c.saldoTotalDOP, 0);
@@ -135,8 +163,12 @@ export async function responder(texto: string): Promise<Answer> {
       const suf = marca ? ` · ${marca.nombre}` : "";
       if (intent === "ingresos")
         return { intent, titulo: `Ingresos${suf}`, texto: money2(ing), periodoLabel: r.label };
-      if (intent === "gastos")
-        return { intent, titulo: `Gastos${suf}`, texto: money2(gas), periodoLabel: r.label };
+      if (intent === "gastos") {
+        const porCat: Record<string, number> = {};
+        for (const e of filtraMarca(inR(expenses))) { const k = e.categoria ?? "Sin categoría"; porCat[k] = (porCat[k] ?? 0) + (Number(e.monto) || 0); }
+        const items = Object.entries(porCat).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([cat, tot]) => ({ label: cat, monto: money(tot, "DOP") }));
+        return { intent, titulo: `Gastos${suf}`, texto: money2(gas), detalle: items.length ? "Por categoría:" : undefined, items, periodoLabel: r.label };
+      }
       const neto = { DOP: ing.DOP - gas.DOP, USD: ing.USD - gas.USD };
       return {
         intent, titulo: `Balance neto${suf}`, texto: money2(neto),
@@ -167,6 +199,8 @@ export async function responder(texto: string): Promise<Answer> {
       ]);
       let lista = (ords ?? []) as { id: string; client_id: string; estado: string; total: number; moneda: string; fecha: string; brand_id: string | null }[];
       if (marca && marca.id !== "personal") lista = lista.filter((o) => o.brand_id === marca.id);
+      const nom = detectarNombre(t, contacts.map((c) => ({ id: c.id, nombre: c.nombre, apellido: c.apellido })));
+      if (nom) lista = lista.filter((o) => o.client_id === nom.id);
       const nombre = new Map(contacts.map((c) => [c.id, `${c.nombre} ${c.apellido ?? ""}`.trim()]));
       const activos = lista.filter((o) => o.estado === "activo");
       const completados = lista.filter((o) => o.estado === "completado");
@@ -234,6 +268,40 @@ export async function responder(texto: string): Promise<Answer> {
           { label: "Por cobrar", monto: money(porCobrar, "DOP"), href: "/cobros" },
           { label: "Cobros próximos (60 días)", sub: `${cobrosProx}`, href: "/cobros" },
         ],
+      };
+    }
+
+    case "datos_cliente": {
+      const contacts = await getContacts();
+      const nom = detectarNombre(t, contacts.map((c) => ({ id: c.id, nombre: c.nombre, apellido: c.apellido })));
+      if (!nom) return { intent, titulo: "¿De cuál cliente?", texto: "Dime el nombre del cliente y te doy sus datos.", fallback: false };
+      const c = contacts.find((x) => x.id === nom.id)!;
+      const items: AnswerItem[] = [];
+      if (c.whatsapp) items.push({ label: "WhatsApp", sub: c.whatsapp, href: `https://wa.me/1${c.whatsapp.replace(/\D/g, "").replace(/^1/, "")}` });
+      if (c.telefono) items.push({ label: "Teléfono", sub: c.telefono });
+      if (c.correo) items.push({ label: "Correo", sub: c.correo });
+      items.push({ label: "Abrir ficha", href: `/clientes/${c.id}` });
+      return {
+        intent, titulo: nom.nombre,
+        detalle: [c.categoria_servicio, c.industria].filter(Boolean).join(" · ") || undefined,
+        texto: items.length <= 1 ? "Sin datos de contacto guardados." : undefined,
+        items,
+      };
+    }
+
+    case "pendientes": {
+      const supabase = await createClient();
+      const { data } = await supabase
+        .from("personal_todos")
+        .select("id, texto, hecho, venture_id, created_at")
+        .eq("hecho", false).is("venture_id", null)
+        .order("created_at", { ascending: false });
+      const rows = (data ?? []) as { id: string; texto: string }[];
+      if (rows.length === 0) return { intent, titulo: "Mis pendientes", texto: "Estás al día — sin pendientes 🎉" };
+      return {
+        intent, titulo: "Mis pendientes",
+        detalle: `${rows.length} sin terminar`,
+        items: rows.slice(0, 20).map((td) => ({ label: td.texto, href: "/pendientes" })),
       };
     }
 

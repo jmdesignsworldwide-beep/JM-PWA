@@ -22,6 +22,18 @@ describe("Asistente — detección de intención", () => {
     ["resumeme el mes", "resumen", "mes"],
     // Deudas gana a cobros cuando dice "le debo"
     ["cuanto le debo a juan", "deudas", null],
+    // Nuevos (PR1): pendientes, datos de cliente, variantes
+    ["qué pendientes tengo", "pendientes", null],
+    ["mis tareas", "pendientes", null],
+    ["el teléfono de franklin", "datos_cliente", null],
+    ["info de edwin", "datos_cliente", null],
+    ["cuánto me debe franklin", "cobros", null],
+    ["mi mayor gasto", "gastos", null],
+    ["ponme al día", "resumen", null],
+    ["quién me paga esta semana", "vencimientos", "semana"],
+    ["cuál es mi cliente top", "clientes", null],
+    // "pendientes de [proyecto]" sigue siendo proyectos, no mis pendientes
+    ["qué pendientes tengo de kitjoy", "proyectos", null],
   ];
 
   it.each(casos)("'%s' → intención %s", (texto, intent, periodo) => {
