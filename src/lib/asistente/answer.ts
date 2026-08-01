@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { money } from "@/lib/format";
 import { rdToday, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "@/lib/fecha";
 import { detectarIntencion, normalizar, INTENT_LABEL, type IntentId, type PeriodoKey } from "./intents";
+import { detectarAccion, extraerMoneda, type AccionConfirm, type Moneda } from "./acciones";
 import { getManualDebts } from "@/lib/data/debts";
 import { getSaldosClientes, getPendientes, getEventsRange } from "@/lib/data/agenda";
 import { getMovimientos } from "@/lib/data/finanzas";
@@ -23,6 +24,7 @@ export type Answer = {
   items?: AnswerItem[];
   periodoLabel?: string;
   fallback?: boolean;   // muestra chips de categorías
+  accion?: AccionConfirm; // propuesta de acción pendiente de confirmar (Sí/No)
 };
 
 const fechaLarga = (iso: string) => {
@@ -82,6 +84,143 @@ const sumar = (rows: { monto: number; moneda: string | null }[]) => {
   return b;
 };
 const money2 = (b: { DOP: number; USD: number }) => b.USD ? `${money(b.DOP, "DOP")} · ${money(b.USD, "USD")}` : money(b.DOP, "DOP");
+
+// ── Acciones (crear/registrar/agendar) ─────────────────────────────────────
+const titleCase = (s: string) => s.replace(/\b[a-záéíóúñ]/g, (c) => c.toUpperCase());
+const sentence = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+/** Quita la cola de fecha/hora de un título ("reunión con Edwin el viernes a las 3" → "reunión con Edwin"). */
+function limpiarTitulo(s?: string): string | undefined {
+  if (!s) return undefined;
+  const out = s
+    .replace(/\b(el |este |proximo )?(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b.*$/, "")
+    .replace(/\ba las?\s+\d.*$/, "")
+    .replace(/\b\d{1,2}\s*(am|pm)\b.*$/, "")
+    .replace(/\b(hoy|manana|pasado manana)\b.*$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return out || undefined;
+}
+
+/**
+ * ¿El texto es una ACCIÓN? Detecta el verbo, resuelve nombres contra la base y
+ * devuelve una propuesta para CONFIRMAR (nunca ejecuta aquí). null si no es una
+ * acción → el caller cae a la consulta normal. Regla de oro: toda acción con
+ * dinero muestra el monto antes de guardar.
+ */
+export async function proponerAccion(texto: string): Promise<Answer | null> {
+  const hoy = rdToday();
+  const det = detectarAccion(texto, hoy);
+  if (!det) return null;
+  const t = normalizar(texto);
+  const moneda: Moneda = extraerMoneda(t);
+  const { tipo, slots } = det;
+
+  // Resolución de nombre perezosa (solo cuando hace falta), sobre el texto completo.
+  let cache: { id: string; nombre: string; apellido: string | null }[] | null = null;
+  const resolver = async (raw?: string) => {
+    if (!cache) cache = (await getContacts()).map((c) => ({ id: c.id, nombre: c.nombre, apellido: c.apellido }));
+    return detectarNombre(normalizar(raw ?? texto), cache);
+  };
+
+  switch (tipo) {
+    case "pendiente": {
+      const concepto = sentence((slots.concepto ?? "").trim());
+      if (!concepto) return { intent: "desconocido", titulo: "¿Qué anoto?", texto: "Dime qué apunto. Ej.: “recuérdame llamar a Franklin”." };
+      return {
+        intent: "desconocido", titulo: "¿Lo anoto?", texto: `Pendiente: “${concepto}”`,
+        accion: { tipo, resumen: `Anotar pendiente: “${concepto}”`, data: { tipo, concepto, esPersonal: slots.esPersonal } },
+      };
+    }
+
+    case "gasto": case "ingreso": {
+      const monto = slots.monto;
+      if (!monto) return { intent: "desconocido", titulo: "¿Cuánto?", texto: `Dime el monto. Ej.: “${tipo === "gasto" ? "gasté 500 en comida" : "entró 500 por un diseño"}”.` };
+      const concepto = sentence((slots.concepto ?? "").trim());
+      const fecha = slots.fecha ?? hoy;
+      const cuando = fecha === hoy ? "hoy" : fechaLarga(fecha);
+      const donde = concepto ? ` · ${concepto}` : "";
+      const verbo = tipo === "gasto" ? "gasto" : "ingreso";
+      return {
+        intent: "desconocido", titulo: tipo === "gasto" ? "¿Registro el gasto?" : "¿Registro el ingreso?",
+        texto: money(monto, moneda),
+        detalle: `${sentence(verbo)} · ${cuando}${slots.esPersonal ? " · Personal" : ""}${donde}`,
+        accion: { tipo, resumen: `Registrar ${verbo} de ${money(monto, moneda)}${donde}`, data: { tipo, monto, moneda, concepto: concepto || undefined, fecha, esPersonal: slots.esPersonal } },
+      };
+    }
+
+    case "evento": {
+      if (!slots.fecha) return { intent: "desconocido", titulo: "¿Para qué día?", texto: "Dime la fecha. Ej.: “agéndame reunión con Edwin el viernes a las 3”." };
+      const nom = await resolver();
+      const titulo = sentence(limpiarTitulo(slots.concepto) ?? (nom ? `Reunión con ${nom.nombre}` : "Evento"));
+      const cuando = `${fechaLarga(slots.fecha)}${slots.hora ? ` · ${slots.hora}` : ""}`;
+      return {
+        intent: "desconocido", titulo: "¿Lo agendo?", texto: titulo,
+        detalle: `${cuando}${nom ? ` · ${nom.nombre}` : ""}`,
+        accion: { tipo, resumen: `Agendar “${titulo}” · ${cuando}`, data: { tipo, concepto: titulo, fecha: slots.fecha, hora: slots.hora ?? undefined, clientId: nom?.id, clientNombre: nom?.nombre } },
+      };
+    }
+
+    case "deuda": {
+      const monto = slots.monto!;
+      const nom = await resolver();
+      const nombreNuevo = nom ? undefined : titleCase(limpiarTitulo(slots.nombreTexto) ?? "");
+      if (!nom && !nombreNuevo) return { intent: "desconocido", titulo: "¿A quién le debes?", texto: "Dime el nombre. Ej.: “le debo 500 a Franklin”." };
+      const quien = nom?.nombre ?? nombreNuevo!;
+      const concepto = sentence(limpiarTitulo(slots.concepto) ?? "");
+      return {
+        intent: "desconocido", titulo: "¿Registro la deuda?", texto: `Le debes ${money(monto, moneda)} a ${quien}`,
+        detalle: concepto || undefined,
+        accion: { tipo, resumen: `Registrar deuda de ${money(monto, moneda)} a ${quien}`, data: { tipo, monto, moneda, clientId: nom?.id, nombreNuevo, clientNombre: quien, concepto: concepto || undefined } },
+      };
+    }
+
+    case "pago": {
+      const monto = slots.monto!;
+      const nom = await resolver();
+      if (!nom) return { intent: "desconocido", titulo: "¿Quién te pagó?", texto: "Dime el nombre del cliente. Ej.: “Franklin me pagó 500”." };
+      // Nunca adivinamos a qué pedido va el dinero. Solo auto-aplicamos si hay UNO.
+      const supabase = await createClient();
+      const { data: ords } = await supabase.from("orders").select("id, total, moneda, fecha").eq("client_id", nom.id).eq("estado", "activo");
+      const activos = (ords ?? []) as { id: string; total: number; moneda: string; fecha: string }[];
+      if (activos.length !== 1) {
+        return {
+          intent: "desconocido", titulo: `Pago de ${nom.nombre}`,
+          texto: activos.length === 0 ? `${nom.nombre} no tiene pedidos activos. Regístralo en Cobros.` : `${nom.nombre} tiene ${activos.length} pedidos activos. Elige a cuál va el abono.`,
+          items: [{ label: "Abrir en Cobros", href: `/cobros?cliente=${nom.id}` }],
+        };
+      }
+      const o = activos[0];
+      const mon = (o.moneda === "USD" ? "USD" : "DOP") as Moneda;
+      return {
+        intent: "desconocido", titulo: "¿Registro el abono?", texto: `${money(monto, mon)} de ${nom.nombre}`,
+        detalle: `Abono al pedido del ${fechaLarga(o.fecha)}`,
+        accion: { tipo, resumen: `Registrar abono de ${money(monto, mon)} de ${nom.nombre}`, data: { tipo, monto, moneda: mon, orderId: o.id, clientId: nom.id, clientNombre: nom.nombre } },
+      };
+    }
+
+    case "cliente": {
+      const nombre = titleCase(limpiarTitulo(slots.nombreTexto) ?? "");
+      if (!nombre) return { intent: "desconocido", titulo: "¿Cómo se llama?", texto: "Dime el nombre. Ej.: “nuevo cliente Juan Pérez”." };
+      const label = slots.esProspecto ? "prospecto" : "cliente";
+      return {
+        intent: "desconocido", titulo: `¿Guardo el ${label}?`, texto: nombre,
+        accion: { tipo, resumen: `Guardar ${label} “${nombre}”`, data: { tipo, nombreNuevo: nombre, esProspecto: slots.esProspecto } },
+      };
+    }
+
+    case "pedido": {
+      // El pedido es complejo (ítems, montos): abrimos el formulario prellenado.
+      const nom = await resolver();
+      return {
+        intent: "desconocido", titulo: "Nuevo pedido",
+        texto: nom ? `Te llevo a crear un pedido para ${nom.nombre}.` : "Te llevo a crear un pedido. Elige el cliente allí.",
+        items: [{ label: nom ? `Crear pedido para ${nom.nombre}` : "Ir a Pedidos", href: nom ? `/pedidos/nuevo?cliente=${nom.id}` : "/pedidos/nuevo" }],
+      };
+    }
+  }
+  return null;
+}
 
 /** Motor principal: texto libre → respuesta con datos reales. */
 export async function responder(texto: string): Promise<Answer> {
