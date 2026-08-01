@@ -53,6 +53,17 @@ export function extraerMoneda(t: string): Moneda {
   return /\b(usd|us\$|dolar(es)?|dollars?)\b/.test(t) ? "USD" : "DOP";
 }
 
+/**
+ * Atajos de acción para el acceso rápido. Al tocarlos PRELLENAN el input (no
+ * envían): el owner completa el dato que falta (monto, nombre…) y confirma.
+ */
+export const ACCIONES_RAPIDAS: { label: string; plantilla: string }[] = [
+  { label: "+ Gasto", plantilla: "gasté " },
+  { label: "+ Ingreso", plantilla: "entró " },
+  { label: "+ Pendiente", plantilla: "recuérdame " },
+  { label: "+ Agendar", plantilla: "agéndame " },
+];
+
 /** Monto en el texto: "rd$1,500.50", "500", "1500". Coma = miles, punto = decimal. */
 export function extraerMonto(t: string): number | undefined {
   const m = t.replace(/rd\$?/g, "").match(/(\d[\d.,]*)/);

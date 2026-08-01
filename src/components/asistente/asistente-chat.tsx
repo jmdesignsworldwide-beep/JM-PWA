@@ -6,6 +6,7 @@ import { Sparkles, Send, Loader2, ChevronRight, Star, Check, X } from "lucide-re
 import { preguntar, getFaqTop, toggleFavorita, ejecutarAccion, type FaqQuick } from "@/app/(app)/asistente/actions";
 import type { Answer } from "@/lib/asistente/answer";
 import { CATEGORIAS, EJEMPLO, type IntentId } from "@/lib/asistente/intents";
+import { ACCIONES_RAPIDAS } from "@/lib/asistente/acciones";
 import { cn } from "@/lib/utils";
 
 type Msg = { role: "user"; text: string } | { role: "bot"; answer: Answer };
@@ -16,6 +17,13 @@ export function AsistenteChat({ onNavigate }: { onNavigate?: () => void }) {
   const [faq, setFaq] = useState<FaqQuick[]>([]);
   const [pending, start] = useTransition();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  /** Prellena el input con una plantilla de acción y enfoca (no envía). */
+  function prellenar(plantilla: string) {
+    setInput(plantilla);
+    requestAnimationFrame(() => { const el = inputRef.current; el?.focus(); const n = el?.value.length ?? 0; el?.setSelectionRange(n, n); });
+  }
 
   useEffect(() => { getFaqTop().then(setFaq).catch(() => {}); }, []);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [msgs, pending]);
@@ -34,15 +42,27 @@ export function AsistenteChat({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Preguntas frecuentes (accesos rápidos) */}
-      {faq.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
-          {faq.map((f) => (
-            <button key={f.intent} onClick={() => enviar(f.pregunta)}
-              className="flex items-center gap-1 rounded-full border border-border bg-secondary/40 px-2.5 py-1 text-xs transition-colors hover:border-electric/40 hover:bg-accent">
-              {f.favorita && <Star className="size-3 fill-electric text-electric" />}{f.label}
-            </button>
-          ))}
+      {/* Accesos rápidos: consultas frecuentes + atajos de acción */}
+      {(faq.length > 0 || ACCIONES_RAPIDAS.length > 0) && (
+        <div className="space-y-1.5 border-b border-border pb-3">
+          {faq.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {faq.map((f) => (
+                <button key={f.intent} onClick={() => enviar(f.pregunta)}
+                  className="flex items-center gap-1 rounded-full border border-border bg-secondary/40 px-2.5 py-1 text-xs transition-colors hover:border-electric/40 hover:bg-accent">
+                  {f.favorita && <Star className="size-3 fill-electric text-electric" />}{f.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex flex-wrap gap-1.5">
+            {ACCIONES_RAPIDAS.map((a) => (
+              <button key={a.label} onClick={() => prellenar(a.plantilla)}
+                className="rounded-full border border-electric/30 bg-electric/10 px-2.5 py-1 text-xs font-medium text-electric transition-colors hover:bg-electric/20">
+                {a.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -66,7 +86,7 @@ export function AsistenteChat({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Entrada */}
       <form onSubmit={(e) => { e.preventDefault(); enviar(input); }} className="flex items-center gap-2 border-t border-border pt-3">
-        <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Escribe tu pregunta…"
+        <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} placeholder="Escribe tu pregunta…"
           className="h-10 flex-1 rounded-lg border border-border bg-background/50 px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
         <button type="submit" disabled={pending || !input.trim()}
           className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[linear-gradient(135deg,var(--electric),var(--brand-purple))] text-white disabled:opacity-50">

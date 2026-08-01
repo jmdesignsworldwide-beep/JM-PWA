@@ -136,7 +136,8 @@ export async function proponerAccion(texto: string): Promise<Answer | null> {
     case "gasto": case "ingreso": {
       const monto = slots.monto;
       if (!monto) return { intent: "desconocido", titulo: "¿Cuánto?", texto: `Dime el monto. Ej.: “${tipo === "gasto" ? "gasté 500 en comida" : "entró 500 por un diseño"}”.` };
-      const concepto = sentence((slots.concepto ?? "").trim());
+      const conceptoRaw = (slots.concepto ?? "").trim();
+      const concepto = /^[\d.,\s]*$/.test(conceptoRaw) ? "" : sentence(conceptoRaw); // descarta "de 300" → "300"
       const fecha = slots.fecha ?? hoy;
       const cuando = fecha === hoy ? "hoy" : fechaLarga(fecha);
       const donde = concepto ? ` · ${concepto}` : "";
@@ -452,6 +453,23 @@ export async function responder(texto: string): Promise<Answer> {
         fallback: true,
       };
   }
+}
+
+/**
+ * ── PUNTO DE IA FUTURA (único enganche) ────────────────────────────────────
+ * Cuando ni la ACCIÓN ni la CONSULTA por reglas entienden el texto, aquí —y
+ * solo aquí— se enchufa Gemini/IA por encima, SIN tocar las capas de reglas.
+ * Hoy devuelve null a propósito: el proyecto NO usa IA externa todavía, así que
+ * el asistente responde con el mensaje honesto de categorías (nunca inventa).
+ *
+ * Para activarla el día de mañana:
+ *   1) Implementar aquí la llamada al modelo (la dependencia @google/genai ya
+ *      está instalada) devolviendo un Answer, o null si tampoco la IA entiende.
+ *   2) Nada más cambia: preguntar() ya la llama antes del fallback.
+ */
+export async function interpretarConIA(texto: string): Promise<Answer | null> {
+  void texto; // la firma ya recibe el texto; el cuerpo llega cuando se active la IA
+  return null;
 }
 
 /** Etiqueta legible de una intención (para las preguntas frecuentes). */
