@@ -79,9 +79,32 @@ describe("Asistente — detección de acciones", () => {
     expect(detectarAccion("nuevo prospecto Ana", HOY)!.slots.esProspecto).toBe(true);
   });
 
+  it("gasto: variantes 'pagué' / 'registra un gasto'", () => {
+    expect(detectarAccion("pagué 1500 de luz", HOY)!.tipo).toBe("gasto");
+    expect(detectarAccion("registra un gasto de 300", HOY)!.tipo).toBe("gasto");
+    expect(detectarAccion("se me fue 200 en gasolina", HOY)!.tipo).toBe("gasto");
+  });
+
+  it("pago: variantes 'abono de' / 'cobré'", () => {
+    expect(detectarAccion("abono de 200 de Edwin", HOY)!.tipo).toBe("pago");
+    expect(detectarAccion("cobré 400 de Ana", HOY)!.tipo).toBe("pago");
+  });
+
+  it("pedido abre formulario, no ejecuta", () => {
+    expect(detectarAccion("hazle un pedido a Edwin", HOY)!.tipo).toBe("pedido");
+  });
+
+  it("evento: 'agrega al calendario' con día", () => {
+    const a = detectarAccion("agrega al calendario entrega el lunes", HOY)!;
+    expect(a.tipo).toBe("evento");
+    expect(a.slots.fecha).toBeDefined();
+  });
+
   it("consultas NO son acciones (sin monto/verbo de acción)", () => {
     expect(detectarAccion("cuánto gasté este mes", HOY)).toBeNull();
     expect(detectarAccion("quién me debe", HOY)).toBeNull();
     expect(detectarAccion("cuánto le debo a Juan", HOY)).toBeNull();
+    expect(detectarAccion("mis pedidos activos", HOY)).toBeNull();
+    expect(detectarAccion("a quién le debo", HOY)).toBeNull();
   });
 });

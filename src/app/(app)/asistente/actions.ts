@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/ratelimit";
 import { rdToday } from "@/lib/fecha";
-import { responder, proponerAccion, type Answer } from "@/lib/asistente/answer";
+import { responder, proponerAccion, interpretarConIA, type Answer } from "@/lib/asistente/answer";
 import { detectarIntencion, INTENT_LABEL, EJEMPLO, type IntentId } from "@/lib/asistente/intents";
 import type { AccionData } from "@/lib/asistente/acciones";
 import { addExpense, addIncome } from "@/app/(app)/finanzas/actions";
@@ -37,6 +37,13 @@ export async function preguntar(texto: string): Promise<Answer & { error?: strin
 
   // 2) Si no, es una CONSULTA.
   const res = await responder(limpio);
+
+  // 3) Punto de IA futura: si las reglas no entendieron, se intenta la IA.
+  //    Hoy devuelve null (sin IA externa) → cae al mensaje honesto de categorías.
+  if (res.intent === "desconocido") {
+    const ia = await interpretarConIA(limpio);
+    if (ia) return ia;
+  }
 
   // Contador de uso (best-effort: si aún no existe la tabla, no rompe nada).
   const { intent } = detectarIntencion(limpio);
