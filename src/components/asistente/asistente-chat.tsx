@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Sparkles, Send, Loader2, ChevronRight, Star } from "lucide-react";
-import { preguntar, getFaqTop, toggleFavorita, type FaqQuick } from "@/app/(app)/asistente/actions";
+import { Sparkles, Send, Loader2, ChevronRight, Star, Check, X } from "lucide-react";
+import { preguntar, getFaqTop, toggleFavorita, ejecutarAccion, type FaqQuick } from "@/app/(app)/asistente/actions";
 import type { Answer } from "@/lib/asistente/answer";
 import { CATEGORIAS, EJEMPLO, type IntentId } from "@/lib/asistente/intents";
 import { cn } from "@/lib/utils";
@@ -114,6 +114,8 @@ function BotBubble({ answer, onNavigate, onFav, onChip }: {
         </ul>
       )}
 
+      {answer.accion && <ConfirmAccion accion={answer.accion} onNavigate={onNavigate} />}
+
       {answer.fallback && (
         <div className="flex flex-wrap gap-1.5 pt-1">
           {CATEGORIAS.map((c) => (
@@ -124,6 +126,37 @@ function BotBubble({ answer, onNavigate, onFav, onChip }: {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Botones Sí/No para confirmar una acción antes de guardarla (regla de oro con dinero). */
+function ConfirmAccion({ accion, onNavigate }: { accion: NonNullable<Answer["accion"]>; onNavigate?: () => void }) {
+  const [estado, setEstado] = useState<"idle" | "loading" | "ok" | "err" | "cancel">("idle");
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function confirmar() {
+    setEstado("loading");
+    const r = await ejecutarAccion(accion.data);
+    if (r.ok) { setEstado("ok"); setMsg(r.mensaje ?? "Hecho ✅"); onNavigate?.(); }
+    else { setEstado("err"); setMsg(r.error ?? "No se pudo completar."); }
+  }
+
+  if (estado === "loading") return <p className="flex items-center gap-2 pt-1 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Guardando…</p>;
+  if (estado === "ok") return <p className="flex items-center gap-1.5 pt-1 text-sm font-medium text-emerald-400"><Check className="size-4" /> {msg}</p>;
+  if (estado === "err") return <p className="pt-1 text-sm font-medium text-red-400">{msg}</p>;
+  if (estado === "cancel") return <p className="pt-1 text-sm text-muted-foreground">Cancelado.</p>;
+
+  return (
+    <div className="flex gap-2 pt-1">
+      <button onClick={confirmar}
+        className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[linear-gradient(135deg,var(--electric),var(--brand-purple))] px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+        <Check className="size-4" /> Sí, confirmar
+      </button>
+      <button onClick={() => { setEstado("cancel"); setMsg(null); }}
+        className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-accent">
+        <X className="size-4" /> No
+      </button>
     </div>
   );
 }

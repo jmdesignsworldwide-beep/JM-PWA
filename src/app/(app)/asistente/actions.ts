@@ -2,8 +2,16 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/ratelimit";
-import { responder, type Answer } from "@/lib/asistente/answer";
+import { rdToday } from "@/lib/fecha";
+import { responder, proponerAccion, type Answer } from "@/lib/asistente/answer";
 import { detectarIntencion, INTENT_LABEL, EJEMPLO, type IntentId } from "@/lib/asistente/intents";
+import type { AccionData } from "@/lib/asistente/acciones";
+import { addExpense, addIncome } from "@/app/(app)/finanzas/actions";
+import { addDebt } from "@/app/(app)/cobros/debt-actions";
+import { addEvent } from "@/app/(app)/cobros/actions";
+import { addOrderPayment } from "@/app/(app)/pedidos/actions";
+import { createLead } from "@/app/(app)/leads/actions";
+import { addTodo } from "@/app/(app)/pendientes/actions";
 
 /** Solo el owner usa el asistente. */
 async function requireOwner() {
@@ -23,6 +31,11 @@ export async function preguntar(texto: string): Promise<Answer & { error?: strin
   const limpio = (texto ?? "").slice(0, 300);
   if (!limpio.trim()) return { intent: "desconocido", titulo: "Escribe una pregunta", texto: "Ej.: “quién me debe”, “cuánto gasté este mes”, “qué tengo esta semana”." };
 
+  // 1) ¿Es una ACCIÓN? (registrar/agendar/crear). Se PROPONE y se confirma; no ejecuta aquí.
+  const accion = await proponerAccion(limpio);
+  if (accion) return accion;
+
+  // 2) Si no, es una CONSULTA.
   const res = await responder(limpio);
 
   // Contador de uso (best-effort: si aún no existe la tabla, no rompe nada).
@@ -61,6 +74,67 @@ export async function getFaqTop(): Promise<FaqQuick[]> {
     return [...usados, ...faltan].slice(0, 6);
   } catch {
     return base.map((id) => toQuick(id));
+  }
+}
+
+export type ResultadoAccion = { ok?: boolean; error?: string; mensaje?: string };
+
+/**
+ * Ejecuta la acción YA confirmada por el owner (botón "Sí"). Solo owner,
+ * auditado por las server actions reutilizadas. Re-valida el monto: nunca
+ * guarda dinero sin un valor > 0. Reutiliza la fuente única (no re-teclea).
+ */
+export async function ejecutarAccion(data: AccionData): Promise<ResultadoAccion> {
+  const auth = await requireOwner();
+  if ("error" in auth) return { error: auth.error };
+  if (!rateLimit(`asistente-accion:${auth.userId}`, 20, 60_000)) return { error: "Vas muy rápido, intenta en unos segundos." };
+  const hoy = rdToday();
+  const requiereMonto = () => !!data.monto && data.monto > 0;
+
+  try {
+    switch (data.tipo) {
+      case "pendiente": {
+        const texto = (data.concepto ?? "").trim();
+        if (!texto) return { error: "Falta el texto del pendiente." };
+        const r = await addTodo(texto, null);
+        return "error" in r ? { error: r.error } : { ok: true, mensaje: "Pendiente anotado ✅" };
+      }
+      case "gasto": {
+        if (!requiereMonto()) return { error: "Monto inválido." };
+        const r = await addExpense({ monto: data.monto!, moneda: data.moneda ?? "DOP", fecha: data.fecha ?? hoy, categoria: data.concepto?.trim() || null, es_personal: !!data.esPersonal });
+        return "error" in r ? { error: r.error } : { ok: true, mensaje: "Gasto registrado ✅" };
+      }
+      case "ingreso": {
+        if (!requiereMonto()) return { error: "Monto inválido." };
+        const r = await addIncome({ monto: data.monto!, moneda: data.moneda ?? "DOP", fecha: data.fecha ?? hoy, descripcion: data.concepto?.trim() || null, es_personal: !!data.esPersonal });
+        return "error" in r ? { error: r.error } : { ok: true, mensaje: "Ingreso registrado ✅" };
+      }
+      case "evento": {
+        if (!data.fecha) return { error: "Falta la fecha del evento." };
+        const r = await addEvent({ titulo: data.concepto?.trim() || "Evento", tipo: "personal", fecha: data.fecha, hora: data.hora ?? null, client_id: data.clientId ?? null });
+        return "error" in r ? { error: r.error } : { ok: true, mensaje: "Evento agendado ✅" };
+      }
+      case "deuda": {
+        if (!requiereMonto()) return { error: "Monto inválido." };
+        const r = await addDebt({ client_id: data.clientId ?? null, nuevoPersonalNombre: data.nombreNuevo ?? null, monto: data.monto!, moneda: data.moneda ?? "DOP", fecha: hoy, concepto: data.concepto?.trim() || null });
+        return "error" in r ? { error: r.error } : { ok: true, mensaje: "Deuda registrada ✅" };
+      }
+      case "pago": {
+        if (!requiereMonto() || !data.orderId) return { error: "Datos del abono incompletos." };
+        const r = await addOrderPayment({ order_id: data.orderId, monto: data.monto!, moneda: data.moneda ?? "DOP", fecha: hoy, tipo: "abono" });
+        return "error" in r ? { error: r.error } : { ok: true, mensaje: "Abono registrado ✅" };
+      }
+      case "cliente": {
+        const nombre = (data.nombreNuevo ?? "").trim();
+        if (!nombre) return { error: "Falta el nombre." };
+        const r = await createLead({ nombre, es_lead: !!data.esProspecto });
+        return "error" in r ? { error: r.error } : { ok: true, mensaje: data.esProspecto ? "Prospecto guardado ✅" : "Cliente guardado ✅" };
+      }
+      default:
+        return { error: "No puedo ejecutar esa acción desde aquí." };
+    }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "No se pudo completar la acción." };
   }
 }
 
